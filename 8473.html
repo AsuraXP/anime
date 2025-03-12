@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <meta name="robots" content="noindex, nofollow">
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js"
+        integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/gh/erenyeager-attacktitan/jwplayer/jw.js"></script>
+    
+</head>
+
+<body>
+    <div class="wrap">
+        <div id="player"></div>
+    </div>
+
+    <script>
+        // Initialize JWPlayer with the video URL
+        const playerInstance = jwplayer("player").setup({
+            controls: true,
+            displaytitle: true,
+            displaydescription: true,
+            autostart: false,
+            abouttext: "ZZCartoon",
+            aboutlink: "https://www.zzcartoon.com",
+            playlist: [{
+                title: "",
+                description: "",
+                sources: [{
+                    file: "https://www.zzcartoon.com/get_file/1/14c866d6d05566f1d239a9ea6bf734b7/8000/8473/8473.mp4",
+                    type: "video/mp4"
+                }]
+            }],
+            width: "100%",
+            height: "100%"
+        });
+
+        // Error handling for JWPlayer
+        playerInstance.on("error", function (error) {
+            console.error("JWPlayer Error:", error);
+        });
+    </script>
+</body>
+
+</html>

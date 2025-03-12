@@ -1,0 +1,17 @@
+{
+    "short_name": "Ryuk",
+    "name": "Ryuk",
+    "icons": [
+        {
+            "src": "./ryuk.png",
+            "type": "image/png",
+            "sizes": "256x256"
+        }
+    ],
+    "start_url": "/?source=pwa",
+    "background_color": "#000",
+    "display": "standalone",
+    "scope": "/",
+    "theme_color": "#171717",
+    "description": "Ryuk - Watch anime online, English anime online free | Chromecast Available"
+}
