@@ -56,6 +56,18 @@ if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L 2>/dev/null | grep -q 
   NGPU="$(nvidia-smi -L 2>/dev/null | grep -c GPU || true)"
   echo "== GPU detected: $NGPU x $(nvidia-smi -L | head -1 | sed 's/.*: //') =="
   NGPU="${NGPU:-1}"
+  # Point Chrome's Vulkan/EGL at the NVIDIA driver explicitly — in containers the
+  # default ICD search often misses nvidia_icd.json and Chrome silently picks SwiftShader.
+  NVIDIA_ICDS="$(grep -l -i nvidia /usr/share/vulkan/icd.d/*.json /etc/vulkan/icd.d/*.json /usr/local/share/vulkan/icd.d/*.json 2>/dev/null | paste -sd: - || true)"
+  if [ -n "$NVIDIA_ICDS" ]; then
+    export VK_ICD_FILENAMES="$NVIDIA_ICDS${VK_ICD_FILENAMES:+:$VK_ICD_FILENAMES}"
+    export VK_DRIVER_FILES="$NVIDIA_ICDS${VK_DRIVER_FILES:+:$VK_DRIVER_FILES}"
+    echo "   VK_ICD_FILENAMES=$VK_ICD_FILENAMES"
+  else
+    echo "   WARNING: no nvidia vulkan ICD json found; Chrome may fall back to SwiftShader" >&2
+  fi
+  export __GLX_VENDOR_LIBRARY_NAME=nvidia
+  [ -d /usr/share/glvnd/egl_vendor.d ] && export __EGL_VENDOR_LIBRARY_DIRS=/usr/share/glvnd/egl_vendor.d
 else
   NGPU=0
 fi

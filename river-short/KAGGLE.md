@@ -29,6 +29,7 @@ Expected time on T4 x2: **~15–30 min total** (vs ~3 h on this 2-core sandbox).
 Result: `out/river-short-2k.mp4` — 1440×2560, 30 fps, 64.3 s, h264 + AAC, audio −15 LUFS / −2.4 dBTP.
 
 Notes
+- On GPU machines `build.sh` exports `VK_ICD_FILENAMES`/`VK_DRIVER_FILES` pointing at the **NVIDIA** Vulkan ICD (in containers Chrome otherwise silently picks SwiftShader — the probe prints the real WebGL renderer so you can see it).
 - `build.sh` picks the render backend **definitively**: for each GPU candidate it reads the browser's WebGL renderer string (`scripts/gpu-check.cjs`) and only accepts it if it says NVIDIA/GeForce/T4 — not SwiftShader — AND a 10-frame probe averages ≤10 s/frame. Candidates: `gl:"vulkan"` headless → `gl:"angle-egl"` headless → `gl:"angle-egl"` headed under `xvfb-run`. If none is a real GPU, it falls back to `gl:"swangle"` CPU at 1080×1920 (mux upscales to 2K). `--timeout=300000` avoids the default 30 s delayRender timeout. Probe log: `out/probe.log`.
 - GPU works → native 1440×2560 (`RiverShort2K`, MSAA 4). CPU fallback → 1080×1920 and the mux lanczos-upscales to 1440×2560. Either way the deliverable is the same spec.
 - Override browser with `BROWSER=$(which google-chrome) bash scripts/build.sh` if needed.
