@@ -34,7 +34,7 @@ python3 scripts/gen_shots.py
 echo "== 2/6 browser =="
 export BROWSER="${BROWSER:-$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)}"
 if [ -z "${BROWSER:-}" ]; then
-  npx --yes playwright install chromium >/dev/null 2>&1 || true
+  npx --yes playwright install chromium --with-deps >/dev/null 2>&1 || npx --yes playwright install chromium >/dev/null 2>&1 || true
   export BROWSER="$(node -p "require('playwright').chromium.executablePath()" 2>/dev/null || find "$HOME/.cache/ms-playwright" -type f -name chrome -path '*chromium-*' 2>/dev/null | sort | tail -1)"
 fi
 echo "browser: $BROWSER"

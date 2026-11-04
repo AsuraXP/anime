@@ -7,7 +7,7 @@ PREFIX="${1:-out/qa}"; FRAMES="${2:-0,60,180,300}"; SCALE="${3:-0.5}"
 npm i --no-save playwright >/dev/null 2>&1 || true
 export BROWSER="${BROWSER:-$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)}"
 if [ -z "${BROWSER:-}" ]; then
-  npx --yes playwright install chromium >/dev/null 2>&1 || true
+  npx --yes playwright install chromium --with-deps >/dev/null 2>&1 || npx --yes playwright install chromium >/dev/null 2>&1 || true
   export BROWSER="$(node -p "require('playwright').chromium.executablePath()" 2>/dev/null || find "$HOME/.cache/ms-playwright" -type f -name chrome -path '*chromium-*' 2>/dev/null | sort | tail -1)"
 fi
 export OPTS='{"gl":"swangle","args":["--no-sandbox","--disable-dev-shm-usage","--enable-unsafe-swiftshader","--disable-gpu","--mute-audio"]}'
