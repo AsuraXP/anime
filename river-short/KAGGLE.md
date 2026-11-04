@@ -29,6 +29,7 @@ Expected time on T4 x2: **~15–30 min total** (vs ~3 h on this 2-core sandbox).
 Result: `out/river-short-2k.mp4` — 1440×2560, 30 fps, 64.3 s, h264 + AAC, audio −15 LUFS / −2.4 dBTP.
 
 Notes
-- If the GPU path fails, `build.sh` automatically falls back to CPU swiftshader (slower, still correct; then the mux upscales 1080×1920 → 1440×2560).
+- `build.sh` probes render backends with 3 frames first (GPU Vulkan → GPU ANGLE-GL → CPU swiftshader) and uses `--timeout=300000` so slow first frames (shader compile + GLB load) don't trip the default 30 s delayRender timeout. Probe log: `out/probe.log`.
+- GPU works → native 1440×2560 (`RiverShort2K`, MSAA 4). CPU fallback → 1080×1920 and the mux lanczos-upscales to 1440×2560. Either way the deliverable is the same spec.
 - Override browser with `BROWSER=$(which google-chrome) bash scripts/build.sh` if needed.
 - No Kaggle? Any machine with a GPU + node 18+ works the same: clone the branch, `cd river-short`, `bash scripts/build.sh`.
