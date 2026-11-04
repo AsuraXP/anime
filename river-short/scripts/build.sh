@@ -26,12 +26,12 @@ FPBIN="$(node -p "require('@ffprobe-installer/ffprobe').path")"
 export PATH="$(dirname "$FFBIN"):$(dirname "$FPBIN"):$PATH"
 export FFMPEG="$FFBIN"
 
-# chromium: @sparticuz/chromium (downloads on first run); fallback to system
+# chromium: prefer a system chrome (Kaggle images ship google-chrome), else @sparticuz/chromium, else playwright
 if [ -z "${BROWSER:-}" ]; then
-  BROWSER="$(node -p "require('@sparticuz/chromium').executablePath().catch?.(()=>'') || require('@sparticuz/chromium').executablePath()" 2>/dev/null || true)"
+  BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
 fi
 if [ -z "${BROWSER:-}" ] || [ ! -x "$BROWSER" ]; then
-  BROWSER="$(command -v chromium || command -v chromium-browser || command -v google-chrome || true)"
+  BROWSER="$(node -p "require('@sparticuz/chromium').executablePath()" 2>/dev/null || true)"
 fi
 if [ -z "${BROWSER:-}" ]; then
   echo "no chromium found; installing via npx playwright..." >&2
