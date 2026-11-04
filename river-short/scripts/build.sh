@@ -18,6 +18,7 @@ echo "== 1/5 dependencies =="
 if [ ! -d node_modules ]; then
   npm ci --legacy-peer-deps
 fi
+npm i --no-save playwright >/dev/null 2>&1 || true   # only used by scripts/gpu-check.cjs
 python3 -c "import numpy, PIL" 2>/dev/null || pip install --quiet numpy pillow
 
 # ffmpeg/ffprobe from npm packages (no system install needed)
@@ -62,40 +63,52 @@ OPTS='{"gl":"swangle","args":["--no-sandbox","--disable-dev-shm-usage","--mute-a
 COMP=RiverShort   # defaults; the probe below may upgrade to GPU/2K
 
 mkdir -p out
+PRE=""   # optional launch wrapper, e.g. "xvfb-run -a" for a headed GPU candidate
 probe () { # $1=chromium-options json  $2=composition ; renders 10 frames, echoes avg seconds/frame (999 on failure)
   rm -f out/probe.mp4
   local s=$SECONDS
-  if ! npx remotion render src/index.ts "$2" out/probe.mp4 --codec h264 --crf 20 --frames=0-9 \
+  if ! env $PRE npx remotion render src/index.ts "$2" out/probe.mp4 --codec h264 --crf 20 --frames=0-9 \
        --timeout=300000 --browser-executable="$BROWSER" --chromium-options="$1" > out/probe.log 2>&1; then
     echo 999; return 1
   fi
   echo $(( (SECONDS - s) / 10 ))
 }
-# pick a render backend by probing 10 frames and TIMING it (a real GPU is seconds/frame;
-# a silent software fallback is 10s+/frame, so slow "success" is rejected for GPU candidates).
-# Remotion's built-in gl modes are used: "vulkan" fails loudly if no GPU (no silent GL fallback),
-# "swangle" is the CPU path. GPU picks the native 2K composition.
+gpu_renderer () { # $1=chromium-options json ; echoes the WebGL renderer string ("" on failure)
+  env $PRE OPTS_JSON="$1" BROWSER="$BROWSER" node scripts/gpu-check.cjs 2>/dev/null | sed -n 's/^WEBGL_RENDERER=//p'
+}
+# Select a backend. A GPU candidate is accepted only if the browser's WebGL renderer is a real
+# NVIDIA GPU (not SwiftShader) AND a 10-frame probe averages <=10 s/frame. Otherwise CPU swiftshader.
+# Candidates: native vulkan (headless) -> angle-egl (headless) -> angle-egl headed under Xvfb.
 OK=0
 if [ "${NGPU:-0}" -ge 1 ]; then
-  for c in \
-    '{"gl":"vulkan","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio"]}|RiverShort2K' \
-    '{"gl":"angle-egl","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio"]}|RiverShort2K' ; do
-    OPTS="${c%%|*}"; COMP="${c##*|}"
-    echo "== probing GPU backend: $COMP gl=${OPTS:0:20} =="
-    SPF="$(probe "$OPTS" "$COMP")" && SPF="${SPF:-999}"
-    echo "   probe: ${SPF}s/frame"
-    if [ "${SPF:-999}" -le 10 ]; then OK=1; break; fi
-  done
+  while IFS='|' read -r name cand pre; do
+    [ -z "$name" ] && continue
+    OPTS="$cand"; COMP=RiverShort2K; PRE="$pre"
+    R="$(gpu_renderer "$OPTS")"
+    echo "== candidate $name: WebGL renderer = ${R:-<none>} =="
+    case "$R" in
+      *NVIDIA*|*GeForce*|*Quadro*|*Tesla*|*"T4"*|*"T4 "*|*T40*)
+        SPF="$(probe "$OPTS" "$COMP")" && SPF="${SPF:-999}"
+        echo "   probe: ${SPF}s/frame"
+        if [ "${SPF:-999}" -le 10 ]; then OK=1; break; fi
+        ;;
+    esac
+  done <<'CANDS'
+vulkan|{"gl":"vulkan","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio"]}|
+angle-egl|{"gl":"angle-egl","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio"]}|
+egl-xvfb|{"gl":"angle-egl","headless":false,"args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio"]}|xvfb-run -a
+CANDS
 fi
 if [ "$OK" = 0 ]; then
+  PRE=""
   OPTS='{"gl":"swangle","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio"]}'
   COMP=RiverShort
-  echo "== probing CPU swiftshader (1080p) =="
+  echo "== no usable GPU; probing CPU swiftshader (1080p) =="
   probe "$OPTS" "$COMP" >/dev/null || { echo "all backends failed; see out/probe.log" >&2; exit 1; }
 fi
-echo "== backend selected: $COMP (${SPF:-?}s/frame on probe) =="
+echo "== backend selected: $COMP wrapper='${PRE}' (${SPF:-?}s/frame on probe) =="
 render_range () { # $1=frames  $2=outfile  $3=extra env
-  env $3 npx remotion render src/index.ts "$COMP" "$2" --codec h264 --crf 16 --timeout=300000 \
+  env $3 $PRE npx remotion render src/index.ts "$COMP" "$2" --codec h264 --crf 16 --timeout=300000 \
     --frames="$1" --browser-executable="$BROWSER" --chromium-options="$OPTS"
 }
 
