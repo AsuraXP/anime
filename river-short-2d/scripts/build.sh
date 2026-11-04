@@ -23,7 +23,7 @@ export FFMPEG="$FFBIN"; export FFPROBE="$(command -v ffprobe || echo "$FFBIN")"
 if [ ! -f voice/voice.wav ]; then
   echo "== generating voice (edge-tts Andrew @ -20%) =="
   pip install --quiet --break-system-packages edge-tts 2>/dev/null || pip install --quiet edge-tts
-  python3 scripts/tts_edge.py --voice "${TTS_VOICE:-en-US-AndrewNeural}" --rate "${TTS_RATE:--20%}"
+  python3 scripts/tts_edge.py --voice "${TTS_VOICE:-en-US-AndrewNeural}" --rate="${TTS_RATE:--20%}"
 fi
 if [ ! -f audio/mix.wav ]; then
   echo "== mixing audio =="

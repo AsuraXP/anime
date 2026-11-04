@@ -44,7 +44,18 @@ def main():
     ap.add_argument("--voice", default="en-US-AndrewNeural")
     ap.add_argument("--rate", default="-20%")
     ap.add_argument("--script", default=os.path.join(ROOT, "SCRIPT2D.md"))
-    args = ap.parse_args()
+    # allow "--rate -20%" (value starts with '-') by pre-merging into "--rate=-20%"
+    argv = sys.argv[1:]
+    merged = []
+    i = 0
+    while i < len(argv):
+        if argv[i] in ("--rate", "--voice", "--script") and i + 1 < len(argv):
+            merged.append(f"{argv[i]}={argv[i + 1]}")
+            i += 2
+        else:
+            merged.append(argv[i])
+            i += 1
+    args = ap.parse_args(merged)
     os.makedirs(VOICE, exist_ok=True)
     import numpy as np
     import soundfile as sf
