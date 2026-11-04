@@ -59,14 +59,31 @@ if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L 2>/dev/null | grep -q 
   # Point Chrome's Vulkan/EGL at the NVIDIA driver explicitly — in containers the
   # default ICD search often misses nvidia_icd.json and Chrome silently picks SwiftShader.
   NVIDIA_ICDS="$(grep -l -i nvidia /usr/share/vulkan/icd.d/*.json /etc/vulkan/icd.d/*.json /usr/local/share/vulkan/icd.d/*.json 2>/dev/null | paste -sd: - || true)"
+  if [ -z "$NVIDIA_ICDS" ]; then
+    # container has the driver libs but no ICD json: write one pointing at libGLX_nvidia
+    NVGLX="$(ldconfig -p 2>/dev/null | awk '/libGLX_nvidia\.so/{print $NF; exit}')"
+    [ -z "$NVGLX" ] && NVGLX="$(find /usr/lib /usr/local/lib /lib -name 'libGLX_nvidia.so.*' 2>/dev/null | head -1)"
+    if [ -n "$NVGLX" ]; then
+      mkdir -p /etc/vulkan/icd.d
+      printf '{"file_format_version":"1.0.0","ICD":{"library_path":"%s","api_version":"1.3.0"}}\n' "$NVGLX" > /etc/vulkan/icd.d/nvidia_icd.json
+      NVIDIA_ICDS=/etc/vulkan/icd.d/nvidia_icd.json
+      echo "   wrote /etc/vulkan/icd.d/nvidia_icd.json -> $NVGLX"
+    else
+      echo "   WARNING: libGLX_nvidia not found either; Chrome will fall back to SwiftShader" >&2
+    fi
+  fi
   if [ -n "$NVIDIA_ICDS" ]; then
     export VK_ICD_FILENAMES="$NVIDIA_ICDS${VK_ICD_FILENAMES:+:$VK_ICD_FILENAMES}"
     export VK_DRIVER_FILES="$NVIDIA_ICDS${VK_DRIVER_FILES:+:$VK_DRIVER_FILES}"
     echo "   VK_ICD_FILENAMES=$VK_ICD_FILENAMES"
-  else
-    echo "   WARNING: no nvidia vulkan ICD json found; Chrome may fall back to SwiftShader" >&2
   fi
   export __GLX_VENDOR_LIBRARY_NAME=nvidia
+  # same for the EGL/glvnd path used by the angle-egl candidate
+  if [ ! -e /usr/share/glvnd/egl_vendor.d/10_nvidia.json ]; then
+    NVEGL="$(ldconfig -p 2>/dev/null | awk '/libEGL_nvidia\.so/{print $NF; exit}')"
+    [ -n "$NVEGL" ] && mkdir -p /usr/share/glvnd/egl_vendor.d && \
+      printf '{"file_format_version":"1.0.0","ICD":{"library_path":"%s","api_version":"1.0.0"}}\n' "$NVEGL" > /usr/share/glvnd/egl_vendor.d/10_nvidia.json
+  fi
   [ -d /usr/share/glvnd/egl_vendor.d ] && export __EGL_VENDOR_LIBRARY_DIRS=/usr/share/glvnd/egl_vendor.d
 else
   NGPU=0
