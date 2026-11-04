@@ -19,20 +19,45 @@ def chunks(script_path):
     return [(f"c{i}", p) for i, p in enumerate(paras)] or [("c0", txt.strip())]
 
 
-async def gen_chunk(text, voice, rate, out_mp3):
+async def gen_chunk(text, voice, rate, out_mp3, attempts=3):
+    import edge_tts, time
+    last_err = None
+    for a in range(attempts):
+        try:
+            com = edge_tts.Communicate(text, voice, rate=rate)
+            audio = bytearray()
+            words = []
+            debug = []
+            async for ch in com.stream():
+                t = ch.get("type")
+                if t == "audio":
+                    audio += ch["data"]
+                elif t in ("WordBoundaryEvent", "WordBoundary"):
+                    off, dur = ch.get("offset", 0), ch.get("duration", 0)
+                    words.append({"w": ch.get("text", ""), "t0": off / 1e7, "t1": (off + dur) / 1e7})
+                else:
+                    debug.append(str(ch)[:200])
+            if not audio:
+                raise RuntimeError("empty audio; last messages: " + " | ".join(debug[-3:]))
+            open(out_mp3, "wb").write(bytes(audio))
+            return words
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            print(f"  chunk attempt {a+1}/{attempts} failed: {type(e).__name__}: {e}", file=sys.stderr)
+            time.sleep(1.5 * (a + 1))
+    raise RuntimeError(f"edge-tts failed after {attempts} attempts: {last_err}")
+
+
+async def probe(voice, rate):
     import edge_tts
-    com = edge_tts.Communicate(text, voice, rate=rate)
-    audio = bytearray()
-    words = []
-    async for ch in com.stream():
-        t = ch.get("type")
-        if t == "audio":
-            audio += ch["data"]
-        elif t in ("WordBoundaryEvent", "WordBoundary"):
-            off, dur = ch.get("offset", 0), ch.get("duration", 0)
-            words.append({"w": ch.get("text", ""), "t0": off / 1e7, "t1": (off + dur) / 1e7})
-    open(out_mp3, "wb").write(bytes(audio))
-    return words
+    print("== listing voices (connectivity + auth check) ==")
+    vs = await edge_tts.list_voices()
+    en = [v["ShortName"] for v in vs if v.get("Locale", "").startswith("en-US")][:12]
+    print(f"  {len(vs)} voices total; en-US sample: {en}")
+    print("== tiny synthesis test ==")
+    words = await gen_chunk("Hello river.", voice, rate, "/tmp/probe.mp3", attempts=1)
+    print("  OK, words:", words)
+
 
 
 def ffmpeg():
@@ -44,6 +69,7 @@ def main():
     ap.add_argument("--voice", default="en-US-AndrewNeural")
     ap.add_argument("--rate", default="-20%")
     ap.add_argument("--script", default=os.path.join(ROOT, "SCRIPT2D.md"))
+    ap.add_argument("--probe", action="store_true", help="only test connectivity/voice, no files written")
     # allow "--rate -20%" (value starts with '-') by pre-merging into "--rate=-20%"
     argv = sys.argv[1:]
     merged = []
@@ -56,6 +82,9 @@ def main():
             merged.append(argv[i])
             i += 1
     args = ap.parse_args(merged)
+    if args.probe:
+        asyncio.run(probe(args.voice, args.rate))
+        return
     os.makedirs(VOICE, exist_ok=True)
     import numpy as np
     import soundfile as sf
@@ -68,7 +97,14 @@ def main():
     for name, text in chunks_list:
         mp3 = os.path.join(VOICE, f"{name}.mp3")
         wav48 = os.path.join(VOICE, f"{name}.wav")
-        words = asyncio.run(gen_chunk(text, args.voice, args.rate, mp3))
+        try:
+            words = asyncio.run(gen_chunk(text, args.voice, args.rate, mp3))
+        except Exception as e:
+            print(f"ERROR: edge-tts could not synthesize chunk {name!r}: {e}", file=sys.stderr)
+            print("Hints: run `python3 scripts/tts_edge.py --probe` for diagnostics;", file=sys.stderr)
+            print("check the system clock (`date -u`) — SEC-MS-GEC tokens are time-based;", file=sys.stderr)
+            print("try another voice, e.g. --voice en-US-AriaNeural --rate=-20%.", file=sys.stderr)
+            sys.exit(1)
         # decode mp3 -> 48 kHz mono wav with ffmpeg (correct resampling, no pitch shift)
         subprocess.run([ffmpeg(), "-y", "-v", "error", "-i", mp3, "-ar", str(SR), "-ac", "1", wav48], check=True)
         x, _ = sf.read(wav48, dtype="float32")
