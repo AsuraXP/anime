@@ -9,10 +9,14 @@ iterate in seconds.
 2. Edit the shot table in `src/story.ts` (`SHOTS`: a, b, from/to camera `{x,y,z,roll}` — 10 min ≈ 40–60 rows).
 3. Run on Kaggle (GPU optional — 2D doesn't need it; internet ON for edge-tts):
 
-```bash
-git clone --branch arena/5087ed9f-anime --depth 1 --filter=blob:none --sparse https://github.com/AsuraXP/anime.git
-cd anime && git sparse-checkout set river-short-2d && cd river-short-2d
-bash scripts/make.sh all 0,120,240,359     # voice (edge-tts Andrew -20%) -> mix -> stills -> render 2K -> QA
+```python
+# Kaggle notebook cells — %cd PERSISTS between cells; !cd does NOT:
+!git clone --branch arena/5087ed9f-anime --depth 1 --filter=blob:none --sparse https://github.com/AsuraXP/anime.git
+!cd anime && git sparse-checkout set river-short-2d
+%cd /kaggle/working/anime/river-short-2d
+```
+```python
+!bash scripts/make.sh all 0,120,240,359     # voice (edge-tts Andrew -20%) -> mix -> stills -> render 2K -> QA
 # or stage by stage:
 #   bash scripts/make.sh voice             # edge-tts -> voice/voice.wav + words.json + src/words.gen.json
 #   bash scripts/make.sh audio             # audio/mix.wav  (-15 LUFS / -2 dBTP)
