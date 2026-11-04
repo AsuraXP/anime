@@ -24,21 +24,26 @@ async def gen_chunk(text, voice, rate, out_mp3, attempts=3):
     last_err = None
     for a in range(attempts):
         try:
-            com = edge_tts.Communicate(text, voice, rate=rate)
+            com = edge_tts.Communicate(text, voice, rate=rate, boundary="WordBoundary")
             audio = bytearray()
             words = []
             debug = []
-            async for ch in com.stream():
-                t = ch.get("type")
-                if t == "audio":
-                    audio += ch["data"]
-                elif t in ("WordBoundaryEvent", "WordBoundary"):
-                    off, dur = ch.get("offset", 0), ch.get("duration", 0)
-                    words.append({"w": ch.get("text", ""), "t0": off / 1e7, "t1": (off + dur) / 1e7})
-                else:
-                    debug.append(str(ch)[:200])
+            try:
+                async for ch in com.stream():
+                    t = ch.get("type")
+                    if t == "audio":
+                        audio += ch["data"]
+                    elif t in ("WordBoundary", "WordBoundaryEvent", "SentenceBoundary"):
+                        off, dur = ch.get("offset", 0), ch.get("duration", 0)
+                        words.append({"w": ch.get("text", ""), "t0": off / 1e7, "t1": (off + dur) / 1e7})
+                    else:
+                        debug.append(str(ch)[:300])
+            except Exception as e:
+                if debug:
+                    print("  server messages: " + " | ".join(debug[-4:]), file=sys.stderr)
+                raise
             if not audio:
-                raise RuntimeError("empty audio; last messages: " + " | ".join(debug[-3:]))
+                raise RuntimeError("empty audio; server messages: " + " | ".join(debug[-4:]))
             open(out_mp3, "wb").write(bytes(audio))
             return words
         except Exception as e:  # noqa: BLE001
@@ -50,13 +55,17 @@ async def gen_chunk(text, voice, rate, out_mp3, attempts=3):
 
 async def probe(voice, rate):
     import edge_tts
-    print("== listing voices (connectivity + auth check) ==")
+    print("== listing voices (connectivity check) ==")
     vs = await edge_tts.list_voices()
     en = [v["ShortName"] for v in vs if v.get("Locale", "").startswith("en-US")][:12]
     print(f"  {len(vs)} voices total; en-US sample: {en}")
-    print("== tiny synthesis test ==")
-    words = await gen_chunk("Hello river.", voice, rate, "/tmp/probe.mp3", attempts=1)
-    print("  OK, words:", words)
+    print("== tiny synthesis tests (voice x rate combos) ==")
+    for v, r in [(voice, rate), (voice, "+0%"), ("en-US-AriaNeural", "-20%"), ("en-US-AriaNeural", "+0%")]:
+        try:
+            words = await gen_chunk("Hello river.", v, r, "/tmp/probe.mp3", attempts=1)
+            print(f"  OK   voice={v} rate={r} words={len(words)}")
+        except Exception as e:
+            print(f"  FAIL voice={v} rate={r}: {type(e).__name__}: {str(e)[:160]}")
 
 
 
