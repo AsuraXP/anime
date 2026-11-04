@@ -11,9 +11,11 @@
 ```
 
 ```python
-# Cell 2 — full build: npm ci -> render (GPU, native 2K) -> mux -> QA
+# Cell 2 — pull the latest fixes, then full build: npm ci -> chromium -> GPU probe
+# (3 frames; auto-falls back to CPU if WebGL-on-GPU fails) -> render -> mux -> QA
 # SPLIT=1 uses both T4s (two frame halves in parallel on separate GPUs)
-!SPLIT=1 bash scripts/build.sh
+!cd /kaggle/working/anime && git pull --ff-only
+!cd river-short && SPLIT=1 bash scripts/build.sh
 ```
 
 ```python

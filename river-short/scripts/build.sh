@@ -34,9 +34,19 @@ if [ -z "${BROWSER:-}" ] || [ ! -x "$BROWSER" ]; then
   BROWSER="$(node -p "require('@sparticuz/chromium').executablePath()" 2>/dev/null || true)"
 fi
 if [ -z "${BROWSER:-}" ]; then
-  echo "no chromium found; installing via npx playwright..." >&2
-  npx --yes playwright@latest install chromium --with-deps || npx --yes playwright@latest install chromium
-  BROWSER="$(node -p "require('playwright').chromium.executablePath()")"
+  echo "no system chromium found; installing playwright chromium..." >&2
+  npm i --no-save playwright >/dev/null 2>&1 || true
+  npx --yes playwright install chromium --with-deps || npx --yes playwright install chromium
+  BROWSER="$(node -p "require('playwright').chromium.executablePath()" 2>/dev/null || true)"
+fi
+if [ -z "${BROWSER:-}" ] || [ ! -x "$BROWSER" ]; then
+  BROWSER="$(find "$HOME/.cache/ms-playwright" -type f -name chrome -path "*chromium-*" 2>/dev/null | sort | tail -1)"
+fi
+if [ -z "${BROWSER:-}" ] || [ ! -x "$BROWSER" ]; then
+  BROWSER="$(find "$HOME/.cache/ms-playwright" -type f -name headless_shell 2>/dev/null | sort | tail -1)"
+fi
+if [ -z "${BROWSER:-}" ] || [ ! -x "$BROWSER" ]; then
+  echo "ERROR: no usable chromium found" >&2; exit 1
 fi
 echo "browser: $BROWSER"
 
@@ -55,6 +65,16 @@ else
 fi
 
 mkdir -p out
+# probe the GPU path with 3 frames first; fall back to CPU swiftshader if it fails
+if [ "${NGPU:-0}" -ge 1 ]; then
+  echo "== probing GPU WebGL (3 frames) =="
+  if ! npx remotion render src/index.ts "$COMP" out/probe.mp4 --codec h264 --crf 20 \
+       --frames=0-2 --browser-executable="$BROWSER" --chromium-options="$OPTS" >/dev/null 2>&1; then
+    echo "GPU probe failed -> falling back to CPU swiftshader"
+    OPTS='{"gl":"swangle","args":["--no-sandbox","--disable-dev-shm-usage","--enable-unsafe-swiftshader","--disable-gpu","--mute-audio"]}'
+    COMP=RiverShort
+  fi
+fi
 render_range () { # $1=frames  $2=outfile  $3=extra env
   env $3 npx remotion render src/index.ts "$COMP" "$2" --codec h264 --crf 16 \
     --frames="$1" --browser-executable="$BROWSER" --chromium-options="$OPTS"
