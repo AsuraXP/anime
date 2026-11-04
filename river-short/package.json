@@ -1,0 +1,33 @@
+{
+  "name": "river-short",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion bundle",
+    "render": "remotion render"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@types/three": "^0.169.0",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
+    "@react-three/fiber": "^8.17.10",
+    "@react-three/postprocessing": "^2.16.3",
+    "@remotion/bundler": "^4.0.540",
+    "@remotion/cli": "^4.0.540",
+    "@remotion/renderer": "^4.0.540",
+    "@remotion/three": "^4.0.540",
+    "@sparticuz/chromium": "^153.0.0",
+    "postprocessing": "^6.36.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.540",
+    "three": "^0.169.0"
+  }
+}
