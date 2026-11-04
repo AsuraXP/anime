@@ -58,33 +58,42 @@ if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L 2>/dev/null | grep -q 
 else
   NGPU=0
 fi
-OPTS='{"gl":"swangle","args":["--no-sandbox","--disable-dev-shm-usage","--enable-unsafe-swiftshader","--disable-gpu","--mute-audio"]}'
+OPTS='{"gl":"swangle","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio"]}'
 COMP=RiverShort   # defaults; the probe below may upgrade to GPU/2K
 
 mkdir -p out
-probe () { # $1=chromium-options json  $2=composition ; renders 3 frames to out/probe.mp4
+probe () { # $1=chromium-options json  $2=composition ; renders 10 frames, echoes avg seconds/frame (999 on failure)
   rm -f out/probe.mp4
-  npx remotion render src/index.ts "$2" out/probe.mp4 --codec h264 --crf 20 --frames=0-2 \
-    --timeout=300000 --browser-executable="$BROWSER" --chromium-options="$1" > out/probe.log 2>&1
+  local s=$SECONDS
+  if ! npx remotion render src/index.ts "$2" out/probe.mp4 --codec h264 --crf 20 --frames=0-9 \
+       --timeout=300000 --browser-executable="$BROWSER" --chromium-options="$1" > out/probe.log 2>&1; then
+    echo 999; return 1
+  fi
+  echo $(( (SECONDS - s) / 10 ))
 }
-# pick a render backend with a 3-frame probe: GPU vulkan -> GPU angle-gl -> CPU swiftshader
+# pick a render backend by probing 10 frames and TIMING it (a real GPU is seconds/frame;
+# a silent software fallback is 10s+/frame, so slow "success" is rejected for GPU candidates).
+# Remotion's built-in gl modes are used: "vulkan" fails loudly if no GPU (no silent GL fallback),
+# "swangle" is the CPU path. GPU picks the native 2K composition.
 OK=0
 if [ "${NGPU:-0}" -ge 1 ]; then
   for c in \
-    '{"gl":"angle","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio","--use-angle=vulkan","--enable-unsafe-vulkan","--enable-features=Vulkan","--disable-software-rasterizer"]}|RiverShort2K' \
-    '{"gl":"angle","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio","--use-gl=angle","--use-angle=gl","--disable-software-rasterizer"]}|RiverShort2K' ; do
+    '{"gl":"vulkan","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio"]}|RiverShort2K' \
+    '{"gl":"angle-egl","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio"]}|RiverShort2K' ; do
     OPTS="${c%%|*}"; COMP="${c##*|}"
-    echo "== probing backend: $COMP ${OPTS:0:40}... =="
-    if probe "$OPTS" "$COMP"; then OK=1; break; fi
+    echo "== probing GPU backend: $COMP gl=${OPTS:0:20} =="
+    SPF="$(probe "$OPTS" "$COMP")" && SPF="${SPF:-999}"
+    echo "   probe: ${SPF}s/frame"
+    if [ "${SPF:-999}" -le 10 ]; then OK=1; break; fi
   done
 fi
 if [ "$OK" = 0 ]; then
-  OPTS='{"gl":"swangle","args":["--no-sandbox","--disable-dev-shm-usage","--enable-unsafe-swiftshader","--disable-gpu","--mute-audio"]}'
+  OPTS='{"gl":"swangle","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio"]}'
   COMP=RiverShort
-  echo "== probing CPU swiftshader =="
-  probe "$OPTS" "$COMP" || { echo "all backends failed; see out/probe.log" >&2; exit 1; }
+  echo "== probing CPU swiftshader (1080p) =="
+  probe "$OPTS" "$COMP" >/dev/null || { echo "all backends failed; see out/probe.log" >&2; exit 1; }
 fi
-echo "== backend selected: $COMP =="
+echo "== backend selected: $COMP (${SPF:-?}s/frame on probe) =="
 render_range () { # $1=frames  $2=outfile  $3=extra env
   env $3 npx remotion render src/index.ts "$COMP" "$2" --codec h264 --crf 16 --timeout=300000 \
     --frames="$1" --browser-executable="$BROWSER" --chromium-options="$OPTS"
@@ -104,7 +113,7 @@ else
   if ! render_range "0-1929" out/video.mp4 ""; then
     if [ "${NGPU:-0}" -ge 1 ]; then
       echo "GPU render failed; retrying with swiftshader (CPU)"
-      OPTS='{"gl":"swangle","args":["--no-sandbox","--disable-dev-shm-usage","--enable-unsafe-swiftshader","--disable-gpu","--mute-audio"]}'
+      OPTS='{"gl":"swangle","args":["--no-sandbox","--disable-dev-shm-usage","--mute-audio"]}'
       COMP=RiverShort
       render_range "0-1929" out/video.mp4 ""
     else
