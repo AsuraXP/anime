@@ -46,6 +46,17 @@ An entry that only says "this is hard" is not an entry. It must name the mechani
 | `0009-fixed-latent-bottleneck.md` | Perceiver / k slots / inducing points | n > m superposes; failure is smooth, so it reads as capability | any "compress into k latents" claim |
 | `0010-nearest-neighbour-retrieval.md` | kNN / RAG / vector index | argmax is total (no reject) and reads are O(n) | any "find the closest thing" readout |
 | `0011-single-budget-generalisation-gap.md` | a gap measured at one `TRAIN_N` | conflates approximation error with estimation error; the 2,000-pair point rises 40 points with 20x data | **any "representational, not budget" claim** |
+| `0012-minimal-automaton-saturation.md` | a benchmark whose minimal automaton clears G2/G3/G4 | if a 1-bit FST or a hash table saturates it, no candidate can score above ceiling | **before opening any thread** — name the automaton and the gate it fails |
+
+**Superseded:** `0001-operand-coverage.md` — measurement certified, escape condition refuted (the
+"repair" is a 200/200 hand-written adder). Superseded by `0002` + `0007` + `0012`.
+
+**Task-informed encoder (not a family file yet — mechanism in `threads/0002-k3control-p8-agent-c.md` §2):**
+an "ordinal" encoder whose features include `(da+db)/2 = (a_p+b_p)/18` supplies the **pre-mod digit
+sum**, i.e. the answer's antecedent. Its transfer to unseen digits is interpolation on that feature,
+not symbol generalisation — and a **0-parameter** carry-blind rule beats it on 2 of 3 holdouts
+(23.64% vs 11.39% on `[7,8,9]`; 31.15% vs 25.27% on `[4]`) while scoring **100% on the units digit**
+to its 68.4%. Any "continuous/ordinal embedding transfers" claim must first beat the closed-form null.
 
 **Task-family wall (not a candidate, so no file — recorded in `threads/0003-…-agent-c.md` §6):**
 digit addition mod 10ᵏ is a **regular function**. A two-state FST — state = carry ∈ {0,1}, **1 bit**,
@@ -54,10 +65,11 @@ with its unobserved transitions left out. So no candidate can beat the baseline 
 any falsifier built on it is passed by construction. Before opening a thread, name a task family a
 1-bit FST cannot saturate.
 
-**Order of checks for a new candidate:** `0007` first (does the abstain rule need a model at all?),
+**Order of checks for a new candidate:** `0012` first (name the minimal automaton — if it clears the
+gates, stop), then `0007` (does the abstain rule need a model at all?),
 then `0004`/`0009` (does the index contain the thing you are testing?), then `0002`/`0003` (where are
-the bits and what is the capacity), then `0005`/`0006`/`0008`/`0010` (is the fix a constant, a
-trainer, or a store you are not admitting to).
+the bits and what is the capacity), then `0011` (is the gap a curve or a point?), then
+`0005`/`0006`/`0008`/`0010` (is the fix a constant, a trainer, or a store you are not admitting to).
 
 **The cheapest check of all, and it killed two numbers in this repo:** compute the **analytic
 ceiling** of the harness before reading the score. If measured == ceiling, the experiment had zero
