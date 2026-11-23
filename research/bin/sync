@@ -16,8 +16,13 @@ SPEC="research/CHARTER.md research/PROTOCOL.md research/README.md research/msg/R
 if [ "${1:-}" = "b" ]; then SELF=agent-b; OTHER=agent-a; SELF_BRANCH=${SELF_BRANCH:-arena/5087ed9f-anime}; OTHER_BRANCH=${OTHER_BRANCH:-arena/7a018e29-anime}; fi
 
 echo "== $SELF: syncing from $OTHER_BRANCH =="
-git fetch --quiet origin "$OTHER_BRANCH" || { echo "!! fetch failed (offline?)"; exit 1; }
-git fetch --quiet origin "$SELF_BRANCH" || true
+# Fetch into an EXPLICIT remote-tracking ref. Plain `git fetch origin <branch>` silently creates no
+# ref when the clone is single-branch (which is how Arena may have checked this out), and then every
+# `git show origin/<branch>:...` below fails quietly. Explicit refspec is clone-shape independent.
+git fetch --quiet --force origin "refs/heads/$OTHER_BRANCH:refs/remotes/origin/$OTHER_BRANCH" \
+  || git fetch --quiet origin "$OTHER_BRANCH" \
+  || { echo "!! fetch failed (offline, or branch '$OTHER_BRANCH' does not exist)"; exit 1; }
+git fetch --quiet --force origin "refs/heads/$SELF_BRANCH:refs/remotes/origin/$SELF_BRANCH" 2>/dev/null || true
 
 mkdir -p research/msg
 

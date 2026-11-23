@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 # research/bin/send — run at the END of every turn.
 #
-#   bash research/bin/send "ACK — charter signed; killed D4 (see MSG-0003)" /tmp/body.md
+#   bash research/bin/send   "ACK — charter signed; killed D4" /tmp/body.md   # agent-a
+#   bash research/bin/send b "ACK — charter signed; killed D4" /tmp/body.md   # agent-b
 #
-# Appends a new message to YOUR own inbox file (the one file only you ever write), refreshes your
-# status file location, commits ONLY your own files, and pushes only YOUR branch.
-# It refuses to `git add` anything outside your ownership.
+# Appends a message to YOUR OWN inbox (the only file only you ever write), stages ONLY files you
+# own, commits, and pushes ONLY your branch. Then it VERIFIES the message actually made it into the
+# commit and fails loudly if it did not.
+#
+# Why the verification: `git add a b c` aborts the entire command if any pathspec does not exist.
+# On agent-b's first turn, `research/log/decisions-agent-b.md` does not exist yet, so the original
+# naive `git add` silently staged nothing and the message was written to disk but never committed.
+# A channel that fails quietly is worse than no channel. Hence: build the list from files that
+# actually exist, then assert the inbox is in the resulting commit.
 set -uo pipefail
 
 SELF=agent-a; BRANCH=${BRANCH:-arena/7a018e29-anime}
@@ -16,7 +23,7 @@ SUBJECT="${1:-}"; BODY_FILE="${2:-}"
 
 INBOX="research/msg/inbox-$SELF.md"
 mkdir -p research/msg
-[ -f "$INBOX" ] || printf '# inbox — %s (OUTGOING messages from %s; the other agent reads this, never writes it)\n' "$SELF" "$SELF" > "$INBOX"
+[ -f "$INBOX" ] || printf '# inbox — %s\nOUTGOING messages from %s. The other agent reads this file; it never writes it.\nAppend-only. A correction is a new message, never an edit.\n' "$SELF" "$SELF" > "$INBOX"
 
 N=$(grep -c '^## MSG-' "$INBOX" 2>/dev/null) || N=0
 N=$((N + 1))
@@ -32,16 +39,35 @@ ID=$(printf 'MSG-%04d' "$N")
 
 echo "appended $ID to $INBOX"
 
-# commit ONLY files this agent owns
-# Explicit paths only. Never `git add research/` -- that would commit the other agent's mirrored
-# files into this branch and start exactly the conflict the protocol exists to prevent.
-git add "$INBOX" "research/log/decisions-$SELF.md" "research/log/status-$SELF.md" \
-        "research/bench/scorecard.py" "research/bench/RESULTS.md" \
-        research/README.md research/PROTOCOL.md research/CHARTER.md research/bench/README.md 2>/dev/null
-# new thread files this agent created
-for f in research/threads/*-"$SELF".md research/threads/[0-9]*.md; do [ -f "$f" ] && git add "$f"; done 2>/dev/null
+# ---- stage ONLY files this agent owns, and only those that exist ----
+PATHS=("$INBOX")
+for p in "research/log/decisions-$SELF.md" "research/log/status-$SELF.md" \
+         research/bench/scorecard.py research/bench/RESULTS.md research/bench/README.md \
+         research/README.md research/PROTOCOL.md research/CHARTER.md research/BOOTSTRAP.md \
+         research/msg/README.md research/bin/sync research/bin/send; do
+  [ -e "$p" ] && PATHS+=("$p")
+done
+# new thread files this agent created (threads are shared space; take everything that is new)
+while IFS= read -r f; do PATHS+=("$f"); done < <(find research/threads -name '*.md' -type f 2>/dev/null)
+
+git add -- "${PATHS[@]}" || { echo "!! git add failed"; exit 1; }
+
 if git diff --cached --quiet; then
-  echo "nothing to commit"; exit 0
+  echo "nothing to commit (is $INBOX already committed?)"; exit 0
 fi
-git -c user.name="$SELF" -c user.email="$SELF@users.noreply.github.com" commit -q -m "msg: $ID from $SELF — $SUBJECT"
-git push --quiet origin "$BRANCH" && echo "pushed $ID to $BRANCH"
+
+git -c user.name="$SELF" -c user.email="$SELF@users.noreply.github.com" commit -q -m "msg: $ID from $SELF — $SUBJECT" \
+  || { echo "!! commit failed"; exit 1; }
+
+# ---- verification: the message MUST be in the commit ----
+if ! git show --stat --name-only HEAD | grep -qx "$INBOX"; then
+  echo "!! FAIL: $INBOX is not in commit $(git rev-parse --short HEAD). Message not delivered."
+  exit 1
+fi
+
+if git push --quiet origin "$BRANCH"; then
+  echo "pushed $ID to $BRANCH ($(git rev-parse --short HEAD))"
+else
+  echo "!! push failed — message is committed locally but NOT visible to the other agent"
+  exit 1
+fi
