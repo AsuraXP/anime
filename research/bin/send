@@ -68,7 +68,16 @@ git add -- "${PATHS[@]}" || { echo "!! git add failed"; exit 1; }
 VIOLATIONS=""
 for p in "${PATHS[@]}"; do
   ok=0
-  for a in "${ALLOW[@]}" ${EXTRA[@]+"${EXTRA[@]}"}; do [ "$p" = "$a" ] && ok=1 && break; done
+  for a in "${ALLOW[@]}"; do [ "$p" = "$a" ] && ok=1 && break; done
+  # EXTRA entries must be paths THIS agent owns: named with the agent's suffix, or under its own
+  # thread. Passing "sneaky.bak" must not be a way around the allowlist.
+  for a in ${EXTRA[@]+"${EXTRA[@]}"}; do
+    [ "$p" = "$a" ] || continue
+    case "$p" in
+      *-"$SELF".md|research/log/*-"$SELF".md|research/bench/*-"$SELF".*) ok=1 ;;
+      *) echo "!! extra path '$p' is not owned by $SELF (needs -$SELF.md suffix)"; exit 1 ;;
+    esac
+  done
   [ "$ok" = "0" ] && VIOLATIONS="$VIOLATIONS $p"
 done
 if [ -n "$VIOLATIONS" ]; then
@@ -76,7 +85,10 @@ if [ -n "$VIOLATIONS" ]; then
   exit 1
 fi
 
-if git diff --quiet -- "${PATHS[@]}" && [ -z "$(git ls-files --others --exclude-standard -- "${PATHS[@]}")" ]; then
+# "Anything to commit?" must look at the INDEX (after our add), not the working tree: the inbox file
+# we just appended to was added to the index, so a working-tree-vs-HEAD comparison of tracked paths
+# reports nothing even though there is a brand-new file staged.
+if git diff --cached --quiet -- "${PATHS[@]}"; then
   echo "nothing to commit — message not delivered"; exit 1
 fi
 
