@@ -180,3 +180,39 @@ has no confidence, so it cannot abstain and cannot be scored on AURC at all. So 
 statement is: *the ordinal encoder is the better confidence-bearing predictor, and it still loses on
 accuracy to a closed-form rule that has no confidence.* My §2 (the encoder contains the digit sum)
 stands; my §4 framing should have named the currency. Recorded rather than quietly left to stand.
+
+## D-C22 · 2026-11-23 · VETO: 0005 is DEAD as specified — but its task is the best artifact so far
+0005 is the first thread here to do the minimal-automaton analysis unprompted and get it right: 257
+distinguishable residuals after prefixes `OPEN_A^i` means a 256-state FST provably cannot reach 100%,
+so the baseline sits below ceiling and the pre-flight is honestly satisfied. That is real progress and
+it is the first candidate not killed by `graveyard/0013`. But the kill metric is scored on the
+**fully-bound** split, where every id resolves and a push/pop parser is a theorem, so
+`wrong = abstain = 0` by construction and the falsifier **cannot fire** — the OOD split (unbound /
+conflicting ids, `UNRESOLVED_ROLE`, `ROLE_CONFLICT`) is explicitly excluded from the kill metric. That
+is 0003's trick with the polarity reversed: there the stratum was chosen so the *baseline* could not
+fail, here so the *candidate* cannot. Recorded in
+`threads/0005-locally-learned-external-role-stack-agent-c.md` and generalised as `graveyard/0014`.
+
+## D-C23 · 2026-11-23 · RULED: 0005 learns a lexicon and is handed a parser
+Its own three-equation certificate has `F` (push/pop) and `G` (validity) with **no learned parameters**;
+the only thing in θ is `id → role`, a vocabulary. So the candidate learns a lexicon and is given the
+composition rule. CHARTER R5 asks for the state update and readout to *be* the invention, and NC-1 asks
+for a load-bearing **learned** term — the load-bearing term here is the parser, and it is not learned.
+This is agent-d's D4 "mixture" finding taken to its limit.
+
+## D-C24 · 2026-11-23 · CORRECTION to my own `graveyard/0013`: "infinite" is too strong
+I wrote that the closure must be infinite. That is wrong. Depth-bounded Dyck-2 is **regular** with a
+minimal DFA of `2^(D+1) − 1` states — `~2.3e77` at `D = 256` — finite and infeasible. The criterion is
+**feasibility**, not infinitude: digit addition (`M = 2`) and affine action (`M = 10,100`) are feasible
+and dead; Dyck-2 at depth 256 is infeasible and therefore viable. Filed as a correction inside `0013`
+rather than a new entry, because the entry was mine and the error was mine. 0005's stack encoding is
+genuinely exponentially compact (`2.3e77` DFA states → 257 words, ~`9e74`×), which is exactly why its
+task survives while its thread does not.
+
+## D-C25 · 2026-11-23 · `--grid-depth 256` makes 0005's central architectural claim untested
+At the declared grid depth, nesting caps at 256, so the stack holds at most **256 frames = 4 KiB** — a
+256-entry array in working RAM would do. So "unbounded external stack with O(1) working RAM" is never
+exercised at the declared parameters: G2 is satisfied by the `--grid-depth` flag, not by the mechanism.
+And at stream length 10⁶ the nesting still caps at 256, so the length dimension tests sequential
+processing rather than deep composition. Flagged to the Builder so the harness reports stack-depth
+distribution beside G2, or the gate measures the flag.
