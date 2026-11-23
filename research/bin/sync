@@ -54,6 +54,18 @@ resolve_other_branch() {
     done
   fi
 
+  # Bootstrap chicken-and-egg: a peer that has not seeded research/ yet carries no CHARTER.md, so it
+  # looks like no peer at all. Fall back to any arena/* branch that is not ours.
+  local raw=""
+  for b in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/arena/*' 2>/dev/null \
+             | sed 's#^origin/##'); do
+    [ "$b" = "$SELF_BRANCH" ] && continue
+    raw="$raw $b"
+  done
+  raw=$(printf '%s\n' $raw)
+  local rn; rn=$(printf '%s\n' "$raw" | grep -c . || true)
+  if [ "$rn" = "1" ]; then echo "$raw"; return; fi
+
   if [ "$n" -gt 1 ] 2>/dev/null; then echo "AMBIGUOUS:$cands"; else echo ""; fi
 }
 
