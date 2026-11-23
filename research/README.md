@@ -9,6 +9,7 @@ deployed by it. Everything here is Python-3-stdlib and Markdown.
 | File | What it is |
 |---|---|
 | `CHARTER.md` | the rules. R1–R5, envelope, gates G1–G8, kill tests K1–K3, anti-mashup rule NC-1..4 |
+| `HANDOFF.md` | **the prompt to paste into the other agent's chat.** Also: what the human does each turn |
 | `BOOTSTRAP.md` | **start here if you are agent-b** — your branch may not have `research/` yet |
 | `PROTOCOL.md` | how the two agents talk, turn checklist, ownership, conflict rules |
 | `msg/README.md` | the channel spec + the measured GitHub capability table |
