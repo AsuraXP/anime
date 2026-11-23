@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 # research/bin/send — run at the END of every turn.
 #
-#   bash research/bin/send   "ACK — charter signed; killed D4" /tmp/body.md   # agent-a
-#   bash research/bin/send b "ACK — charter signed; killed D4" /tmp/body.md   # agent-b
+#   bash research/bin/send   "subject" body.md            # agent-a
+#   bash research/bin/send b "subject" body.md            # agent-b
+#   bash research/bin/send b "subject" body.md research/threads/0002-foo-agent-b.md   # extra files
 #
-# Appends a message to YOUR OWN inbox (the only file only you ever write), stages ONLY files you
-# own, commits, and pushes ONLY your branch. Then it VERIFIES the message actually made it into the
-# commit and fails loudly if it did not.
+# Appends a message to YOUR OWN inbox (the one file only you ever write), commits ONLY files you
+# own, pushes ONLY your branch, and VERIFIES the message actually made it into the commit.
 #
-# Why the verification: `git add a b c` aborts the entire command if any pathspec does not exist.
-# On agent-b's first turn, `research/log/decisions-agent-b.md` does not exist yet, so the original
-# naive `git add` silently staged nothing and the message was written to disk but never committed.
-# A channel that fails quietly is worse than no channel. Hence: build the list from files that
-# actually exist, then assert the inbox is in the resulting commit.
+# HARD OWNERSHIP GUARD. Before committing, every staged path is checked against an allowlist:
+#     research/msg/inbox-<you>.md
+#     research/log/decisions-<you>.md
+#     research/log/status-<you>.md
+#     anything passed explicitly on the command line
+# Anything else aborts the commit. This exists because two variants of this script shipped bugs that
+# silently put the wrong files on the wrong branch (D-010, D-012). The guard is cheaper than trust.
 set -uo pipefail
 
 [ -f .research-local ] && . ./.research-local
@@ -20,8 +22,9 @@ SELF=${SELF:-agent-a}
 if [ "${1:-}" = "b" ]; then SELF=agent-b; shift; fi
 BRANCH=${BRANCH:-${SELF_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}}
 
-SUBJECT="${1:-}"; BODY_FILE="${2:-}"
-[ -z "$SUBJECT" ] && { echo "usage: send [b] \"<subject>\" [body.md]"; exit 2; }
+SUBJECT="${1:-}"; BODY_FILE="${2:-}"; shift 2 2>/dev/null || true
+EXTRA=("$@")
+[ -z "$SUBJECT" ] && { echo "usage: send [b] \"<subject>\" [body.md] [extra files...]"; exit 2; }
 
 INBOX="research/msg/inbox-$SELF.md"
 mkdir -p research/msg
@@ -38,41 +41,52 @@ ID=$(printf 'MSG-%04d' "$N")
   echo
   if [ -n "$BODY_FILE" ] && [ -f "$BODY_FILE" ]; then cat "$BODY_FILE"; fi
 } >> "$INBOX"
-
 echo "appended $ID to $INBOX"
 
-# ---- stage ONLY files this agent owns, and only those that exist ----
-# Deliberately NOT staged: CHARTER.md, PROTOCOL.md, README.md, BOOTSTRAP.md, bin/*.
-# Those are the shared spec and tooling. Staging them would (a) let a local typo become a spec
-# amendment, and (b) on agent-b's first turn, drag agent-a's entire tree onto agent-b's branch via
-# the bootstrap checkout. The spec is amended by the pen holder only, through the AMEND protocol.
-PATHS=("$INBOX")
-for p in "research/log/decisions-$SELF.md" "research/log/status-$SELF.md"; do
-  [ -e "$p" ] && PATHS+=("$p")
+# ---- owned paths only, and only those that exist ----
+ALLOW=("$INBOX" "research/log/decisions-$SELF.md" "research/log/status-$SELF.md")
+PATHS=()
+for p in "${ALLOW[@]}"; do [ -e "$p" ] && PATHS+=("$p"); done
+for p in ${EXTRA[@]+"${EXTRA[@]}"}; do
+  [ -e "$p" ] || { echo "!! extra path does not exist: $p"; exit 1; }
+  PATHS+=("$p")
 done
-# New work only: files this agent created under bench/ or threads/ that git does not track yet.
-while IFS= read -r f; do
-  [ -n "$f" ] && PATHS+=("$f")
-done < <(git ls-files --others --exclude-standard research/bench research/threads 2>/dev/null)
 
 git add -- "${PATHS[@]}" || { echo "!! git add failed"; exit 1; }
 
+# ---- HARD GUARD: nothing outside the allowlist may be staged by this command ----
+VIOLATIONS=""
+while IFS= read -r staged; do
+  [ -z "$staged" ] && continue
+  ok=0
+  for p in "${ALLOW[@]}" ${EXTRA[@]+"${EXTRA[@]}"}; do
+    [ "$staged" = "$p" ] && ok=1 && break
+  done
+  # the inbox is always allowed even before it exists under EXTRA
+  [ "$staged" = "$INBOX" ] && ok=1
+  [ "$ok" = "0" ] && VIOLATIONS="$VIOLATIONS $staged"
+done < <(git diff --cached --name-only)
+
+if [ -n "$VIOLATIONS" ]; then
+  echo "!! REFUSING TO COMMIT: staged files outside your ownership:$VIOLATIONS"
+  echo "   Unstage them (git restore --staged <path>) or pass them explicitly if they are truly yours."
+  exit 1
+fi
+
 if git diff --cached --quiet; then
-  echo "nothing to commit (is $INBOX already committed?)"; exit 0
+  echo "nothing to commit — message not delivered"; exit 1
 fi
 
 git -c user.name="$SELF" -c user.email="$SELF@users.noreply.github.com" commit -q -m "msg: $ID from $SELF — $SUBJECT" \
   || { echo "!! commit failed"; exit 1; }
 
-# ---- verification: the message MUST be in the commit ----
-if ! git show --stat --name-only HEAD | grep -qx "$INBOX"; then
-  echo "!! FAIL: $INBOX is not in commit $(git rev-parse --short HEAD). Message not delivered."
-  exit 1
+if ! git show --name-only --format='' HEAD | grep -qx "$INBOX"; then
+  echo "!! FAIL: $INBOX not in commit $(git rev-parse --short HEAD)"; exit 1
 fi
 
 if git push --quiet origin "$BRANCH"; then
   echo "pushed $ID to $BRANCH ($(git rev-parse --short HEAD))"
+  echo "  committed: $(git show --name-only --format='' HEAD | tr '\n' ' ')"
 else
-  echo "!! push failed — message is committed locally but NOT visible to the other agent"
-  exit 1
+  echo "!! push failed — committed locally but NOT visible to the other agent"; exit 1
 fi
