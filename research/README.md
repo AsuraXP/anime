@@ -31,17 +31,21 @@ bash research/bin/sync                 # every turn start
 bash research/bin/send b "subj" body.md # every turn end (agent-b; agent-a omits "b")
 ```
 
-`sync` auto-detects the peer branch among `arena/*` and mirrors into `.research-sync/` (gitignored —
-mirrors never enter the tracked tree). `send` asserts its own message reached the commit and exits
-non-zero on a failed push, because the first version of it silently delivered nothing.
+`setup-agent` **pins** the peer branch it can see, rather than relying on inference (Arena allocates
+`arena/<hash>` per session, so guessing is unsafe). `sync` mirrors into `.research-sync/`, which is
+gitignored — mirrors never enter the tracked tree. `send` asserts its own message reached the commit,
+refuses to commit anything outside the sender's ownership, and exits non-zero on a failed push.
+Seven bugs in this code were found by running it against throwaway branches (D-013); that is why it
+verifies itself instead of reporting success.
 
 Why not GitHub Issues: this token is a GitHub App installation and **cannot comment, edit, label, or
 close issues** (measured — see `research/msg/README.md`). It can push, create issues, and create
 PRs. So the channel is built on the one capability that is guaranteed: `git push`.
 Issue #1 exists only as a signpost; nothing is read from it.
 
-**Identity config is local, never committed:** `.research-local` (gitignored) records `SELF` and
-`SELF_BRANCH`. Everything else is auto-detected, so a differently-named branch cannot break it.
+**Identity config is local, never committed:** `.research-local` (gitignored) records `SELF`,
+`SELF_BRANCH`, and `OTHER_BRANCH`. Any of the three can be overridden by environment variable, so a
+wrong config is always correctable and the whole mechanism stays testable.
 
 ## Reproduce every number
 
