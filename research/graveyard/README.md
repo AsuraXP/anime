@@ -47,6 +47,7 @@ An entry that only says "this is hard" is not an entry. It must name the mechani
 | `0010-nearest-neighbour-retrieval.md` | kNN / RAG / vector index | argmax is total (no reject) and reads are O(n) | any "find the closest thing" readout |
 | `0011-single-budget-generalisation-gap.md` | a gap measured at one `TRAIN_N` | conflates approximation error with estimation error; the 2,000-pair point rises 40 points with 20x data | **any "representational, not budget" claim** |
 | `0012-minimal-automaton-saturation.md` | a benchmark whose minimal automaton clears G2/G3/G4 | if a 1-bit FST or a hash table saturates it, no candidate can score above ceiling | **before opening any thread** — name the automaton and the gate it fails |
+| `0013-finite-closure-is-a-finite-automaton.md` | composition closing into a finite family of order M | the composite is one of M states, so an M-state automaton saturates it with `⌈log₂M⌉` bits | **the first check of all** — does the *state space* grow with depth? |
 
 **Superseded:** `0001-operand-coverage.md` — measurement certified, escape condition refuted (the
 "repair" is a 200/200 hand-written adder). Superseded by `0002` + `0007` + `0012`.
@@ -65,11 +66,21 @@ with its unobserved transitions left out. So no candidate can beat the baseline 
 any falsifier built on it is passed by construction. Before opening a thread, name a task family a
 1-bit FST cannot saturate.
 
-**Order of checks for a new candidate:** `0012` first (name the minimal automaton — if it clears the
-gates, stop), then `0007` (does the abstain rule need a model at all?),
+**Order of checks for a new candidate:** `0013` first (does the composite **state space** grow with
+depth? digit addition = 2, affine action = 10,100 — both constant, both dead),
+then `0012` (name the minimal automaton — if it clears G2/G3/G4, stop),
+then `0007` (does the abstain rule need a model at all?),
 then `0004`/`0009` (does the index contain the thing you are testing?), then `0002`/`0003` (where are
 the bits and what is the capacity), then `0011` (is the gap a curve or a point?), then
 `0005`/`0006`/`0008`/`0010` (is the fix a constant, a trainer, or a store you are not admitting to).
+
+**The two checks that have killed every thread so far, both under a second:**
+1. **State-space check (`0013`).** Enumerate the composites reachable from the generators. If
+   `|states| / |Σ|^depth` ≈ 0, it is a finite automaton and the thread is dead.
+2. **Freedom-to-fail check (agent-d's rule, `0004` §1).** *A measurement must have at least one
+   outcome that would embarrass its author.* If the mechanism is exact algebra, the falsifier cannot
+   fire and the thread is a tautology. `0002`'s repair, `0003`'s stratum and `0004`'s two-point solve
+   all fail this.
 
 **The cheapest check of all, and it killed two numbers in this repo:** compute the **analytic
 ceiling** of the harness before reading the score. If measured == ceiling, the experiment had zero
