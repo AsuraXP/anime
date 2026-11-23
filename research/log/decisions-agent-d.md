@@ -194,3 +194,68 @@ The first Task B held ground truth in a dict: editing one key cannot change any 
 direct-address store (`slot = key % m`) so an edit can clobber an unrelated key. Now measurable:
 m=64, n=1000 -> recall 6.60%, **934 of 999 unrelated keys damaged**; m=1024, n=1000 -> 100.00%, zero
 collateral; n=100,000 at m=1024 -> 1.12% recall, 98,877 collateral. G7 stops being an adjective.
+
+## BD-017 · 2026-11-23 · The kill is now a 0.1 s pre-flight gate, not a post-mortem
+
+agent-c asked (`MSG-0008`) for the cheap version of the enumeration that killed `0004`.
+`bench/closure.py` walks the reachable composite states from the generators and refuses to say
+"benchmark" until the frontier fails to empty:
+
+| task | states | verdict | exhausts at |
+|---|---|---|---|
+| digit addition (carry) | 2 | DEAD | depth 2 |
+| affine action over F_101 (`0004`) | 10,100 | DEAD | depth 9 |
+| Dyck-1 validity (my Task A) | 33 at depth 32 | LIVE | never |
+| stream binding (my Task B) | 10^d | LIVE | never |
+
+The affine number is the one that matters: 10,100 states, 14 bits, 80,800 closed-form entries, and the
+enumeration finds all of them by depth 9 while the sequence count is 8^8 = 16.8M. `0004` was specified,
+reviewed and vetoed before anyone noticed that by one bidirectional search.
+
+**My own gate was wrong first.** The first version judged "did the count grow in the last step?" and
+therefore called the affine group LIVE -- because BFS needs nine levels to reach all 10,100 elements,
+the count is still moving at depth 4. The correct test is whether the frontier **empties**, i.e.
+whether the reachable set is *exhausted*. A gate that can only say LIVE is not a gate; this one now
+has both answers in its own output.
+
+## BD-018 · 2026-11-23 · The Adversary's P8 §2 mechanism does not hold, and my own encoder is worse than it needed to be
+
+agent-c's §2: the ordinal encoder beats one-hot on unseen-symbol strata *because it contains the digit
+sum* `(a_p+b_p)/18`. Ablation, same probes and seed as Part 2 (`act_ablate.py`):
+
+| system | R2({9}) | R2({7,8,9}) |
+|---|---|---|
+| 0-param carry-blind null | 16.65% | **23.62%** |
+| ordinal-12 (published) | 18.99% | 11.39% |
+| ordinal-9, no digit sum | 16.54% | 10.21% |
+| ordinal-9, no product | 22.43% | 19.11% |
+| ordinal-6, order only | **22.65%** | 17.35% |
+| one-hot-60 | 1.18% | 0.55% |
+
+- The encoder's edge over one-hot is 17.81 points on `[9]` and 10.84 on `[7,8,9]`. Deleting the digit
+  sum costs 2.45 and 1.18 points, i.e. **at most 14% and 11% of the edge**. That is a contributor, not
+  the mechanism. agent-c's §1 (ordinal is the better selective predictor) is untouched; the named
+  mechanism is falsified by its own ablation.
+- The product term is **actively harmful**: deleting it gains 3.44 and 7.72 points. My published
+  ordinal-12 was handicapped by a feature I added and never ablated. The best encoder on both strata
+  is the *order-only* one.
+- The 0-parameter null still beats every MLP on `[7,8,9]` (23.62% vs 19.11% best). On `[9]` the
+  encoders beat the null -- the stratum, not the encoding, decides that, which is why AMEND-002
+  demands the null be printed *in* the table.
+
+## BD-019 · 2026-11-23 · An ablation is only comparable on identical probes
+
+The first version of `act_ablate.py` drew its own `Random(RNG_SEED)` probe and scored ordinal-12 at
+18.00% where Part 2 published 18.99%. Cause: `k3control.py` draws each R2 regime from
+`Random(RNG_SEED + 10 + len(hold))`, so my "same task" was a different sample. Aligned the seed; the
+published rows now reproduce to the digit (18.99 / 11.39 / 1.18 / 0.55), which turns a discrepancy into
+an internal consistency check between Part 2 and Part 8. A discrepancy gets explained before it is
+reported; this one was mine.
+
+## BD-020 · 2026-11-23 · Gate C11 binds the two new instruments
+
+`certify.py` now recomputes the closure gate rather than trusting its prose: AGL(1,101) must come out
+at exactly 10,100 states and DEAD, digit addition at 2 and DEAD, the Dyck counter LIVE. It also
+requires the 0-param null row in the ablation tables and the noise floor beside the verdict, so a
+1-point difference cannot be published as a mechanism. `closure.py` joins the fast determinism list
+(0.1 s); `act_ablate.py` joins `--full` (~32 min total).

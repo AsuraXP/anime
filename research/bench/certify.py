@@ -2,7 +2,7 @@
 """research/bench/certify.py -- the publication gate for research/bench/.
 
 Run:  python3 research/bench/certify.py            (fast: scorecard + symmetry + carry, ~1 min)
-      python3 research/bench/certify.py --full     (adds k3control + ceiling + ablate_carry + budget + nonregular, ~24 min)
+      python3 research/bench/certify.py --full     (adds k3control + ceiling + ablate_carry + budget + nonregular + act_ablate, ~32 min)
 
 A number is certified when it is (1) seeded, (2) CPU-only, (3) reproducible in two independent
 runs, and (4) carries its exact command and runtime. This file checks (3) mechanically instead of
@@ -12,7 +12,7 @@ next to the numbers is actually supported by them.
 What is checked
   D1 determinism      every script is run twice; stdout must match after timing fields are masked.
   D2 freshness        the block of RESULTS.md tagged as scorecard output must equal a fresh run.
-  C1..C10 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
+  C1..C11 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
                       otherwise have to take on faith. Each returns the measurement behind it.
 
 Exit code is 0 only if every check passes. A failing check is a result, not a nuisance: it means a
@@ -233,6 +233,35 @@ def check_claims():
                      "WITHHELD" in part7 and "No claim in this file rests on A2" in part7,
                      "the recurrent baseline degenerates (see A2d); the label is the finding"))
 
+    # C11 -- the closure gate (`closure.py`) is the pre-flight check the Adversary asked for, and it
+    # is only worth having if it reproduces the number it was built to explain: AGL(1,101) has order
+    # 10,100 and exhausts by depth 9. Recomputed from the module, not read out of the text.
+    part8 = md0.split("PART 8")[-1] if "PART 8" in md0 else ""
+    out.append(check("C11 Part 8 (closure gate + P8 ablation) published", bool(part8),
+                     "agent-c MSG-0008 asked for a 0.3 s pre-flight kill; D-021 §2.2 asked for the "
+                     "act_ord ablation"))
+    cl = load_module("closure")
+    aff = cl.affine_action()
+    n_aff = cl.count_at(aff, aff["depths"][-1])
+    out.append(check("C11 closure gate reproduces AGL(1,101) = 10,100 states, DEAD", 
+                     n_aff == 10100 and aff["verdict"] == "DEAD",
+                     f"enumerated {n_aff:,} states, verdict {aff['verdict']}, exhausts at depth "
+                     f"{aff['sat']} (Adversary published 10,100 states / 14 bits)"))
+    da = cl.digit_addition()
+    dy = cl.dyck_counter()
+    out.append(check("C11 closure gate separates DEAD from LIVE",
+                     da["verdict"] == "DEAD" and dy["verdict"] == "LIVE",
+                     f"digit addition {da['verdict']} ({cl.count_at(da, 16):,} states); "
+                     f"Dyck counter {dy['verdict']} ({cl.count_at(dy, 32):,} states at depth 32)"))
+    out.append(check("C11 the 0-parameter null is in the ablation tables",
+                     "0-param carry-blind" in part8,
+                     "AMEND-002: the null is the row the encoder has to beat, not a footnote"))
+    out.append(check("C11 the ablation's verdict is stated against a noise floor",
+                     "CI half-width" in part8 and "noise" in part8
+                     and "negative = deleting helps" in part8,
+                     "a 1-point difference at n=8,000 is not a mechanism; the table states the "
+                     "half-width and the sign convention instead of ranking rows it cannot separate"))
+
     return out
 
 
@@ -248,8 +277,8 @@ def main():
     print(f"python={sys.version.split()[0]} CPU-only · root={ROOT}")
     print("A number is certified only if D1 (two runs) and D2 (freshness) both pass.\n")
 
-    scripts = ["scorecard", "symmetry", "carry"] + \
-        (["k3control", "ceiling", "ablate_carry", "budget", "nonregular"] if full else [])
+    scripts = ["scorecard", "symmetry", "carry", "closure"] + \
+        (["k3control", "ceiling", "ablate_carry", "budget", "nonregular", "act_ablate"] if full else [])
     results = check_determinism(scripts)
     results += check_freshness()
     results += check_claims()
