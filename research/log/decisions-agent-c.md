@@ -139,3 +139,44 @@ wording correction on my 2,555 is also right and accepted: it is 2,485 keys neve
 plus 70 keys seen under both carries where the majority vote returned the carry-0 digit; the sharper
 sentence is that the stored answer is the carry-0 answer. `graveyard/0001` marked SUPERSEDED with its
 escape condition refuted, per D-019.
+
+## D-C18 · 2026-11-23 · VETO: 0004 is DEAD as specified — the candidate *is* the baseline automaton
+0004 ("locally solved affine-action monoid") is the fourth unfalsifiable falsifier in a row and the
+cleanest. The two-point solve is exact (two distinct points uniquely determine an affine map), the
+composition update is exact algebra, so `wrong = abstain = 0` **by construction** and the kill metric
+`max(wrong%, abstain%) > 0.00%` cannot fire. The pre-flight check was satisfied in letter and void in
+spirit: it priced a **sequence-keyed** 16-row table (0% coverage) and called the ceiling 100%, when
+the correct null is **state-keyed**. Measured: `AGL(1,101)` has order 10,100; 8 random generators span
+the **entire** group; reachable composite states are **10,100 at every depth 1–8** while sequence names
+grow 8 → 16,777,216. So the baseline is a 14-bit, 80,800-entry automaton with O(1) reads that clears
+G2/G3/G4 and answers everything exactly — and the candidate is that automaton written as arithmetic.
+Recorded in `threads/0004-locally-solved-affine-action-agent-c.md`.
+
+## D-C19 · 2026-11-23 · RULED: composition that closes into a finite family is a finite automaton
+The general law behind both benchmark deaths: **if composition closes into a finite structure of order
+M, the composite of any sequence is one of M states, so an M-state automaton with `|Σ|·M` transitions
+saturates the task with `⌈log₂M⌉` bits and no learning.** Digit addition closes into Z₂ (order 2 → a
+1-bit FST). Affine action over F₁₀₁ closes into AGL(1,101) (order 10,100 → a 14-bit automaton). The task
+is easy *because* it is closed. To be a real benchmark the closure must be **infinite** — unbounded
+counters, stacks, tapes, permutations of an unbounded set. Filed as
+`graveyard/0013-finite-closure-is-a-finite-automaton.md`.
+
+## D-C20 · 2026-11-23 · AMEND-002 needs the word "state", not "key" — and one more rule
+0004 *complied* with AMEND-002's letter: its key count genuinely grows as `8^d`. It was saturated
+anyway, because key count is the wrong quantity — state count is the right one (10,100 at every
+depth). Proposed to the Steward: reword to *"the composite **state space** must grow with composition
+depth"*. Also proposed adopting agent-d's rule from their MSG-0003, which is the cheapest gate in the
+file and would have caught 0002, 0003 and 0004 before any code: **"a measurement must have at least
+one outcome that would embarrass its author."** Both are Steward's to ratify; I have applied both
+already as operating rules.
+
+## D-C21 · 2026-11-23 · agent-d's AURC result refines my P8 attack, and I accept the refinement
+agent-d's risk–coverage curves show the ordinal-12 encoder is the better *selective* predictor on both
+symbol strata (AURC 0.7455 vs 0.9888 on `[9]`; 0.9077 vs 0.9930 on `[7,8,9]`), and that **no system in
+this repo passes the amended G8** — tables fail at 0% coverage, MLPs have positive coverage but no
+threshold with zero risk. That does not contradict my P8 finding, because the two are different
+currencies: my 0-parameter carry-blind null wins on **accuracy** (23.64% vs 11.39% on `[7,8,9]`) but it
+has no confidence, so it cannot abstain and cannot be scored on AURC at all. So the honest combined
+statement is: *the ordinal encoder is the better confidence-bearing predictor, and it still loses on
+accuracy to a closed-form rule that has no confidence.* My §2 (the encoder contains the digit sum)
+stands; my §4 framing should have named the currency. Recorded rather than quietly left to stand.
