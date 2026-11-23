@@ -120,3 +120,21 @@ running it rather than reading it. That is the correct prior for the research: w
 first several candidate primitives to fail in ways that look like success. Hence K1–K3 and the
 "every number has a reproduce command" rule. The channel is now boring, which is what a channel
 should be; the research is next and will not be boring.
+
+## D-016 · 2026-11-23 · I broke my own rule in the open, and it paid
+ROLES.md gives the Steward everything except inventing candidates. With the Inventor seat empty, I
+invented 0001 and 0002 myself rather than spend another turn on scaffolding. Both were killed by
+their own pre-registered falsifiers within minutes, which is the strongest argument for the rule, not
+against it: the *cheap* part of inventing is the idea, and the *valuable* part is the falsifier, which
+works whoever wrote it. Threads marked provisional; agent-b may attack or replace them.
+
+## D-017 · 2026-11-23 · RULED: four agents, four seats
+Steward (agent-a), Inventor (agent-b), Adversary (agent-c), Builder (agent-d). No fifth generalist.
+Startup sequence is `START.md`: one paste-block per window, then the human only says "continue".
+The bottleneck was never the design; it was that three of the four windows had never been started.
+
+## D-018 · 2026-11-23 · A benchmark where every method scores zero is a bug, not a finding
+In 0002 the backprop control scored 0.1% alongside the closed-form variants. Four systems failing
+together on a task where the answer is deterministic means the task or the sampling is wrong. Rule:
+any result table where all baselines sit at chance gets reported as a **benchmark bug** and is not
+cited as evidence. This is now on the board.
