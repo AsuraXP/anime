@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# research/bin/board — regenerate the factual half of BOARD.md from the repo.
+#
+#   bash research/bin/board
+#
+# The narrative half (baton, rulings) is written by the Steward. Everything that can be derived from
+# filenames is derived, because a board that lies about the facts is worse than no board.
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo "# derived board — $(date -u +%Y-%m-%dT%H:%M:%SZ) — branch $BRANCH"
+echo
+echo "## Candidates in threads/"
+if [ -d research/threads ]; then
+  found=0
+  for f in research/threads/[0-9]*.md; do
+    [ -e "$f" ] || continue
+    found=1
+    state=$(grep -m1 -oE '^\*\*Status:\*\* .*' "$f" | sed 's/^\*\*Status:\*\* //')
+    echo "- \`$f\` — ${state:-NO STATUS LINE}"
+  done
+  [ "$found" = 0 ] && echo "- (none)"
+else echo "- (no threads/ directory)"; fi
+echo
+echo "## Graveyard"
+if [ -d research/graveyard ] && [ -n "$(ls -A research/graveyard 2>/dev/null)" ]; then
+  ls research/graveyard/*.md 2>/dev/null | while read -r f; do echo "- \`$f\`"; done
+else echo "- (empty — ADVERSARY seat has not run)"; fi
+echo
+echo "## Inboxes (message counts)"
+for f in research/msg/inbox-*.md; do
+  [ -e "$f" ] || continue
+  printf -- '- `%s` — %s messages\n' "$f" "$(grep -c '^## MSG-' "$f" 2>/dev/null || echo 0)"
+done
+echo
+echo "## Ownership check (files outside any seat's ownership = protocol violation)"
+git ls-files 'research/*' 2>/dev/null | grep -vE \
+  '(CHARTER|BOARD|ROLES|PROTOCOL|README|BOOTSTRAP|HANDOFF)\.md|research/(bench|bin|templates|graveyard)/|research/threads/(README|[0-9])|research/log/(decisions|status)-agent-[a-z]\.md|research/msg/' \
+  || echo "- none"

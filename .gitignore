@@ -1,0 +1,4 @@
+# local mirrors of other agents branches — never commit
+.research-sync/
+# local identity for the team channel — never commit
+.research-local

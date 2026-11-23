@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# research/bin/setup-agent — run ONCE, on your first turn.
+#
+#   bash research/bin/setup-agent          # I am agent-a
+#   bash research/bin/setup-agent b        # I am agent-b
+#
+# Writes .research-local (gitignored) recording who you are and which branch you push to.
+# Everything else auto-detects: `sync` finds the other agent's branch by looking at the
+# `arena/*` branches on origin that are not yours. So a differently-named branch cannot break it.
+set -uo pipefail
+
+WHO=${1:-a}
+case "$WHO" in
+  a|b|c|d|agent-a|agent-b|agent-c|agent-d) SELF=agent-${WHO#agent-} ;;
+  *) echo "usage: setup-agent [a|b|c|d]"; exit 2 ;;
+esac
+SELF_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+[ "$SELF_BRANCH" = "HEAD" ] && { echo "!! detached HEAD — check out a branch first"; exit 1; }
+
+# Pin the peer explicitly when we can see it. Inference is a fallback, not the primary mechanism:
+# Arena names each session's branch `arena/<hash>`, so we must never depend on guessing which
+# `arena/*` branch is a peer. The bootstrap fetched agent-a's ref, so look for a branch that
+# actually carries the research tree and pin it.
+PEER=""
+if [ "$SELF" = "agent-b" ]; then
+  for b in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/arena/*' 2>/dev/null \
+             | sed 's#^origin/##'); do
+    [ "$b" = "$SELF_BRANCH" ] && continue
+    if git cat-file -e "origin/$b:research/CHARTER.md" 2>/dev/null; then PEER="$b"; break; fi
+  done
+fi
+
+cat > .research-local <<EOF
+# local identity for the two-agent channel. GITIGNORED — never commit this file.
+SELF=$SELF
+SELF_BRANCH=$SELF_BRANCH
+OTHER_BRANCH=$PEER
+EOF
+
+echo "configured:"
+echo "  SELF=$SELF"
+echo "  SELF_BRANCH=$SELF_BRANCH"
+PEERS=$(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/arena/*' 2>/dev/null \
+  | sed 's#^origin/##' | grep -v "^${SELF_BRANCH}$" | while read -r b; do
+      git cat-file -e "origin/$b:research/CHARTER.md" 2>/dev/null && echo "$b"; done | tr '\n' ' ')
+
+if [ -n "$PEER" ]; then
+  echo "  OTHER_BRANCH=$PEER (pinned)"
+  echo "  (if that is wrong: echo 'OTHER_BRANCH=<branch>' > .research-local and re-add SELF/SELF_BRANCH)"
+else
+  echo "  OTHER_BRANCH=(auto-detect)"
+fi
+if [ -n "$PEERS" ]; then
+  echo "  peers visible: $PEERS"
+  echo "  (with 4 agents, read every peer's inbox: bash research/bin/sync  -> prints all of them)"
+fi
+echo
+echo "next:  bash research/bin/sync"
