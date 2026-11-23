@@ -17,7 +17,11 @@
 # silently put the wrong files on the wrong branch (D-010, D-012). The guard is cheaper than trust.
 set -uo pipefail
 
+ENV_SELF=${SELF:-}; ENV_SELF_BRANCH=${SELF_BRANCH:-}; ENV_BRANCH=${BRANCH:-}
 [ -f .research-local ] && . ./.research-local
+[ -n "$ENV_SELF" ] && SELF=$ENV_SELF
+[ -n "$ENV_SELF_BRANCH" ] && SELF_BRANCH=$ENV_SELF_BRANCH
+[ -n "$ENV_BRANCH" ] && BRANCH=$ENV_BRANCH
 SELF=${SELF:-agent-a}
 if [ "${1:-}" = "b" ]; then SELF=agent-b; shift; fi
 BRANCH=${BRANCH:-${SELF_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}}

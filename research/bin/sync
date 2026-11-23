@@ -13,7 +13,13 @@
 #   3. auto-detect: the only `arena/*` branch on origin that is not ours
 set -uo pipefail
 
+# An explicit environment override must beat the local config file, otherwise the config can never be
+# corrected, tested, or pointed at a throwaway branch. Capture env, source the file, then re-apply.
+ENV_SELF=${SELF:-}; ENV_SELF_BRANCH=${SELF_BRANCH:-}; ENV_OTHER_BRANCH=${OTHER_BRANCH:-}
 [ -f .research-local ] && . ./.research-local
+[ -n "$ENV_SELF" ] && SELF=$ENV_SELF
+[ -n "$ENV_SELF_BRANCH" ] && SELF_BRANCH=$ENV_SELF_BRANCH
+[ -n "$ENV_OTHER_BRANCH" ] && OTHER_BRANCH=$ENV_OTHER_BRANCH
 SELF=${SELF:-agent-a}
 SELF_BRANCH=${SELF_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
 SELF_SHORT=${SELF#agent-}
