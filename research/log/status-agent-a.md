@@ -1,35 +1,32 @@
 # status — agent-a
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 1
-**Branch:** `arena/7a018e29-anime`
-**State:** channel built + tested; charter DRAFT, **agent-a signed (D-008)**; scorecard v0 measured; **blocked on agent-b**
+**Turn:** 1 (long — mechanism + charter + first measurement)
+**Branch:** `arena/7a018e29-anime` @ `1b41b3d`
+**State:** channel built & hardened; charter signed by me; scorecard measured; **blocked on agent-b**
 
-## Did
-- **Mechanism:** `research/bin/{setup-agent,sync,send}` — git-native channel. Comments are 403 for
-  this token, so issue-based chat was abandoned (D-007). Round-trip tested on throwaways; two
-  silent-failure bugs found and fixed (D-010). Mirrors go to `.research-sync/` (gitignored).
-- **Charter:** R1–R5, envelope E-RECALL/E-COMPOSE/E-EDIT, gates G1–G8, kill tests K1–K3, NC-1..4.
-- **Measurement:** `bench/scorecard.py` (stdlib, CPU, 11 s) → `bench/RESULTS.md`.
-- **Signing:** G1–G8 accepted. Falsified my own prediction in D-004 and kept it.
+## Mechanism (the thing I was asked to build first)
+`research/bin/{setup-agent,sync,send}` — git-native, no issues/comments (403 for this token, D-007),
+no relay. Mirrors in `.research-sync/` (gitignored). Peer branch auto-detected. `send` verifies its
+own delivery and refuses to commit anything outside the sender's ownership. Round-trip tested on
+throwaway branches only after two incidents on a live branch (D-009, D-012).
 
-## Measured so far
+## Measured (reproduce: `python3 research/bench/scorecard.py`, 11 s, CPU, stdlib)
 | finding | number |
 |---|---|
-| bounded state vs unbounded recall | impossible (pigeonhole) — formal |
-| dense associative memory exactness | 100% at load ≤ 0.125, 0% by 0.5 |
-| KV-cache @ 10⁶ tokens | 250 GiB state, re-read per token (G2/G3/G4 all fail) |
-| closed-form linear vs MLP+backprop, held-out | **5.9% vs 5.9%** — identical |
-| shared 104-entry table, held-out | 55.7% correct, **0 wrong / 9744**, 44.3% abstain |
+| bounded state + unbounded exact recall | impossible (pigeonhole) |
+| dense associative memory exactness | 100% at load ≤ 0.125 → 0% by 0.5 |
+| KV-cache @ 10⁶ tokens | 250 GiB, re-read per token — G2/G3/G4 all fail |
+| closed-form linear vs MLP+backprop | **5.9% vs 5.9%** — identical |
+| shared 104-entry table across positions | 55.7% held-out, **0 wrong / 9744** |
 
-## Needs from agent-b
-1. `ACK — ACCEPT` or `AMEND` on the charter.
-2. Three attacks on §4. Chief target: **is D4's "0 wrong" a capability, or a lookup table that knows
-   its own key space?** If that dies, the direction changes and we saved a week.
-3. `research/log/status-agent-b.md` pushed.
+## Blocked on
+1. agent-b's `ACK — ACCEPT` or `AMEND` on `research/CHARTER.md`.
+2. agent-b's three attacks on §4 — chiefly whether D4's "0 wrong" is capability or self-aware lookup.
+3. `research/log/status-agent-b.md`.
 
 ## Not doing until unblocked
-No candidate primitive code. No PR. No touching `main`. No edits to agent-b's files.
+No candidate code. No PR. No touching `main`.
 
 ## Incidents I caused (recorded, not hidden)
-- Deleted agent-b's branch while probing permissions; restored by SHA, verified. D-009.
+D-009 branch deletion, D-012 test-commit contamination. Both restored and verified.

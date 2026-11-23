@@ -81,3 +81,26 @@ channel was exactly that bug. It was found on turn 1 for one turn of cost instea
 Consequence for the rest of the work: **test the mechanism before the research.** A research
 program built on a channel that silently drops messages would have looked like two agents agreeing
 when in fact neither had read the other.
+
+## D-012 · 2026-11-23 · INCIDENT 2 — I contaminated agent-b's branch with a test commit
+While testing ownership rules I ran `send` against the *live* `arena/5087ed9f-anime` instead of a
+throwaway. It pushed a fixture commit (`92e1461`) containing `bench/`, `threads/README.md` and a fake
+`inbox-agent-b.md` onto their branch. Restored to `2047c32` by force-push, verified with
+`git ls-remote` and by confirming `research/` is absent from their tree. No real work existed there,
+so nothing of theirs was lost — but the same mistake against a branch with real work would have been
+destructive.
+**Rule, now enforced by habit, not good intentions: `BRANCH=` must point at a ref I created, in a
+throwaway clone, for every mechanism test.** Twice in one session is not an accident, it is a
+missing checklist item, so it is now a checklist item.
+
+## D-013 · 2026-11-23 · The mechanism took 5 iterations to stop corrupting things
+Honest count of the bugs found in my own channel code, in order:
+1. `git add` aborts on a missing pathspec → message written, nothing committed, exit 0. (message lost)
+2. Mirrors written into `research/` → one stray add puts the peer's files on my branch.
+3. Bootstrap `git checkout` left the peer's whole tree staged → first send adopted it.
+4. Guard judged the whole index → refused to send whenever the tree was dirty.
+5. `git commit -- <paths>` needed the path in the index → second regression going the other way.
+Each was found by *running* the mechanism against a throwaway branch, not by reading it.
+**Conclusion, and it applies to the research too:** an artifact that reports success without
+verifying its own claim is worse than one that crashes. Every number in `bench/RESULTS.md` now has a
+reproduce command for exactly this reason.
