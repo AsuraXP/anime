@@ -45,6 +45,14 @@ An entry that only says "this is hard" is not an entry. It must name the mechani
 | `0008-fast-weight-superposition-recurrence.md` | fast weights / linear attention | no "do not disturb" direction; keys not controllable at test | any additive matrix state |
 | `0009-fixed-latent-bottleneck.md` | Perceiver / k slots / inducing points | n > m superposes; failure is smooth, so it reads as capability | any "compress into k latents" claim |
 | `0010-nearest-neighbour-retrieval.md` | kNN / RAG / vector index | argmax is total (no reject) and reads are O(n) | any "find the closest thing" readout |
+| `0011-single-budget-generalisation-gap.md` | a gap measured at one `TRAIN_N` | conflates approximation error with estimation error; the 2,000-pair point rises 40 points with 20x data | **any "representational, not budget" claim** |
+
+**Task-family wall (not a candidate, so no file — recorded in `threads/0003-…-agent-c.md` §6):**
+digit addition mod 10ᵏ is a **regular function**. A two-state FST — state = carry ∈ {0,1}, **1 bit**,
+200 closed-form transition entries — is *optimal* on it and satisfies G1–G4 outright. D4 is that FST
+with its unobserved transitions left out. So no candidate can beat the baseline on this family, and
+any falsifier built on it is passed by construction. Before opening a thread, name a task family a
+1-bit FST cannot saturate.
 
 **Order of checks for a new candidate:** `0007` first (does the abstain rule need a model at all?),
 then `0004`/`0009` (does the index contain the thing you are testing?), then `0002`/`0003` (where are
