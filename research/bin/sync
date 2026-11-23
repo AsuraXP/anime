@@ -1,49 +1,103 @@
 #!/usr/bin/env bash
-# research/bin/sync — run at the START of every turn. Read-only, safe to run anytime.
+# research/bin/sync — run at the START of every turn. Read-only w.r.t. your own files. Safe anytime.
 #
 #   bash research/bin/sync
 #
-# Fetches the other agent's branch and refreshes research/msg/ (the message log) on disk.
-# It NEVER touches your own log files: only research/msg/ and research/CHARTER.md|PROTOCOL.md|
-# README.md are mirrored, by explicit path, from the other branch.
+# Fetches the other agent's branch and mirrors what they wrote into .research-sync/ (gitignored).
+# It never writes into research/ itself, so a stray `git add` can never commit the other agent's
+# files onto your branch.
+#
+# Peer-branch resolution order (first hit wins):
+#   1. $OTHER_BRANCH env var
+#   2. OTHER_BRANCH in .research-local
+#   3. auto-detect: the only `arena/*` branch on origin that is not ours
 set -uo pipefail
 
-SELF=agent-a; OTHER=agent-b
-SELF_BRANCH=${SELF_BRANCH:-arena/7a018e29-anime}
-OTHER_BRANCH=${OTHER_BRANCH:-arena/5087ed9f-anime}
-SPEC="research/CHARTER.md research/PROTOCOL.md research/README.md research/msg/README.md"
+[ -f .research-local ] && . ./.research-local
+SELF=${SELF:-agent-a}
+SELF_BRANCH=${SELF_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
+OTHER=${SELF/agent-/}; OTHER=agent-$([ "$OTHER" = "a" ] && echo b || echo a)
+OTHER_SHORT=${OTHER#agent-}
 
-if [ "${1:-}" = "b" ]; then SELF=agent-b; OTHER=agent-a; SELF_BRANCH=${SELF_BRANCH:-arena/5087ed9f-anime}; OTHER_BRANCH=${OTHER_BRANCH:-arena/7a018e29-anime}; fi
+resolve_other_branch() {
+  if [ -n "${OTHER_BRANCH:-}" ]; then echo "$OTHER_BRANCH"; return; fi
+  git fetch --quiet origin 'refs/heads/*:refs/remotes/origin/*' 2>/dev/null
+  local cands
+  cands=$(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/arena/*' 2>/dev/null \
+          | sed 's#^origin/##' | grep -v "^${SELF_BRANCH}$" || true)
+  local n; n=$(printf '%s\n' "$cands" | grep -c . || true)
+  if [ "$n" = "1" ]; then echo "$cands"
+  elif [ "$n" = "0" ]; then echo ""
+  else echo "AMBIGUOUS:$cands"; fi
+}
 
-echo "== $SELF: syncing from $OTHER_BRANCH =="
-# Fetch into an EXPLICIT remote-tracking ref. Plain `git fetch origin <branch>` silently creates no
-# ref when the clone is single-branch (which is how Arena may have checked this out), and then every
-# `git show origin/<branch>:...` below fails quietly. Explicit refspec is clone-shape independent.
-git fetch --quiet --force origin "refs/heads/$OTHER_BRANCH:refs/remotes/origin/$OTHER_BRANCH" \
-  || git fetch --quiet origin "$OTHER_BRANCH" \
-  || { echo "!! fetch failed (offline, or branch '$OTHER_BRANCH' does not exist)"; exit 1; }
-git fetch --quiet --force origin "refs/heads/$SELF_BRANCH:refs/remotes/origin/$SELF_BRANCH" 2>/dev/null || true
+OTHER_BRANCH=$(resolve_other_branch)
+case "$OTHER_BRANCH" in
+  AMBIGUOUS:*)
+    echo "?? several candidate peer branches:${OTHER_BRANCH#AMBIGUOUS:}"
+    echo "   pick one:  echo 'OTHER_BRANCH=<branch>' >> .research-local"
+    exit 1 ;;
+  "")
+    echo "!! no peer branch found on origin (no arena/* branch other than '$SELF_BRANCH')."
+    echo "   If the other agent has not pushed yet, wait a turn."
+    echo "   If their branch has a different name, set it:  echo 'OTHER_BRANCH=<branch>' >> .research-local"
+    exit 1 ;;
+esac
 
-mkdir -p research/msg
+SYNC=.research-sync
+OTHER_INBOX="research/msg/inbox-$OTHER.md"
+OTHER_STATUS="research/log/status-agent-$OTHER_SHORT.md"
 
-# 1. one-way mirror of the other agent's OUTGOING messages (they own the file, we only copy it)
-git show "origin/$OTHER_BRANCH:research/msg/inbox-$OTHER.md" > "research/msg/inbox-$OTHER.md" 2>/dev/null \
-  || echo "   (no inbox-$OTHER.md yet)"
+echo "== $SELF ($SELF_BRANCH) reading $OTHER ($OTHER_BRANCH) =="
+git fetch --quiet --force origin "refs/heads/$OTHER_BRANCH:refs/remotes/origin/$OTHER_BRANCH" 2>/dev/null \
+  || { echo "!! cannot fetch '$OTHER_BRANCH'"; exit 1; }
 
-# 2. one-way mirror of the other agent's status (cheap, always current)
-git show "origin/$OTHER_BRANCH:research/log/status-agent-${OTHER#agent-}.md" > "research/msg/status-agent-${OTHER#agent-}.md" 2>/dev/null \
-  || echo "   (no status-agent-${OTHER#agent-}.md yet)"
+mkdir -p "$SYNC/spec"
 
-# 3. spec files, explicit paths only
-for f in $SPEC; do
-  git show "origin/$OTHER_BRANCH:$f" > "$f" 2>/dev/null || true
+if git show "origin/$OTHER_BRANCH:$OTHER_INBOX" > "$SYNC/inbox-$OTHER.md" 2>/dev/null; then
+  echo "   read $OTHER_INBOX"
+else
+  rm -f "$SYNC/inbox-$OTHER.md"; echo "   (no messages from $OTHER yet)"
+fi
+
+if git show "origin/$OTHER_BRANCH:$OTHER_STATUS" > "$SYNC/status-$OTHER.md" 2>/dev/null; then
+  echo "   read $OTHER_STATUS"
+else
+  rm -f "$SYNC/status-$OTHER.md"; echo "   (no status from $OTHER yet)"
+fi
+
+CHANGED=""
+for f in research/CHARTER.md research/PROTOCOL.md research/README.md research/BOOTSTRAP.md; do
+  if git show "origin/$OTHER_BRANCH:$f" > "$SYNC/spec/$(basename "$f")" 2>/dev/null; then
+    if [ -f "$f" ] && ! diff -q "$f" "$SYNC/spec/$(basename "$f")" >/dev/null 2>&1; then
+      CHANGED="$CHANGED $f"
+    fi
+  fi
 done
 
 echo
 echo "---- $OTHER's status ----"
-cat "research/msg/status-agent-${OTHER#agent-}.md" 2>/dev/null || echo "(none)"
+cat "$SYNC/status-$OTHER.md" 2>/dev/null || echo "(none yet)"
 echo
-echo "---- unread FROM $OTHER (newest last) ----"
-awk '/^## MSG-/{show=1} show' "research/msg/inbox-$OTHER.md" 2>/dev/null | tail -60 || echo "(none)"
+echo "---- messages FROM $OTHER ----"
+if [ -f "$SYNC/inbox-$OTHER.md" ]; then
+  grep -E '^## MSG-|^\*\*' "$SYNC/inbox-$OTHER.md" 2>/dev/null || echo "(none)"
+  echo
+  echo "   full text: $SYNC/inbox-$OTHER.md  -- read it before replying"
+else
+  echo "(none yet)"
+fi
+
+if [ -n "$CHANGED" ]; then
+  echo
+  echo "---- SPEC DIFFERS from $OTHER_BRANCH ----"
+  for f in $CHANGED; do
+    echo "### $f"
+    diff -u "$f" "$SYNC/spec/$(basename "$f")" | head -40
+  done
+  echo "   Adopt only if an AMEND was ratified:  cp $SYNC/spec/<file> research/<file>"
+fi
+
+if [ "$SELF" = "agent-a" ]; then SENDARG=""; else SENDARG="b"; fi
 echo
-echo "Next: read research/CHARTER.md if it changed, then reply with research/bin/send."
+echo "Next: bash research/bin/send $SENDARG \"subject\" body.md"

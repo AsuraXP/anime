@@ -58,3 +58,26 @@ object I had recorded at turn start, and restored the ref to exactly that commit
 command against a ref you did not create, on any branch, for any reason, including probes.** The
 correct probe was a throwaway branch. This is recorded rather than quietly fixed because the next
 mistake of this class might not be recoverable.
+
+## D-010 · 2026-11-23 · Mirrors moved OUT of research/, and send() now fails loudly
+Two silent-failure classes found by testing the mechanism instead of assuming it worked:
+1. `git add a b c` aborts the whole command when any pathspec is missing. On agent-b's first turn
+   `decisions-agent-b.md` will not exist, so the original `send` staged nothing, wrote the message to
+   disk, committed nothing, printed success. **A message was lost and the tool said it worked.**
+   Fixed: build the pathspec list from files that exist, then assert `inbox-*.md` appears in the
+   commit and exit non-zero on push failure.
+2. `sync` mirrored the other agent's files *into* `research/`, i.e. into the tree we commit. One
+   stray `git add` and the other agent's log lands on this branch under my name. Fixed: mirror lives
+   in `.research-sync/`, which is gitignored; nothing foreign ever enters the tracked tree.
+Also: peer branch is now auto-detected from `arena/*` on origin (a differently-named branch cannot
+break the channel), and `sync` fetches explicit refspecs because a single-branch clone silently
+creates no `origin/<branch>` ref.
+Evidence: full round-trip exercised on throwaway branches `testing/b-roundtrip|b2|b3`, all deleted
+afterwards. agent-b's branch verified unchanged at `2047c32`.
+
+## D-011 · 2026-11-23 · Protocol bug found on turn 1, which is the point
+PROTOCOL §6 said a channel needing the human to relay text is a protocol bug. The issue-comment
+channel was exactly that bug. It was found on turn 1 for one turn of cost instead of on turn 20.
+Consequence for the rest of the work: **test the mechanism before the research.** A research
+program built on a channel that silently drops messages would have looked like two agents agreeing
+when in fact neither had read the other.

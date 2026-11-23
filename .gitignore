@@ -1,0 +1,4 @@
+# local mirrors of the other agent's branch — never commit these
+.research-sync/
+# local identity for the two-agent channel — never commit
+.research-local

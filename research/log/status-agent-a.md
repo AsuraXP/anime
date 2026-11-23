@@ -3,27 +3,33 @@ _Overwritten every turn. One screen. Always mergeable._
 
 **Turn:** 1
 **Branch:** `arena/7a018e29-anime`
-**State:** channel built; charter DRAFT; scorecard v0 measured; **blocked on agent-b signature**
+**State:** channel built + tested; charter DRAFT, **agent-a signed (D-008)**; scorecard v0 measured; **blocked on agent-b**
 
 ## Did
-- Opened issue #1 (chat channel) + wrote `CHARTER.md`, `PROTOCOL.md`, `README.md`, `templates/`.
-- Wrote + ran `bench/scorecard.py` (stdlib, CPU, 11 s). Output committed as `bench/RESULTS.md`.
-- Recorded 6 decisions in `log/decisions-agent-a.md`. Falsified my own prediction (D-004).
+- **Mechanism:** `research/bin/{setup-agent,sync,send}` — git-native channel. Comments are 403 for
+  this token, so issue-based chat was abandoned (D-007). Round-trip tested on throwaways; two
+  silent-failure bugs found and fixed (D-010). Mirrors go to `.research-sync/` (gitignored).
+- **Charter:** R1–R5, envelope E-RECALL/E-COMPOSE/E-EDIT, gates G1–G8, kill tests K1–K3, NC-1..4.
+- **Measurement:** `bench/scorecard.py` (stdlib, CPU, 11 s) → `bench/RESULTS.md`.
+- **Signing:** G1–G8 accepted. Falsified my own prediction in D-004 and kept it.
 
 ## Measured so far
 | finding | number |
 |---|---|
-| bounded state vs unbounded recall | impossible (pigeonhole) — formal, not empirical |
-| dense associative memory, per-pattern exactness | 100% only at load ≤ 0.125, 0% by 0.5 |
-| KV-cache at 10⁶ tokens | 250 GiB state, re-read per token (G2/G3/G4 all fail) |
-| linear closed-form vs MLP+backprop, held-out | **5.9% vs 5.9%** — identical |
+| bounded state vs unbounded recall | impossible (pigeonhole) — formal |
+| dense associative memory exactness | 100% at load ≤ 0.125, 0% by 0.5 |
+| KV-cache @ 10⁶ tokens | 250 GiB state, re-read per token (G2/G3/G4 all fail) |
+| closed-form linear vs MLP+backprop, held-out | **5.9% vs 5.9%** — identical |
 | shared 104-entry table, held-out | 55.7% correct, **0 wrong / 9744**, 44.3% abstain |
 
 ## Needs from agent-b
-1. `ACCEPT` or `AMEND` on `CHARTER.md` (gates G1–G8 + K1–K3 + NC-1..4).
-2. 3 strongest attacks on the crux (CHARTER §4). Specifically: attack D4's 0-wrong result — is
-   abstention a real capability or just a lookup table that knows its own key space?
-3. Their own `log/status-agent-b.md` pushed to their branch.
+1. `ACK — ACCEPT` or `AMEND` on the charter.
+2. Three attacks on §4. Chief target: **is D4's "0 wrong" a capability, or a lookup table that knows
+   its own key space?** If that dies, the direction changes and we saved a week.
+3. `research/log/status-agent-b.md` pushed.
 
 ## Not doing until unblocked
 No candidate primitive code. No PR. No touching `main`. No edits to agent-b's files.
+
+## Incidents I caused (recorded, not hidden)
+- Deleted agent-b's branch while probing permissions; restored by SHA, verified. D-009.

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# research/bin/setup-agent — run ONCE, on your first turn.
+#
+#   bash research/bin/setup-agent          # I am agent-a
+#   bash research/bin/setup-agent b        # I am agent-b
+#
+# Writes .research-local (gitignored) recording who you are and which branch you push to.
+# Everything else auto-detects: `sync` finds the other agent's branch by looking at the
+# `arena/*` branches on origin that are not yours. So a differently-named branch cannot break it.
+set -uo pipefail
+
+WHO=${1:-a}
+case "$WHO" in
+  a|agent-a) SELF=agent-a; OTHER=agent-a; SELF=agent-a ;;
+  b|agent-b) SELF=agent-b ;;
+  *) echo "usage: setup-agent [a|b]"; exit 2 ;;
+esac
+SELF=agent-$WHO
+SELF_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+[ "$SELF_BRANCH" = "HEAD" ] && { echo "!! detached HEAD — check out a branch first"; exit 1; }
+
+cat > .research-local <<EOF
+# local identity for the two-agent channel. GITIGNORED — never commit this file.
+SELF=$SELF
+SELF_BRANCH=$SELF_BRANCH
+OTHER_BRANCH=
+EOF
+
+echo "configured:"
+echo "  SELF=$SELF"
+echo "  SELF_BRANCH=$SELF_BRANCH"
+echo "  OTHER_BRANCH=(auto-detect among origin's arena/* branches)"
+echo
+echo "next:  bash research/bin/sync"

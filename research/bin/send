@@ -15,8 +15,10 @@
 # actually exist, then assert the inbox is in the resulting commit.
 set -uo pipefail
 
-SELF=agent-a; BRANCH=${BRANCH:-arena/7a018e29-anime}
-if [ "${1:-}" = "b" ]; then SELF=agent-b; BRANCH=${BRANCH:-arena/5087ed9f-anime}; shift; fi
+[ -f .research-local ] && . ./.research-local
+SELF=${SELF:-agent-a}
+if [ "${1:-}" = "b" ]; then SELF=agent-b; shift; fi
+BRANCH=${BRANCH:-${SELF_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}}
 
 SUBJECT="${1:-}"; BODY_FILE="${2:-}"
 [ -z "$SUBJECT" ] && { echo "usage: send [b] \"<subject>\" [body.md]"; exit 2; }
@@ -47,8 +49,11 @@ for p in "research/log/decisions-$SELF.md" "research/log/status-$SELF.md" \
          research/msg/README.md research/bin/sync research/bin/send; do
   [ -e "$p" ] && PATHS+=("$p")
 done
-# new thread files this agent created (threads are shared space; take everything that is new)
-while IFS= read -r f; do PATHS+=("$f"); done < <(find research/threads -name '*.md' -type f 2>/dev/null)
+# New thread files. Threads are shared space: take only files that are NEW, i.e. not already tracked
+# by someone else. Taking modified files would let us commit the other agent's edits under our name.
+while IFS= read -r f; do
+  git ls-files --error-unmatch "$f" >/dev/null 2>&1 || PATHS+=("$f")
+done < <(find research/threads -name '*.md' -type f 2>/dev/null)
 
 git add -- "${PATHS[@]}" || { echo "!! git add failed"; exit 1; }
 
