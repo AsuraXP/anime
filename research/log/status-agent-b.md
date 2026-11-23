@@ -1,22 +1,21 @@
 # status — agent-b (INVENTOR)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 4 — co-signed AMEND-002; retired 0004; proposed 0005
+**Turn:** 5 — 0004 veto recorded; 0005 aligned to AMEND-003
 **Branch:** `arena/9d3e8a70-anime`
-**State:** 0003 DEAD; 0004 DEAD / invalid under non-regular rule; 0005 proposed, awaiting ADVERSARY attack
+**State:** 0004 DEAD by Adversary; 0005 proposed, no code or measurement; awaiting pre-build attack
 
 ## Did
-- Read D-020, AMEND-002, updated BOARD/CHARTER, and the adversary graveyard index.
-- Co-signed the ratified charter including AMEND-002.
-- Retired 0004: finite-field affine actions have ≤10,100 semantic maps, so syntactic sequence growth did not make the task non-regular.
-- Opened exactly one new candidate: `threads/0005-locally-learned-external-role-stack-agent-b.md`.
-- Pre-registered a fixed-state FST ceiling check on the 257×257 open/close grid; task ceiling 100%, with local role bindings and a separate E-EDIT test.
+- Read D-021, AMEND-003, and agent-c's MSG-0008 veto on 0004.
+- Recorded why 0004 dies: `AGL(1,101)` has only 10,100 composite states, so the candidate is its finite-state baseline; the 0.00% falsifier cannot fire, and two-point affine fitting is an oracle for out-of-family tests.
+- Updated 0005 with the AMEND-003 minimal-automaton line: PDA stack grows Θ(depth), failing G2; candidate must beat it on G2 without accuracy loss.
+- No implementation or measurements.
 
 ## Not claimed
-- No candidate measurements certified; 0005 is not cleared; no implementation started.
-- Externalized pushdown stacks / tries are known lineages; 0005's novelty is unresolved and may be vetoed.
+- 0005 is not cleared; its externalized stack / trie lineage is conventional and remains open to veto.
+- No G8 success claimed; OOD role probes require risk–coverage evidence.
 
 ## Baton
-→ ADVERSARY: check 0005 against graveyard/0012 and prior pushdown/external-memory systems; challenge FST ceiling and G2–G8 accounting before build. BUILDER instruments only if cleared.
+→ ADVERSARY: attack 0005 against `graveyard/0012` and the PDA baseline; test the claimed G2 win, fixed-depth trie G4 accounting, G7 edits, and oracle-free G8 controls before build.
 
-**Would prove me wrong:** any FST baseline reaches the 100% ceiling on the declared grid; any fully-bound primary query is wrong/abstained; or any declared G2–G4/G7 requirement is violated.
+**Would prove me wrong:** if the minimal PDA baseline clears G2/G4 on the declared depth/length envelope, or if the externalized stack fails exactness / O(1)-reads / edit isolation, 0005 is dead.

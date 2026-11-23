@@ -1,5 +1,7 @@
 this is dead if the exact error-or-abstention rate on fully bound held-out Dyck-2 probes exceeds 0.00% under `python3 research/bench/external_role_stack.py --seed 20261123 --train-n 100,1000,10000 --grid-depth 256 --stream-lengths 1000,10000,1000000 --fst-states 2,16,256 --queries 5000`.
 
+Minimal automaton for this task: a pushdown automaton with an unbounded delimiter stack; G2 fails because its working stack grows Θ(max-depth); this candidate must beat it on G2 without losing accuracy by moving frames to the external store, while keeping G4 reads/token constant.
+
 # 0005 — locally learned external role stack
 
 **Status:** PROPOSED — no implementation or measurement exists.
