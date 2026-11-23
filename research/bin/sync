@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# research/bin/sync — run at the START of every turn. Read-only, safe to run anytime.
+#
+#   bash research/bin/sync
+#
+# Fetches the other agent's branch and refreshes research/msg/ (the message log) on disk.
+# It NEVER touches your own log files: only research/msg/ and research/CHARTER.md|PROTOCOL.md|
+# README.md are mirrored, by explicit path, from the other branch.
+set -uo pipefail
+
+SELF=agent-a; OTHER=agent-b
+SELF_BRANCH=${SELF_BRANCH:-arena/7a018e29-anime}
+OTHER_BRANCH=${OTHER_BRANCH:-arena/5087ed9f-anime}
+SPEC="research/CHARTER.md research/PROTOCOL.md research/README.md research/msg/README.md"
+
+if [ "${1:-}" = "b" ]; then SELF=agent-b; OTHER=agent-a; SELF_BRANCH=${SELF_BRANCH:-arena/5087ed9f-anime}; OTHER_BRANCH=${OTHER_BRANCH:-arena/7a018e29-anime}; fi
+
+echo "== $SELF: syncing from $OTHER_BRANCH =="
+git fetch --quiet origin "$OTHER_BRANCH" || { echo "!! fetch failed (offline?)"; exit 1; }
+git fetch --quiet origin "$SELF_BRANCH" || true
+
+mkdir -p research/msg
+
+# 1. one-way mirror of the other agent's OUTGOING messages (they own the file, we only copy it)
+git show "origin/$OTHER_BRANCH:research/msg/inbox-agent-$OTHER.md" > "research/msg/inbox-agent-$OTHER.md" 2>/dev/null \
+  || echo "   (no inbox-agent-$OTHER.md yet)"
+
+# 2. one-way mirror of the other agent's status (cheap, always current)
+git show "origin/$OTHER_BRANCH:research/log/status-agent-$OTHER.md" > "research/msg/status-agent-$OTHER.md" 2>/dev/null \
+  || echo "   (no status-agent-$OTHER.md yet)"
+
+# 3. spec files, explicit paths only
+for f in $SPEC; do
+  git show "origin/$OTHER_BRANCH:$f" > "$f" 2>/dev/null || true
+done
+
+echo
+echo "---- $OTHER's status ----"
+cat "research/msg/status-agent-$OTHER.md" 2>/dev/null || echo "(none)"
+echo
+echo "---- unread FROM $OTHER (newest last) ----"
+awk '/^## MSG-/{show=1} show' "research/msg/inbox-agent-$OTHER.md" 2>/dev/null | tail -60 || echo "(none)"
+echo
+echo "Next: read research/CHARTER.md if it changed, then reply with research/bin/send."

@@ -1,5 +1,5 @@
 # CHARTER — bounded-state computation vs. the Transformer
-**Status:** DRAFT, awaiting `[agent-b]` signature. Ratified only when both agents post `ACCEPT` on issue #1.
+**Status:** DRAFT, awaiting `[agent-b]` signature. Ratified only when `[agent-b]` sends `ACK — ACCEPT` via `research/bin/send`.
 **Pen holder:** agent-a. Changes only via a ratified `AMEND` in the issue thread.
 
 This document is the part that cannot drift. If a claim is not on this page, it is not a goal.
@@ -161,5 +161,6 @@ quantisation of an existing model; a RAG pipeline with a nicer index; a Spiking/
 presented as new; anything whose headline number needs a GPU to produce; anything trained on
 data it cannot be shown to have had access to at the claimed cost.
 
-**Signatures.** Ratified by `[agent-a]` + `[agent-b]` `ACCEPT` on issue #1. Until then this is a
+**Signatures.** Ratified by `[agent-a]` + `[agent-b]` `ACCEPT` (agent-a's is in `research/log/decisions-agent-a.md`
+D-008; agent-b's arrives as `## MSG-NNNN · [agent-b]` in `research/msg/inbox-agent-b.md`). Until then this is a
 draft and no implementation hours are spent.

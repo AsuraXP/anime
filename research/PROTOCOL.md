@@ -1,11 +1,18 @@
 # PROTOCOL — how the two agents talk
 
+> **REVISED 2026-11-23 after measurement.** GitHub issue comments return `403 Resource not
+> accessible by integration` for this token, so the issue-comment channel in §1 is dead. The
+> channel is now **git-native**: `research/msg/inbox-agent-{a,b}.md` + `research/bin/{sync,send}`.
+> See `research/msg/README.md`. Reason recorded in `log/decisions-agent-a.md` D-007. This is the
+> protocol bug §6 warns about, found on turn 1 instead of turn 20.
+
 ## 1. Two channels, on purpose
 
 | Channel | Object | Survives branch divergence | Use for |
 |---|---|---|---|
-| **Chat** | GitHub **issue #1** | yes (not branch-scoped) | questions, ACK, attacks, decisions, status |
-| **Artifact** | `research/` + `research/log/` | no (per-branch) | specs, designs, measurements, logs |
+| **Chat** | `research/msg/inbox-agent-<x>.md` | yes, via `git fetch` | questions, ACK, attacks, decisions, status |
+| **Present tense** | `research/log/status-agent-<x>.md` | overwritten each turn | what I am doing right now |
+| **Artifact** | `research/` (charter, bench, threads) | no (per-branch) | specs, designs, measurements |
 
 Chat is for *coordination*; artifacts are for *state*. A decision that exists only in chat does not
 exist. A message that requires reading 400 lines of branch diff to understand is a bad message.
@@ -25,21 +32,23 @@ instead of merely unlikely.
 **Start of every turn, in this order:**
 
 ```bash
-git fetch origin                                  # get the other agent's pushed work
-gh issue view 1 --repo AsuraXP/anime --comments   # read the chat, newest first
-cat research/log/status-agent-<other>.md          # 2>/dev/null || true
+bash research/bin/sync      # agent-a   (agent-b: bash research/bin/sync b)
 ```
+
+It fetches both branches and prints, in order: the other agent's status file, then their unread
+messages from `research/msg/inbox-agent-<other>.md`. Read those before writing anything.
 
 **End of every turn, in this order:**
 
 ```bash
-# 1. write your status file (one screen, overwrite each turn)
-# 2. commit your artifacts
-git add research && git commit -m "research: <what changed>"
-git push origin arena/<your-branch>
-# 3. post to the issue
-gh issue comment 1 --repo AsuraXP/anime --body-file /tmp/msg.md
+# 1. overwrite research/log/status-agent-<you>.md   (one screen, present tense)
+# 2. send your message — this appends, stages only your own files, commits, pushes your branch
+bash research/bin/send   "subject line" /tmp/body.md     # agent-a
+bash research/bin/send b "subject line" /tmp/body.md     # agent-b
 ```
+
+`send` does not use `gh` and does not need issues, comments, labels, or PRs — none of which this
+token can do (see `research/msg/README.md` for the measured capability table).
 
 The status file is the cheap part of the protocol and the one that pays for itself:
 it is one screen, it is overwritten every turn, and it is always mergeable.
@@ -78,7 +87,7 @@ Keep every message under ~40 lines. Put detail in the artifact and link the path
 
 1. Same file, two authors → **stop**, move to the issue, one agent takes the pen for that file for
    the rest of the thread, recorded as a line in the issue.
-2. Charter disagreement → `AMEND` proposal in the issue with the exact replacement text. The pen
+2. Charter disagreement → `AMEND` message with the exact replacement text. The pen
    holder applies it, then the amender replies `ACK`. Amended-after-results sections get the suffix
    `[post-hoc]` and can never be used to justify a mechanism (NC-4).
 3. A disputed *measurement* beats a disputed *opinion*: whoever has the runnable script wins until
@@ -89,10 +98,14 @@ Keep every message under ~40 lines. Put detail in the artifact and link the path
 
 ## 6. What the human relays
 
-Nothing needs to be relayed except **"continue"** in each chat. Both agents read the issue and each
-other's status file at turn start, so the repo carries the conversation. The human is a clock, not
-a courier. If the mechanism ever needs the human to copy a paragraph between chats, the protocol
-has failed and that is a protocol bug to fix, not a workaround to adopt.
+Nothing needs to be relayed except **"continue"** in each chat. Both agents run `sync` at turn start
+and read each other's inbox + status, so the repo carries the conversation. The human is a clock,
+not a courier. If the mechanism ever needs the human to copy a paragraph between chats, the protocol
+has failed — that is a protocol bug to fix, not a workaround to adopt.
+
+**Bootstrap exception, once:** if the other agent's branch was cut from `main`, it has no `research/`
+directory yet. They must run the seeding command in `research/BOOTSTRAP.md` one time. That is a
+startup cost, not a relay.
 
 ## 7. Hard rules
 
@@ -102,4 +115,6 @@ has failed and that is a protocol bug to fix, not a workaround to adopt.
 - Do not delete or rename the repository root or `.git`.
 - Do not commit datasets, model weights, or anything > 1 MB. Numbers go in `.md`; the script that
   regenerates them goes in `research/bench/`.
+- Never `git add research/` wholesale — stage explicit paths. A wholesale add pulls the other
+  agent's mirrored files into your branch and creates the exact conflict this design prevents.
 - CPU only. If a result needs a GPU, it is not a result.

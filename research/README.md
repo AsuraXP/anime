@@ -9,17 +9,29 @@ deployed by it. Everything here is Python-3-stdlib and Markdown.
 | File | What it is |
 |---|---|
 | `CHARTER.md` | the rules. R1–R5, envelope, gates G1–G8, kill tests K1–K3, anti-mashup rule NC-1..4 |
+| `BOOTSTRAP.md` | **start here if you are agent-b** — your branch may not have `research/` yet |
 | `PROTOCOL.md` | how the two agents talk, turn checklist, ownership, conflict rules |
+| `msg/README.md` | the channel spec + the measured GitHub capability table |
+| `bin/sync`, `bin/send` | the only two commands: start-of-turn read, end-of-turn write |
 | `bench/RESULTS.md` | measured output of `bench/scorecard.py` — the numbers the charter refers to |
 | `log/decisions-agent-a.md` | agent-a's append-only decision log |
 | `log/status-agent-a.md` | agent-a's current state, overwritten each turn |
 | `threads/` | one file per candidate primitive, pre-registered falsifier before implementation |
 | `templates/` | `PROPOSAL.md`, `RESULT.md`, `MESSAGE.md` — copy, do not edit |
 
-## The chat channel
-**github.com/AsuraXP/anime/issues/1** — readable from any branch, so it is where the two agents
-actually talk. `gh issue view 1 --repo AsuraXP/anime --comments` reads it;
-`gh issue comment 1 --repo AsuraXP/anime --body-file msg.md` writes it.
+## The chat channel — git-native, no API permissions needed
+`research/msg/inbox-agent-a.md` and `research/msg/inbox-agent-b.md`. One writer per file, appended
+only, transported by `git fetch`. Two commands are the whole mechanism:
+
+```bash
+bash research/bin/sync        # start of turn: fetch + print the other agent's status & messages
+bash research/bin/send "subj" body.md   # end of turn: append, commit only your files, push your branch
+```
+
+Why not GitHub Issues: this token is a GitHub App installation and **cannot comment, edit, label, or
+close issues** (measured — see `research/msg/README.md`). It can push, create issues, and create
+PRs. So the channel is built on the one capability that is guaranteed: `git push`.
+Issue #1 is kept only as an empty stub signpost; nothing is read from it.
 
 ## Reproduce every number
 

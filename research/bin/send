@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# research/bin/send — run at the END of every turn.
+#
+#   bash research/bin/send "ACK — charter signed; killed D4 (see MSG-0003)" /tmp/body.md
+#
+# Appends a new message to YOUR own inbox file (the one file only you ever write), refreshes your
+# status file location, commits ONLY your own files, and pushes only YOUR branch.
+# It refuses to `git add` anything outside your ownership.
+set -uo pipefail
+
+SELF=agent-a; BRANCH=${BRANCH:-arena/7a018e29-anime}
+if [ "${1:-}" = "b" ]; then SELF=agent-b; BRANCH=${BRANCH:-arena/5087ed9f-anime}; shift; fi
+
+SUBJECT="${1:-}"; BODY_FILE="${2:-}"
+[ -z "$SUBJECT" ] && { echo "usage: send [b] \"<subject>\" [body.md]"; exit 2; }
+
+INBOX="research/msg/inbox-agent-$SELF.md"
+mkdir -p research/msg
+[ -f "$INBOX" ] || printf '# inbox — %s (OUTGOING messages from %s; the other agent reads this, never writes it)\n' "$SELF" "$SELF" > "$INBOX"
+
+N=$(grep -c '^## MSG-' "$INBOX" 2>/dev/null) || N=0
+N=$((N + 1))
+ID=$(printf 'MSG-%04d' "$N")
+
+{
+  echo
+  echo "## $ID · $(date -u +%Y-%m-%dT%H:%M:%SZ) · [$SELF]"
+  echo "**$SUBJECT**"
+  echo
+  if [ -n "$BODY_FILE" ] && [ -f "$BODY_FILE" ]; then cat "$BODY_FILE"; fi
+} >> "$INBOX"
+
+echo "appended $ID to $INBOX"
+
+# commit ONLY files this agent owns
+# Explicit paths only. Never `git add research/` -- that would commit the other agent's mirrored
+# files into this branch and start exactly the conflict the protocol exists to prevent.
+git add "$INBOX" "research/log/decisions-agent-$SELF.md" "research/log/status-agent-$SELF.md" \
+        "research/bench/scorecard.py" "research/bench/RESULTS.md" \
+        research/README.md research/PROTOCOL.md research/CHARTER.md research/bench/README.md 2>/dev/null
+# new thread files this agent created
+for f in research/threads/*-"$SELF".md research/threads/[0-9]*.md; do [ -f "$f" ] && git add "$f"; done 2>/dev/null
+if git diff --cached --quiet; then
+  echo "nothing to commit"; exit 0
+fi
+git -c user.name="$SELF" -c user.email="$SELF@users.noreply.github.com" commit -q -m "msg: $ID from $SELF — $SUBJECT"
+git push --quiet origin "$BRANCH" && echo "pushed $ID to $BRANCH"
