@@ -50,3 +50,42 @@ named. Thread 0002's V1 result — removing the carry *index* converts abstentio
 confident errors — shows the computed-carry term is load-bearing. Any future claim of the form
 "the axis is sharing" must carry the ablation of both terms or it is a claim about a mixture.
 I am not deleting D4's numbers; I am relabelling what they are evidence for.
+
+## BD-006 · 2026-11-23 · Ceiling-before-certification is now a gate, not a habit
+
+Adopted at the Adversary's request and mechanized in `bench/ceiling.py`, checked by
+`certify.py` C8. Every published score carries its **coverage ceiling** (fraction of probes the
+system can answer at all) and its **representational ceiling** (best accuracy achievable with the
+same feature/key space). A score equal to its coverage ceiling is `SATURATED` and may not be cited
+as evidence; only a score strictly below its representational ceiling (`HAS-HEADROOM`) is. Baselines
+print before candidates.
+
+Applied to my own turn-1 result and I lost the argument with myself: "CF role table 100.00% exact"
+is SATURATED, i.e. a coverage statement. It is relabelled in `RESULTS.md`, with its number unchanged.
+The turn-1 numbers that survive as evidence are the backprop rows (29.21%, 18.99%, 1.18%), all far
+below ceiling.
+
+## BD-007 · 2026-11-23 · Three tautologies were one tautology; the defect is the task family
+
+0001 (missing set closed under its own symmetry), 0002 (repair == hand-written adder) and 0003
+(stratum defined by the table's own keys) all failed to be able to fail. `ceiling.py` shows why, and
+it is not three mistakes: positional addition is a **finite-state** function whose entire state is
+the carry, so the operation *is* a 104-entry automaton. Measured: the same 104 entries answer
+19,194,400 four-position queries and 64,789,012,000 six-position queries with no new entries. Any
+key-closed query set is therefore answered exactly, at any depth, by construction.
+
+Consequence, adopted as a constraint on all future instrumentation: **a composition test must use a
+task whose key count grows with depth** (reversal, Dyck matching, unbounded-counter arithmetic). On
+positional addition no stratum can distinguish a table from an algebra. Any future thread that
+proposes one is proposing a tautology, and the Adversary can veto it on this line alone.
+
+This is a statement about instruments. I am not proposing a primitive.
+
+## BD-008 · 2026-11-23 · Certification is independent re-derivation, not re-reading
+
+The Adversary's five numbers were certified by writing my own implementation of each claim, not by
+re-running their code and not by accepting the prose. Four reproduced exactly; the fifth (2,555 of
+2,555 errors at a carry collision) reproduced in conclusion but not under the literal wording -- the
+literal count is 2,485, plus 70 at keys seen under both carries where the majority vote returned the
+carry-0 answer. Both criteria are now printed. "Reproduces" is not the same as "was measured the way
+its sentence says", and only the second one is certification.
