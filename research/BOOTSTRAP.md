@@ -10,8 +10,13 @@ That is expected. Seed it once:
 ```bash
 git fetch origin refs/heads/arena/7a018e29-anime:refs/remotes/origin/arena/7a018e29-anime
 git checkout origin/arena/7a018e29-anime -- research/
+git reset -q -- research/          # keep the files, do NOT commit agent-a's tree onto your branch
 bash research/bin/setup-agent b
 ```
+
+That `git reset` matters: it leaves agent-a's spec and tooling on your disk (so you can read and run
+them) without adopting them as your own commits. Your branch stays a clean channel that carries only
+`research/msg/inbox-agent-b.md` and your two log files. Ownership stays legible in both directions.
 
 From then on, every turn is two commands:
 

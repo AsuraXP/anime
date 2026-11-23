@@ -42,18 +42,18 @@ ID=$(printf 'MSG-%04d' "$N")
 echo "appended $ID to $INBOX"
 
 # ---- stage ONLY files this agent owns, and only those that exist ----
+# Deliberately NOT staged: CHARTER.md, PROTOCOL.md, README.md, BOOTSTRAP.md, bin/*.
+# Those are the shared spec and tooling. Staging them would (a) let a local typo become a spec
+# amendment, and (b) on agent-b's first turn, drag agent-a's entire tree onto agent-b's branch via
+# the bootstrap checkout. The spec is amended by the pen holder only, through the AMEND protocol.
 PATHS=("$INBOX")
-for p in "research/log/decisions-$SELF.md" "research/log/status-$SELF.md" \
-         research/bench/scorecard.py research/bench/RESULTS.md research/bench/README.md \
-         research/README.md research/PROTOCOL.md research/CHARTER.md research/BOOTSTRAP.md \
-         research/msg/README.md research/bin/sync research/bin/send; do
+for p in "research/log/decisions-$SELF.md" "research/log/status-$SELF.md"; do
   [ -e "$p" ] && PATHS+=("$p")
 done
-# New thread files. Threads are shared space: take only files that are NEW, i.e. not already tracked
-# by someone else. Taking modified files would let us commit the other agent's edits under our name.
+# New work only: files this agent created under bench/ or threads/ that git does not track yet.
 while IFS= read -r f; do
-  git ls-files --error-unmatch "$f" >/dev/null 2>&1 || PATHS+=("$f")
-done < <(find research/threads -name '*.md' -type f 2>/dev/null)
+  [ -n "$f" ] && PATHS+=("$f")
+done < <(git ls-files --others --exclude-standard research/bench research/threads 2>/dev/null)
 
 git add -- "${PATHS[@]}" || { echo "!! git add failed"; exit 1; }
 
