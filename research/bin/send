@@ -14,7 +14,7 @@ if [ "${1:-}" = "b" ]; then SELF=agent-b; BRANCH=${BRANCH:-arena/5087ed9f-anime}
 SUBJECT="${1:-}"; BODY_FILE="${2:-}"
 [ -z "$SUBJECT" ] && { echo "usage: send [b] \"<subject>\" [body.md]"; exit 2; }
 
-INBOX="research/msg/inbox-agent-$SELF.md"
+INBOX="research/msg/inbox-$SELF.md"
 mkdir -p research/msg
 [ -f "$INBOX" ] || printf '# inbox — %s (OUTGOING messages from %s; the other agent reads this, never writes it)\n' "$SELF" "$SELF" > "$INBOX"
 
@@ -35,7 +35,7 @@ echo "appended $ID to $INBOX"
 # commit ONLY files this agent owns
 # Explicit paths only. Never `git add research/` -- that would commit the other agent's mirrored
 # files into this branch and start exactly the conflict the protocol exists to prevent.
-git add "$INBOX" "research/log/decisions-agent-$SELF.md" "research/log/status-agent-$SELF.md" \
+git add "$INBOX" "research/log/decisions-$SELF.md" "research/log/status-$SELF.md" \
         "research/bench/scorecard.py" "research/bench/RESULTS.md" \
         research/README.md research/PROTOCOL.md research/CHARTER.md research/bench/README.md 2>/dev/null
 # new thread files this agent created
