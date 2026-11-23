@@ -135,3 +135,62 @@ nothing" from a run in which nothing could have changed. That is the fourth time
 Added guard: the script aborts with a non-zero exit if no variant answers anything, and the G8 block
 reports coverage alongside risk so a zero can never be read as a pass. The pattern is worth naming
 for the charter: **a measurement must have at least one outcome that would embarrass its author.**
+
+## BD-012 · 2026-11-23 · P6 reproduces as a shape, not as digits; the rule it produced is now gate C10
+
+`budget.py` re-ran the Adversary's attack inside the certified harness. Published 7.62 / 35.62 /
+48.21 / 47.81% at 2,000 / 10,000 / 40,000 / 160,000 pairs; reproduced 8.31 / 41.34 / 40.29 / 48.60%.
+Endpoints agree to ~1 point, the middle disagrees by up to 6, because the nested budget pools come
+from an independent stream and the batch order differs. The 0-parameter carry-blind rule reproduces at
+30.61% (published 30.45%), above the 2,942-parameter baseline it beat.
+
+What replicates is the **shape**: ~40 points bought between 2k and 160k, flattening between 40k and
+160k. A single budget cannot separate a budget term from a representation term. Consequence adopted:
+the budget rule is now mechanised as check **C10** rather than remembered as a resolution.
+
+## BD-013 · 2026-11-23 · A1b: the first table in this repo with a baseline strictly under its ceiling
+
+Task A asks a k-state machine to decide Dyck-1 validity at max depth D. On strings that actually reach
+depth D, the machine is exact iff `k >= D+1` and collapses below it (k=8: 100/100/74.8/51.2% at
+D=2/4/8/16; k=16: 100/100/100/70.8%; 0-parameter null 50.7%). Every earlier benchmark in this repo
+(scorecard, symmetry, carry, D4) sat at 100% of its own reachable ceiling on the measured stratum, so
+"no candidate" and "no headroom" were indistinguishable. This table separates them: a candidate's score
+now has a place to be wrong.
+
+Caveat kept in the text: k=4 at D=2 is 97.0%, not 100%, because a 400-string fit covers only the
+transition keys it saw. That is coverage, not state, and it is the same artefact `ceiling.py` found
+everywhere else.
+
+## BD-014 · 2026-11-23 · The recurrent baseline is withheld, and the reason is worth more than the rows
+
+Four findings, all from one symptom -- accuracy that will not move off chance:
+
+1. BPTT that updates only the last steps never touches `Wx`; the net becomes a constant classifier.
+2. `dL/dh_prev[k] = sum_j Wh[j][k]*d[j]`, not the transpose. Written transposed first; every state
+   budget then scored identically, which no state-carrying model can.
+3. Updating `Wh` in place and then computing the recurrence gradient from the mutated weights.
+4. With all three fixed and mini-batch averaging added, the model still degenerates: at the learning
+   rate where the control task reaches 100%, a 4-unit and an 8-unit net emit **identical predictions
+   on all 1,600 test strings**. Tanh saturation, `|h| -> 1` kills the gradient.
+
+Decision: A2/A2b/A3 are published **labelled WITHHELD**, with the degeneracy check next to them. A
+baseline that cannot learn is not a baseline, and printing its curve as a capability boundary would be
+the fifth unfailable instrument in this repo. The bar for publishing it is now explicit: the same code
+path must pass its own control task at *every* published budget.
+
+## BD-015 · 2026-11-23 · The sampler was the fifth unfailable instrument
+
+A1's first grid showed k=8 surviving at 99.8% at D=16, which reads as "state budget does not matter".
+It was the sampler: `dyck_word` inserts balanced pairs at random, so depth-16 excursions are
+exponentially rare and a 400-string sample never dives. A1b pins the excursion and the collapse appears
+immediately. **A benchmark whose generator does not force its own parameter is measuring its
+generator.** Same family as the four earlier instruments; recorded because I found it in my own table
+one hour after publishing the reading.
+
+## BD-016 · 2026-11-23 · Task B collateral is vacuous unless the store can collide
+
+The first Task B held ground truth in a dict: editing one key cannot change any other key, so
+"zero collateral" was a property of the data structure, not of the claim. Rebuilt as a bounded
+direct-address store (`slot = key % m`) so an edit can clobber an unrelated key. Now measurable:
+m=64, n=1000 -> recall 6.60%, **934 of 999 unrelated keys damaged**; m=1024, n=1000 -> 100.00%, zero
+collateral; n=100,000 at m=1024 -> 1.12% recall, 98,877 collateral. G7 stops being an adjective.

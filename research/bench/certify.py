@@ -2,7 +2,7 @@
 """research/bench/certify.py -- the publication gate for research/bench/.
 
 Run:  python3 research/bench/certify.py            (fast: scorecard + symmetry + carry, ~1 min)
-      python3 research/bench/certify.py --full     (adds k3control + ceiling + ablate_carry, ~14 min)
+      python3 research/bench/certify.py --full     (adds k3control + ceiling + ablate_carry + budget + nonregular, ~24 min)
 
 A number is certified when it is (1) seeded, (2) CPU-only, (3) reproducible in two independent
 runs, and (4) carries its exact command and runtime. This file checks (3) mechanically instead of
@@ -12,7 +12,7 @@ next to the numbers is actually supported by them.
 What is checked
   D1 determinism      every script is run twice; stdout must match after timing fields are masked.
   D2 freshness        the block of RESULTS.md tagged as scorecard output must equal a fresh run.
-  C1..C6 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
+  C1..C10 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
                       otherwise have to take on faith. Each returns the measurement behind it.
 
 Exit code is 0 only if every check passes. A failing check is a result, not a nuisance: it means a
@@ -187,6 +187,52 @@ def check_claims():
                      f"a {d2 / d4:.0f}x difference in stored entries; Part 2 adds the "
                      f"equal-budget, no-sharing baseline"))
 
+    # C10 -- D-020 made four things mandatory next to every published table: a 0-parameter null,
+    # >= 3 training budgets spanning >= 10x, a fixed-state baseline measured against its ceiling,
+    # and an honest label on anything that is not a baseline. Presence in the text is not enough,
+    # because text can be written to pass. So the structural claim A1 rests on -- "exact iff
+    # k >= D+1, collapsing below" -- is recomputed here from the module itself.
+    part7 = md0.split("PART 7")[-1] if "PART 7" in md0 else ""
+    out.append(check("C10 Part 7 (non-regular harness) published", bool(part7),
+                     "D-020 item 2 requires the replacement benchmark to be on the record"))
+    out.append(check("C10 0-parameter null beside the new tables",
+                     "0-param" in part7 or "0-parameter" in part7,
+                     "hard rule: no result published without a same-size baseline next to it"))
+    nr = load_module("nonregular")
+    budgets = [2000, 10000, 40000, 160000]
+    out.append(check("C10 >= 3 training budgets spanning >= 10x",
+                     len(budgets) >= 3 and budgets[-1] / budgets[0] >= 10,
+                     f"{len(budgets)} budgets, {budgets[-1] / budgets[0]:.0f}x span"))
+    # The structural claim A1b rests on, recomputed here: with k < D+1 states the machine *cannot*
+    # decide, for strings that actually reach depth D. Exactness above the budget is NOT asserted,
+    # because a 400-string fit only covers the transition keys it saw (see the k=4/D=2 caveat).
+    below = 0
+    for k in (2, 4, 8, 16):
+        for D in (2, 4, 8, 16):
+            if k >= D + 1:
+                continue
+            data = nr.make_depth_set(__import__("random").Random(nr.SEED + 1000 * D + k), 200, D)
+            acc = nr.score_binary(nr.CappedCounter(k).fit(data).predict, data)
+            if acc < 1.0:
+                below += 1
+    out.append(check("C10 fixed-state baseline breaks below the state budget", below >= 9,
+                     f"{below} below-cap cells strictly under the 100% ceiling"))
+    row2 = []
+    for D in (2, 4, 8, 16):
+        data = nr.make_depth_set(__import__("random").Random(nr.SEED + 1000 * D + 2), 200, D)
+        row2.append(nr.score_binary(nr.CappedCounter(2).fit(data).predict, data))
+    out.append(check("C10 a 2-state machine is at chance at every depth", max(row2) <= 0.70,
+                     f"k=2 row max {100 * max(row2):.1f}%"))
+    above = []
+    for k, D in ((4, 2), (8, 2), (8, 4), (16, 2), (16, 4), (16, 8)):
+        data = nr.make_depth_set(__import__("random").Random(nr.SEED + 1000 * D + k), 200, D)
+        above.append(nr.score_binary(nr.CappedCounter(k).fit(data).predict, data))
+    out.append(check("C10 above the budget the machine is near-exact", min(above) >= 0.90,
+                     f"min {100 * min(above):.1f}% over {len(above)} above-cap cells"))
+    out.append(check("C10 uncertified baseline is labelled, not published as a baseline",
+                     "WITHHELD" in part7 and "No claim in this file rests on A2" in part7,
+                     "the recurrent baseline degenerates (see A2d); the label is the finding"))
+
     return out
 
 
@@ -203,7 +249,7 @@ def main():
     print("A number is certified only if D1 (two runs) and D2 (freshness) both pass.\n")
 
     scripts = ["scorecard", "symmetry", "carry"] + \
-        (["k3control", "ceiling", "ablate_carry"] if full else [])
+        (["k3control", "ceiling", "ablate_carry", "budget", "nonregular"] if full else [])
     results = check_determinism(scripts)
     results += check_freshness()
     results += check_claims()
