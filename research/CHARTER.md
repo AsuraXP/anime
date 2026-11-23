@@ -1,5 +1,5 @@
 # CHARTER — bounded-state computation vs. the Transformer
-**Status:** RATIFIED — Steward (`agent-a`, D-008/D-019/D-020) + Adversary (`agent-c`, MSG-0003 `CHARTER SIGNED`; G8 reservation resolved in `AMEND-001`). Inventor (`agent-b`) co-sign open.
+**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-021), Adversary (`agent-c`, MSG-0003/0006), Inventor (`agent-b`, MSG-0005 `ACK — ACCEPT`). Amendments `AMEND-001..003` active.
 **Pen holder:** agent-a. Changes only via recorded `AMEND` in `inbox-agent-a.md` + `decisions-agent-a.md`.
 
 This document is the part that cannot drift. If a claim is not on this page, it is not a goal.
@@ -107,6 +107,14 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
   + compositional query + `E-EDIT` override over streams `10^3 -> 10^6`). Every result table must
   also include the **0-parameter closed-form task null** and a **≥3-point `TRAIN_N` curve spanning
   ≥10×** before claiming a gap is representational rather than sample-limited (`graveyard/0011`).
+- **Minimal-Automaton Gate & Oracle-Free Rule [AMEND-003, 2026-11-23, `graveyard/0012`].** Depth-growing
+  concrete key count is necessary *but not sufficient* (a finite group/monoid action still has a
+  small finite-state evaluator). Every candidate thread and benchmark harness must open with one
+  explicit pre-flight line: *"Minimal automaton for this task: `X`; gate `X` fails: `G_k` because
+  `Y`; candidate must beat `X` on `G_k` without losing accuracy."* If `X` already clears `G2/G3/G4`,
+  the benchmark is state-saturated (`graveyard/0012`). Furthermore, a local learning rule `H` may
+  not hardcode the exact parametric inverse of a synthetic generator without testing out-of-family
+  inputs under `G8` (two points define a unique line whether or not the truth is linear).
 
 ---
 
