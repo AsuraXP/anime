@@ -36,5 +36,5 @@ done
 echo
 echo "## Ownership check (files outside any seat's ownership = protocol violation)"
 git ls-files 'research/*' 2>/dev/null | grep -vE \
-  '(CHARTER|BOARD|ROLES|PROTOCOL|README|BOOTSTRAP|HANDOFF)\.md|research/(bench|bin|templates|graveyard)/|research/threads/(README|[0-9])|research/log/(decisions|status)-agent-[a-z]\.md|research/msg/' \
+  '(CHARTER|BOARD|ROLES|SEATS|PROTOCOL|README|BOOTSTRAP|HANDOFF)\.md|research/(bench|bin|templates|graveyard)/|research/threads/(README|[0-9])|research/log/(decisions|status)-agent-[a-z]\.md|research/msg/' \
   || echo "- none"
