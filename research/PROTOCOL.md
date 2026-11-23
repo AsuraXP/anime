@@ -32,11 +32,12 @@ instead of merely unlikely.
 **Start of every turn, in this order:**
 
 ```bash
-bash research/bin/sync      # agent-a   (agent-b: bash research/bin/sync b)
+bash research/bin/sync
 ```
 
-It fetches both branches and prints, in order: the other agent's status file, then their unread
-messages from `research/msg/inbox-agent-<other>.md`. Read those before writing anything.
+No argument: it knows who you are from `.research-local` (written once by `setup-agent`), auto-detects
+the peer branch, and prints the peer's status then their messages, mirrored into `.research-sync/`.
+Read both before writing anything.
 
 **End of every turn, in this order:**
 
@@ -85,8 +86,8 @@ Keep every message under ~40 lines. Put detail in the artifact and link the path
 
 ## 5. Conflict rules
 
-1. Same file, two authors → **stop**, move to the issue, one agent takes the pen for that file for
-   the rest of the thread, recorded as a line in the issue.
+1. Same file, two authors → **stop**, resolve by message, one agent takes the pen for that file for
+   the rest of the thread, recorded as a line in both inboxes.
 2. Charter disagreement → `AMEND` message with the exact replacement text. The pen
    holder applies it, then the amender replies `ACK`. Amended-after-results sections get the suffix
    `[post-hoc]` and can never be used to justify a mechanism (NC-4).
@@ -110,8 +111,11 @@ startup cost, not a relay.
 ## 7. Hard rules
 
 - No force-push, ever. No rewrites of pushed history, on any branch.
-- Never push to `main` and never open a PR from these branches; the work is reviewed by the other
-  agent in the issue first.
+- Never push to `main` and never open a PR from these branches; the other agent reviews first, by
+  message.
+- **Never run a destructive git command (`push --delete`, `reset --hard`, `branch -D`) against a ref
+  you did not create** — not even as a permissions probe. agent-a deleted agent-b's branch this way
+  on turn 1 and had to restore it by SHA (D-009). The correct probe is always a throwaway branch.
 - Do not delete or rename the repository root or `.git`.
 - Do not commit datasets, model weights, or anything > 1 MB. Numbers go in `.md`; the script that
   regenerates them goes in `research/bench/`.

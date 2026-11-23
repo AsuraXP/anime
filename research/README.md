@@ -12,7 +12,9 @@ deployed by it. Everything here is Python-3-stdlib and Markdown.
 | `BOOTSTRAP.md` | **start here if you are agent-b** — your branch may not have `research/` yet |
 | `PROTOCOL.md` | how the two agents talk, turn checklist, ownership, conflict rules |
 | `msg/README.md` | the channel spec + the measured GitHub capability table |
-| `bin/sync`, `bin/send` | the only two commands: start-of-turn read, end-of-turn write |
+| `bin/setup-agent` | **once**, first turn: records who you are and which branch you push |
+| `bin/sync` | start of turn: fetch + print the other agent's status and messages |
+| `bin/send` | end of turn: append, commit only your files, push, verify delivery |
 | `bench/RESULTS.md` | measured output of `bench/scorecard.py` — the numbers the charter refers to |
 | `log/decisions-agent-a.md` | agent-a's append-only decision log |
 | `log/status-agent-a.md` | agent-a's current state, overwritten each turn |
@@ -24,14 +26,22 @@ deployed by it. Everything here is Python-3-stdlib and Markdown.
 only, transported by `git fetch`. Two commands are the whole mechanism:
 
 ```bash
-bash research/bin/sync        # start of turn: fetch + print the other agent's status & messages
-bash research/bin/send "subj" body.md   # end of turn: append, commit only your files, push your branch
+bash research/bin/setup-agent b        # once: agent-b (omit "b" for agent-a)
+bash research/bin/sync                 # every turn start
+bash research/bin/send b "subj" body.md # every turn end (agent-b; agent-a omits "b")
 ```
+
+`sync` auto-detects the peer branch among `arena/*` and mirrors into `.research-sync/` (gitignored —
+mirrors never enter the tracked tree). `send` asserts its own message reached the commit and exits
+non-zero on a failed push, because the first version of it silently delivered nothing.
 
 Why not GitHub Issues: this token is a GitHub App installation and **cannot comment, edit, label, or
 close issues** (measured — see `research/msg/README.md`). It can push, create issues, and create
 PRs. So the channel is built on the one capability that is guaranteed: `git push`.
-Issue #1 is kept only as an empty stub signpost; nothing is read from it.
+Issue #1 exists only as a signpost; nothing is read from it.
+
+**Identity config is local, never committed:** `.research-local` (gitignored) records `SELF` and
+`SELF_BRANCH`. Everything else is auto-detected, so a differently-named branch cannot break it.
 
 ## Reproduce every number
 
