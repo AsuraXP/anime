@@ -294,6 +294,77 @@ class MLP:
         n = len(pairs)
         return exact / n, [c / n for c in per]
 
+    def confidence_and_correct(self, pairs, featf):
+        """Per-item (joint confidence, correct) -- the raw material of a risk-coverage curve.
+
+        Joint confidence = product of the three per-digit maximum softmax probabilities. Product,
+        not minimum: an exact 3-digit answer requires all three heads, so the joint probability of
+        the emitted answer is the product. Disclosed because the curve's shape depends on it."""
+        out = []
+        for a, b in pairs:
+            _, _, probs = self.forward(featf(a, b))
+            conf = 1.0
+            n = 0
+            for p in range(POS):
+                best = max(range(BASE), key=lambda c: probs[p][c])
+                conf *= probs[p][best]
+                n += best * (BASE ** p)
+            out.append((conf, n == (a + b) % MOD))
+        return out
+
+
+# --------------------------------------------------------------------------- risk-coverage
+RC_THRESHOLDS = (0.0, 0.25, 0.50, 0.70, 0.80, 0.90, 0.95, 0.99)
+
+
+def risk_coverage(conf_correct, thresholds=RC_THRESHOLDS):
+    """Selective prediction: answer only when joint confidence >= tau, and report the pair
+    (coverage, risk on what was answered). This is the measurement AMEND-001 requires: a single
+    accuracy number hides the trade, and a model that answers nothing scores 0 wrong.
+
+    Also returns AURC -- the area under the risk-coverage curve, computed exactly by sorting on
+    confidence rather than by binning thresholds:
+        AURC = (1/n) * sum_{k=1..n} errors(k) / k
+    Lower is better, and it is comparable across models whose curves have different shapes. That
+    matters because AMEND-001's G8 is a *relative* test: strictly lower risk than the thresholded
+    baseline at equal coverage. AURC is that comparison in one number."""
+    rows = []
+    n = len(conf_correct)
+    for t in thresholds:
+        ans = [ok for conf, ok in conf_correct if conf >= t]
+        cov = len(ans) / n
+        risk = (sum(1 for ok in ans if not ok) / len(ans)) if ans else float("nan")
+        rows.append((t, cov, risk, len(ans)))
+    ordered = sorted(conf_correct, key=lambda p: -p[0])
+    err = 0
+    aurc = 0.0
+    for k, (_, ok) in enumerate(ordered, 1):
+        if not ok:
+            err += 1
+        aurc += err / k
+    return rows, (aurc / n if n else float("nan"))
+
+
+def print_risk_coverage(label, rows, table_cov=None, table_risk=None, aurc=None):
+    print(f"\n  risk-coverage, {label} (answer only if joint confidence >= tau):")
+    print("  | tau | coverage | risk (wrong/answered) | selective accuracy |")
+    print("  |---|---|---|---|")
+    for t, cov, risk, k in rows:
+        r = "n/a (answers nothing)" if risk != risk else f"{100 * risk:.2f}%"
+        acc = "n/a" if risk != risk else f"{100 * (1 - risk):.2f}%"
+        print(f"  | {t:.2f} | {100 * cov:.2f}% | {r} | {acc} |")
+    zero = [cov for t, cov, risk, k in rows if risk == 0.0]
+    best = max(zero) if zero else None
+    if best is not None:
+        print(f"  max coverage at **zero risk**: {100 * best:.2f}%")
+    else:
+        print("  max coverage at zero risk: **none** -- it is wrong on something at every threshold")
+    if aurc is not None:
+        print(f"  AURC (area under risk-coverage, lower is better): **{aurc:.4f}**")
+    if table_cov is not None:
+        print(f"  counted table on the same probes: coverage {100 * table_cov:.2f}%, "
+              f"risk {'n/a' if table_risk is None else f'{100 * table_risk:.2f}%'}")
+
 
 # --------------------------------------------------------------------------- scoring
 def score_table(predict, probe):
@@ -333,6 +404,7 @@ def main():
     print("      sums and tests on odd. This file's first version did that and reproduced 0.0%.")
 
     summary = {}
+    g8 = {}
     converges = None
 
     # ---- R1
@@ -345,6 +417,9 @@ def main():
     print()
     print("| system | params | exact | wrong | abstain | units / tens / hundreds |")
     print("|---|---|---|---|---|---|")
+    print(f"| *analytic ceiling, this stratum* | -- | *100.00%* | -- | -- | "
+          f"*the features determine the answer; the counted table's own ceiling is its coverage, "
+          f"shown in the abstain column* |")
     n = len(pr)
 
     T = cf_role_table(tr)
@@ -360,6 +435,7 @@ def main():
     summary["R1_cfpair"] = resp
 
     bp = {}
+    rc_rows = {}
     for label, featf in (("BP MLP-32, one-hot-60 (BUG-1 fixed)", act_ohe),
                          ("BP MLP-32, ordinal-12", act_ord)):
         rng2 = random.Random(RNG_SEED)
@@ -375,8 +451,18 @@ def main():
               f"{int(round((1 - ex) * n))} | 0 | {pd} |")
         bp[featf] = (ex, per, dt)
         summary["R1_" + ("ohe" if featf is act_ohe else "ord")] = ex
+        cc = m.confidence_and_correct(pr, featf)
+        rc, aurc = risk_coverage(cc)
+        rc_rows[featf] = (rc, cc, aurc)
         if log:
             converges = (log, m, featf)
+
+    tbl_cov = (res[0] + res[1]) / n
+    tbl_risk = (res[1] / (res[0] + res[1])) if (res[0] + res[1]) else None
+    for featf, name in ((act_ohe, "one-hot-60"), (act_ord, "ordinal-12")):
+        if featf in rc_rows:
+            print_risk_coverage(f"BP {name}, IN-SPLIT", rc_rows[featf][0], tbl_cov, tbl_risk,
+                                rc_rows[featf][2])
 
     if converges:
         log, m, featf = converges
@@ -398,6 +484,9 @@ def main():
         print()
         print("| system | params | exact | wrong | abstain | units / tens / hundreds |")
         print("|---|---|---|---|---|---|")
+        print(f"| *analytic ceiling, this stratum* | -- | *100.00%* | -- | -- | "
+              f"*unseen symbols are absent from the features' training support; a symbol-blind "
+              f"model is bounded by what it can infer, measured below* |")
         n = len(pr)
 
         T = cf_role_table(tr)
@@ -411,6 +500,7 @@ def main():
         print(table_row(f"CF pair table, same {len(Tp)}-entry budget, no sharing",
                         f"{len(Tp)} entries", resp, n))
 
+        eager = {}
         for label, featf in (("BP MLP-32, one-hot-60 (BUG-1 fixed)", act_ohe),
                              ("BP MLP-32, ordinal-12", act_ord)):
             m = MLP(NF_OHE if featf is act_ohe else NF_ORD, random.Random(RNG_SEED))
@@ -422,7 +512,54 @@ def main():
             pd = " / ".join(f"{100 * v:.1f}%" for v in per)
             print(f"| {label} | {m.nparams()} params | {100 * ex:.2f}% | {wrong} | 0 | {pd} |")
             summary[tag + ("_ohe" if featf is act_ohe else "_ord")] = ex
+            eager[featf] = m
+        t_cov = (res[0] + res[1]) / n
+        t_risk = (res[1] / (res[0] + res[1])) if (res[0] + res[1]) else None
+        for featf, name in ((act_ohe, "one-hot-60"), (act_ord, "ordinal-12")):
+            if featf in eager:
+                cc = eager[featf].confidence_and_correct(pr, featf)
+                rc, aurc = risk_coverage(cc)
+                print_risk_coverage(f"BP {name}, {tag}", rc, t_cov, t_risk, aurc)
+                zero = [c for t, c, r, k in rc if r == 0.0]
+                g8[tag + "/" + name] = (100 * (max(zero) if zero else 0.0), 100 * rc[0][1],
+                                        None if rc[0][2] != rc[0][2] else 100 * rc[0][2], aurc)
         print(f"\n  backprop wall clock: {dt:.1f}s for the last model")
+
+    # ---- G8 under AMEND-001
+    print("\n## G8 under AMEND-001 (risk-coverage, not zero-wrong)\n")
+    print("The amended gate asks for *strictly positive unseen coverage* at zero (or strictly lower)")
+    print("risk, with abstentions attributed to a structural conflict rather than a missing key.")
+    print("That inverts the question the repo was asking, so it is scored here explicitly.\n")
+    print("| system | unseen coverage @tau=0 | risk @tau=0 | max coverage at ZERO risk | AURC | "
+          "G8 verdict |")
+    print("|---|---|---|---|---|---|")
+    for tag in ("R2([9])", "R2([7, 8, 9])"):
+        aur = {}
+        for enc in ("one-hot-60", "ordinal-12"):
+            key = tag + "/" + enc
+            if key in g8:
+                zc, cov, risk, aurc = g8[key]
+                aur[enc] = aurc
+                verdict = ("no zero-risk coverage, but a real selective curve"
+                           if zc == 0 else f"zero-risk at {zc:.2f}% coverage")
+                print(f"| BP {enc}, {tag} | {cov:.2f}% | "
+                      f"{'n/a' if risk is None else f'{risk:.2f}%'} | {zc:.2f}% | "
+                      f"{aurc:.4f} | {verdict} |")
+        tc = summary[tag + "_cf"]
+        t_cov = 100.0 * (tc[0] + tc[1]) / (tc[0] + tc[1] + tc[2])
+        print(f"| counted role table, {tag} | {t_cov:.2f}% | n/a | 0.00% | undefined | "
+              f"**fails AMEND-001 G8**: 0 wrong at 0% coverage *is* `lambda _: ABSTAIN` |")
+        if len(aur) == 2:
+            lo, hi = ("ordinal-12", "one-hot-60") if aur["ordinal-12"] < aur["one-hot-60"] \
+                else ("one-hot-60", "ordinal-12")
+            print(f"| | | | | | relative test: **{lo} has lower AURC "
+                  f"({aur[lo]:.4f} vs {aur[hi]:.4f})**, so it is the better selective predictor "
+                  f"on this stratum |")
+    print()
+    print("Reading: the table's `0 wrong` is exactly what `lambda _: ABSTAIN` scores. Under the")
+    print("amended gate it is not a capability but the trivial solution, and the only systems with")
+    print("strictly positive unseen coverage are the backprop baselines. That is the opposite of")
+    print("what BOARD.md said when G8 was written, and it is the honest direction of the numbers.")
 
     # ---- pre-registered scoring
     print("\n## Pre-registered predictions\n")

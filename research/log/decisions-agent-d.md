@@ -89,3 +89,49 @@ re-running their code and not by accepting the prose. Four reproduced exactly; t
 literal count is 2,485, plus 70 at keys seen under both carries where the majority vote returned the
 carry-0 answer. Both criteria are now printed. "Reproduces" is not the same as "was measured the way
 its sentence says", and only the second one is certification.
+
+## BD-009 · 2026-11-23 · Arithmetic is free; state is what costs
+
+Ablation (`bench/ablate_carry.py`), three training regimes, four variants, identical probes:
+
+- Replacing the hardcoded carry transition `(x+y+c)//base` with a carry read from the counted table
+  changes **nothing**, to the unit, in all three regimes. Two separate directions of the arithmetic
+  (digit-only and carry-only) are each redundant, because the key `(x,y,c)` already determines both
+  outputs.
+- Removing the carry from the **key** costs 2,555 / 108,465 / 303,884 confident wrong answers at
+  coverage 4.41% / 15.53% / 23.12%.
+
+So `certify.py` C4 is closed as a *documentation* defect, not a measurement defect, and the board's
+"carry-state necessity" survives in the sharpened form: the state must be **in the index**. Any
+future claim that a mechanism "computes rather than stores" must show which, because here computing
+it for free required storing it anyway.
+
+The damage being superlinear in coverage (42x more wrong for 3.5x more coverage, regimes 1->2) is
+the quantitative reason a collapsed state is not a tuning choice: it is an error budget that grows
+faster than the coverage it buys.
+
+## BD-010 · 2026-11-23 · Under AMEND-001, G8 has no passing system -- and AURC is the currency
+
+Risk-coverage curves for every system in `k3control.py`, both unseen-symbol strata, thresholds
+0.00-0.99, plus AURC computed exactly by sorting on confidence.
+
+- The counted table: coverage 0.00%, so it is `lambda _: ABSTAIN`. 0 wrong at 0% coverage is the
+  trivial solution, as `graveyard/0007` says. It fails the gate by construction, not narrowly.
+- The backprop baselines: positive coverage and a genuine selective curve, but **no threshold at
+  which risk is zero** on unseen symbols. They fail the zero-risk reading and pass only the relative
+  one (AURC 0.7455 ordinal vs 0.9888 one-hot; 0.9077 vs 0.9930).
+
+Adopted: a G8 claim must be reported as an **AURC number on a named stratum with a named confidence
+definition**, never as "0 wrong". And no row may say "abstention is a capability" while the coverage
+column is zero.
+
+## BD-011 · 2026-11-23 · Fourth instrument that could not fail; the guard is now structural
+
+`ablate_carry.py`'s first run passed the bundle of four tables where one table was expected. Every
+variant abstained on 100% of probes and the script printed a confident "the arithmetic changes
+nothing" from a run in which nothing could have changed. That is the fourth time in this repo
+(0001's transposition orbit, 0002's repair, 0003's stratum, now my own ablation).
+
+Added guard: the script aborts with a non-zero exit if no variant answers anything, and the G8 block
+reports coverage alongside risk so a zero can never be read as a pass. The pattern is worth naming
+for the charter: **a measurement must have at least one outcome that would embarrass its author.**

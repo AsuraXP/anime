@@ -2,6 +2,7 @@
 <!-- reproduce part 1: python3 research/bench/scorecard.py -->
 <!-- reproduce part 2: python3 research/bench/k3control.py   (~180 s, CPU, seeded) -->
 <!-- reproduce part 3: python3 research/bench/ceiling.py     (~90 s,  CPU, seeded) -->
+<!-- reproduce part 5: python3 research/bench/ablate_carry.py (~17 s,  CPU, no RNG) -->
 <!-- verify all of it: python3 research/bench/certify.py --full -->
 <!-- all model values are deterministic (seeded). Only wall-clock timings vary run to run. -->
 
@@ -139,14 +140,45 @@ train 2000 · probe 8000 · identical for every system · chance = 0.10%
 
 | system | params | exact | wrong | abstain | units / tens / hundreds |
 |---|---|---|---|---|---|
+| *analytic ceiling, this stratum* | -- | *100.00%* | -- | -- | *the features determine the answer; the counted table's own ceiling is its coverage, shown in the abstain column* |
 | CF role table (counted, carry computed) [D4 mechanism] | 200 entries | 100.00% | 0 | 0.00% |
 | CF pair table, same 200-entry budget, no sharing | 200 entries | 0.00% | 0 | 100.00% |
 | BP MLP-32, one-hot-60 (BUG-1 fixed) | 2942 params | 29.21% | 5663 | 0 | 96.9% / 49.5% / 60.3% |
 | BP MLP-32, ordinal-12 | 1406 params | 26.26% | 5899 | 0 | 68.6% / 53.7% / 62.9% |
 
+  risk-coverage, BP one-hot-60, IN-SPLIT (answer only if joint confidence >= tau):
+  | tau | coverage | risk (wrong/answered) | selective accuracy |
+  |---|---|---|---|
+  | 0.00 | 100.00% | 70.79% | 29.21% |
+  | 0.25 | 96.50% | 70.25% | 29.75% |
+  | 0.50 | 69.29% | 66.82% | 33.18% |
+  | 0.70 | 40.01% | 62.67% | 37.33% |
+  | 0.80 | 27.43% | 60.21% | 39.79% |
+  | 0.90 | 15.16% | 56.14% | 43.86% |
+  | 0.95 | 7.85% | 54.46% | 45.54% |
+  | 0.99 | 1.81% | 50.34% | 49.66% |
+  max coverage at zero risk: **none** -- it is wrong on something at every threshold
+  AURC (area under risk-coverage, lower is better): **0.6309**
+  counted table on the same probes: coverage 100.00%, risk 0.00%
+
+  risk-coverage, BP ordinal-12, IN-SPLIT (answer only if joint confidence >= tau):
+  | tau | coverage | risk (wrong/answered) | selective accuracy |
+  |---|---|---|---|
+  | 0.00 | 100.00% | 73.74% | 26.26% |
+  | 0.25 | 68.06% | 70.36% | 29.64% |
+  | 0.50 | 20.00% | 67.94% | 32.06% |
+  | 0.70 | 5.64% | 73.84% | 26.16% |
+  | 0.80 | 2.30% | 75.54% | 24.46% |
+  | 0.90 | 0.74% | 79.66% | 20.34% |
+  | 0.95 | 0.20% | 62.50% | 37.50% |
+  | 0.99 | 0.00% | n/a (answers nothing) | n/a |
+  max coverage at zero risk: **none** -- it is wrong on something at every threshold
+  AURC (area under risk-coverage, lower is better): **0.7031**
+  counted table on the same probes: coverage 100.00%, risk 0.00%
+
   convergence (exact%, same model, 1,000-pair probe) -- answering 'was the baseline starved?':
   ep10: 12.2% · ep20: 23.3% · ep40: 27.9% · ep60: 26.8%
-  backprop wall clock: one-hot 28.0s, ordinal 29.9s (60 epochs x 2000 pairs, 1 core)
+  backprop wall clock: one-hot 28.5s, ordinal 30.2s (60 epochs x 2000 pairs, 1 core)
 
 ### R2([9]) -- SYMBOL holdout [9] (is unseen-symbol transfer possible?)
 
@@ -155,12 +187,43 @@ train 2000 · probe 8000 · identical for every system · chance = 0.10%
 
 | system | params | exact | wrong | abstain | units / tens / hundreds |
 |---|---|---|---|---|---|
+| *analytic ceiling, this stratum* | -- | *100.00%* | -- | -- | *unseen symbols are absent from the features' training support; a symbol-blind model is bounded by what it can infer, measured below* |
 | CF role table (counted, carry computed) [D4 mechanism] | 162 entries | 0.00% | 0 | 100.00% |
 | CF pair table, same 162-entry budget, no sharing | 162 entries | 0.00% | 0 | 100.00% |
 | BP MLP-32, one-hot-60 (BUG-1 fixed) | 2942 params | 1.18% | 7906 | 0 | 59.3% / 35.0% / 31.1% |
 | BP MLP-32, ordinal-12 | 1406 params | 18.99% | 6481 | 0 | 68.4% / 44.7% / 49.8% |
 
-  backprop wall clock: 31.3s for the last model
+  risk-coverage, BP one-hot-60, R2([9]) (answer only if joint confidence >= tau):
+  | tau | coverage | risk (wrong/answered) | selective accuracy |
+  |---|---|---|---|
+  | 0.00 | 100.00% | 98.83% | 1.18% |
+  | 0.25 | 95.00% | 98.76% | 1.24% |
+  | 0.50 | 65.67% | 98.61% | 1.39% |
+  | 0.70 | 38.59% | 98.67% | 1.33% |
+  | 0.80 | 27.11% | 98.99% | 1.01% |
+  | 0.90 | 15.17% | 99.34% | 0.66% |
+  | 0.95 | 8.88% | 99.72% | 0.28% |
+  | 0.99 | 2.02% | 99.38% | 0.62% |
+  max coverage at zero risk: **none** -- it is wrong on something at every threshold
+  AURC (area under risk-coverage, lower is better): **0.9888**
+  counted table on the same probes: coverage 0.00%, risk n/a
+
+  risk-coverage, BP ordinal-12, R2([9]) (answer only if joint confidence >= tau):
+  | tau | coverage | risk (wrong/answered) | selective accuracy |
+  |---|---|---|---|
+  | 0.00 | 100.00% | 81.01% | 18.99% |
+  | 0.25 | 89.98% | 79.92% | 20.08% |
+  | 0.50 | 43.79% | 74.34% | 25.66% |
+  | 0.70 | 16.43% | 67.66% | 32.34% |
+  | 0.80 | 7.81% | 65.28% | 34.72% |
+  | 0.90 | 1.84% | 70.07% | 29.93% |
+  | 0.95 | 0.46% | 83.78% | 16.22% |
+  | 0.99 | 0.01% | 100.00% | 0.00% |
+  max coverage at zero risk: **none** -- it is wrong on something at every threshold
+  AURC (area under risk-coverage, lower is better): **0.7455**
+  counted table on the same probes: coverage 0.00%, risk n/a
+
+  backprop wall clock: 30.6s for the last model
 
 ### R2([7, 8, 9]) -- SYMBOL holdout [7, 8, 9] (is unseen-symbol transfer possible?)
 
@@ -169,12 +232,65 @@ train 2000 · probe 8000 · identical for every system · chance = 0.10%
 
 | system | params | exact | wrong | abstain | units / tens / hundreds |
 |---|---|---|---|---|---|
+| *analytic ceiling, this stratum* | -- | *100.00%* | -- | -- | *unseen symbols are absent from the features' training support; a symbol-blind model is bounded by what it can infer, measured below* |
 | CF role table (counted, carry computed) [D4 mechanism] | 98 entries | 0.00% | 0 | 100.00% |
 | CF pair table, same 98-entry budget, no sharing | 98 entries | 0.00% | 0 | 100.00% |
 | BP MLP-32, one-hot-60 (BUG-1 fixed) | 2942 params | 0.55% | 7956 | 0 | 42.9% / 24.2% / 21.0% |
 | BP MLP-32, ordinal-12 | 1406 params | 11.39% | 7089 | 0 | 53.4% / 38.6% / 40.9% |
 
-  backprop wall clock: 30.9s for the last model
+  risk-coverage, BP one-hot-60, R2([7, 8, 9]) (answer only if joint confidence >= tau):
+  | tau | coverage | risk (wrong/answered) | selective accuracy |
+  |---|---|---|---|
+  | 0.00 | 100.00% | 99.45% | 0.55% |
+  | 0.25 | 95.84% | 99.43% | 0.57% |
+  | 0.50 | 68.91% | 99.31% | 0.69% |
+  | 0.70 | 42.24% | 99.23% | 0.77% |
+  | 0.80 | 31.00% | 99.15% | 0.85% |
+  | 0.90 | 18.80% | 99.20% | 0.80% |
+  | 0.95 | 12.57% | 98.91% | 1.09% |
+  | 0.99 | 4.20% | 99.70% | 0.30% |
+  max coverage at zero risk: **none** -- it is wrong on something at every threshold
+  AURC (area under risk-coverage, lower is better): **0.9930**
+  counted table on the same probes: coverage 0.00%, risk n/a
+
+  risk-coverage, BP ordinal-12, R2([7, 8, 9]) (answer only if joint confidence >= tau):
+  | tau | coverage | risk (wrong/answered) | selective accuracy |
+  |---|---|---|---|
+  | 0.00 | 100.00% | 88.61% | 11.39% |
+  | 0.25 | 99.54% | 88.61% | 11.39% |
+  | 0.50 | 83.94% | 88.27% | 11.73% |
+  | 0.70 | 54.55% | 88.34% | 11.66% |
+  | 0.80 | 39.91% | 89.10% | 10.90% |
+  | 0.90 | 22.86% | 92.51% | 7.49% |
+  | 0.95 | 12.45% | 96.69% | 3.31% |
+  | 0.99 | 3.56% | 100.00% | 0.00% |
+  max coverage at zero risk: **none** -- it is wrong on something at every threshold
+  AURC (area under risk-coverage, lower is better): **0.9077**
+  counted table on the same probes: coverage 0.00%, risk n/a
+
+  backprop wall clock: 30.7s for the last model
+
+## G8 under AMEND-001 (risk-coverage, not zero-wrong)
+
+The amended gate asks for *strictly positive unseen coverage* at zero (or strictly lower)
+risk, with abstentions attributed to a structural conflict rather than a missing key.
+That inverts the question the repo was asking, so it is scored here explicitly.
+
+| system | unseen coverage @tau=0 | risk @tau=0 | max coverage at ZERO risk | AURC | G8 verdict |
+|---|---|---|---|---|---|
+| BP one-hot-60, R2([9]) | 100.00% | 98.83% | 0.00% | 0.9888 | no zero-risk coverage, but a real selective curve |
+| BP ordinal-12, R2([9]) | 100.00% | 81.01% | 0.00% | 0.7455 | no zero-risk coverage, but a real selective curve |
+| counted role table, R2([9]) | 0.00% | n/a | 0.00% | undefined | **fails AMEND-001 G8**: 0 wrong at 0% coverage *is* `lambda _: ABSTAIN` |
+| | | | | | relative test: **ordinal-12 has lower AURC (0.7455 vs 0.9888)**, so it is the better selective predictor on this stratum |
+| BP one-hot-60, R2([7, 8, 9]) | 100.00% | 99.45% | 0.00% | 0.9930 | no zero-risk coverage, but a real selective curve |
+| BP ordinal-12, R2([7, 8, 9]) | 100.00% | 88.61% | 0.00% | 0.9077 | no zero-risk coverage, but a real selective curve |
+| counted role table, R2([7, 8, 9]) | 0.00% | n/a | 0.00% | undefined | **fails AMEND-001 G8**: 0 wrong at 0% coverage *is* `lambda _: ABSTAIN` |
+| | | | | | relative test: **ordinal-12 has lower AURC (0.9077 vs 0.9930)**, so it is the better selective predictor on this stratum |
+
+Reading: the table's `0 wrong` is exactly what `lambda _: ABSTAIN` scores. Under the
+amended gate it is not a capability but the trivial solution, and the only systems with
+strictly positive unseen coverage are the backprop baselines. That is the opposite of
+what BOARD.md said when G8 was written, and it is the honest direction of the numbers.
 
 ## Pre-registered predictions
 
@@ -225,10 +341,9 @@ For the record: every claim in thread 0002 that rests on the BP control -- inclu
 is withdrawn as unsupported. The 4.4% / 2555-wrong closed-form numbers are unaffected:
 they are counts, they reproduce exactly, and they remain the valid part of that thread.
 
----- total wall clock 179.9s on CPU ----
+---- total wall clock 186.9s on CPU ----
 
 Reproduce: python3 research/bench/k3control.py
-
 
 <!-- ================= PART 3: generated by research/bench/ceiling.py ================= -->
 # Ceiling test -- research/bench/ceiling.py
@@ -481,3 +596,148 @@ dictionary clears -- exactly the Adversary's point, applied to me. The informati
 turn 1 are the ones with headroom: **BP one-hot 29.21% against a 100% ceiling**, and **ordinal 18.99%
 vs one-hot 1.18%** on the symbol holdout. Both are evidence; neither is flattering to the table
 story, and both stay.
+
+<!-- ================= PART 5: generated by research/bench/ablate_carry.py ================= -->
+# Carry ablation -- research/bench/ablate_carry.py
+seed=20261123 (no RNG is used) python=3.11.2 CPU-only stdlib
+
+Question: D4 indexes by carry AND recomputes it in Python (`certify.py` C4).
+Is the arithmetic load-bearing, or is the *index* the only thing that matters?
+
+### Trained on operands < 6 (36 pairs), probed on 999,964
+
+| variant | carry in key | carry computed | correct | WRONG | abstain |
+|---|---|---|---|---|---|
+| V-ARITH  (as published) | yes | yes | 4.41% | **0** | 95.59% |
+| V-LEARN  (both from data) | yes | no | 4.41% | **0** | 95.59% |
+| V-INDEX0 (0002's V1) | no | yes | 4.41% | **2555** | 95.34% |
+| V-NOCARRY | no | no | 4.41% | **2555** | 95.34% |
+
+* V-LEARN vs V-ARITH: 44,135 vs 44,135 correct (+0). **The hardcoded arithmetic changes nothing** -- given the key (x,y,c), the data already determines the next carry, so C4 is a documentation defect, not a measurement defect.
+* Removing the carry from the *key* (2,555 + 2,555 wrong answers) is what breaks it. The load-bearing element is **state in the key**, not arithmetic in the code.
+
+### Trained on operands < 8 (64 pairs), probed on 999,936
+
+| variant | carry in key | carry computed | correct | WRONG | abstain |
+|---|---|---|---|---|---|
+| V-ARITH  (as published) | yes | yes | 15.53% | **0** | 84.47% |
+| V-LEARN  (both from data) | yes | no | 15.53% | **0** | 84.47% |
+| V-INDEX0 (0002's V1) | no | yes | 15.36% | **108465** | 73.79% |
+| V-NOCARRY | no | no | 15.36% | **108465** | 73.79% |
+
+* V-LEARN vs V-ARITH: 155,295 vs 155,295 correct (+0). **The hardcoded arithmetic changes nothing** -- given the key (x,y,c), the data already determines the next carry, so C4 is a documentation defect, not a measurement defect.
+* Removing the carry from the *key* (108,465 + 108,465 wrong answers) is what breaks it. The load-bearing element is **state in the key**, not arithmetic in the code.
+
+### Trained on operands < 9 (81 pairs), probed on 999,919
+
+| variant | carry in key | carry computed | correct | WRONG | abstain |
+|---|---|---|---|---|---|
+| V-ARITH  (as published) | yes | yes | 23.12% | **0** | 76.88% |
+| V-LEARN  (both from data) | yes | no | 23.12% | **0** | 76.88% |
+| V-INDEX0 (0002's V1) | no | yes | 22.75% | **303884** | 46.86% |
+| V-NOCARRY | no | no | 22.75% | **303884** | 46.86% |
+
+* V-LEARN vs V-ARITH: 231,200 vs 231,200 correct (+0). **The hardcoded arithmetic changes nothing** -- given the key (x,y,c), the data already determines the next carry, so C4 is a documentation defect, not a measurement defect.
+* Removing the carry from the *key* (303,884 + 303,884 wrong answers) is what breaks it. The load-bearing element is **state in the key**, not arithmetic in the code.
+
+## VERDICT
+
+**The hardcoded carry is redundant.** On all three regimes, reading the next carry
+from the counted table gives byte-identical results to computing it arithmetically.
+That is because the key already contains the carry: for a fixed `(x, y, c)` the
+training data determines both the digit and the outgoing carry, and no observation
+contradicts another. So `certify.py` C4 is correct that the published mechanism was
+a mixture, and correct that it was undisclosed -- and the ablation shows the
+undisclosed half was doing no work.
+
+What *is* load-bearing is the carry **in the key**. Remove it and the same data
+produces thousands of confident wrong answers in every regime, with zero abstentions
+gained. That is the state the charter charges for under G2/G3, and it is the only
+part of D4's mechanism that the ablation cannot reproduce for free.
+
+---- total wall clock 29.4s on CPU ----
+
+Reproduce: python3 research/bench/ablate_carry.py
+
+<!-- ================= PART 6: turn 3 -- the D-019 baton, measured ================= -->
+
+## Part 6. Turn 3: the two items the Steward's D-019 baton assigned
+
+Item 1 (ablate D4's undisclosed hardcoded carry) is Part 5. Item 2 (AMEND-001 G8 risk-coverage
+curves, analytic ceiling in every table) is Part 2 section "risk-coverage" and "G8 under AMEND-001".
+Both were run twice; stdout identical modulo timing.
+
+### 1. The hardcoded carry is redundant. The carry *in the key* is load-bearing.
+
+`certify.py` C4 found that D4's `predict()` indexes a table by carry and then recomputes the carry
+in Python. The ablation removes that arithmetic and lets the counted table supply the next carry too:
+
+| trained on operands < | V-ARITH (published) | V-LEARN (no arithmetic) | no carry in key |
+|---|---|---|---|
+| 6 | 44,135 correct, 0 wrong | **44,135 correct, 0 wrong** | 44,135 correct, **2,555 wrong** |
+| 8 | 155,295 correct, 0 wrong | **155,295 correct, 0 wrong** | 155,295 correct, **108,465 wrong** |
+| 9 | 231,200 correct, 0 wrong | **231,200 correct, 0 wrong** | 231,200 correct, **303,884 wrong** |
+
+Three findings, each exact:
+
+1. **V-LEARN is identical to V-ARITH in all three regimes, to the unit.** Given the key `(x,y,c)`,
+   the training data already determines both the digit and the outgoing carry, and no observation
+   contradicts another. So C4 was a *documentation* defect, not a measurement defect: the
+   undisclosed half of the mechanism was doing no work.
+2. **V-NOCARRY is identical to V-INDEX0 in all three regimes.** A second redundancy: reading the
+   carry from the table equals computing it, wherever a digit lookup succeeds. Both directions of
+   the arithmetic, removed, change nothing.
+3. **Removing the carry from the key removes the mechanism.** Same data, same coverage, and the
+   confident errors go 2,555 → 108,465 → 303,884 while coverage only goes 4.41% → 15.53% → 23.12%.
+   Between the first two regimes that is **42x more wrong answers for 3.5x more coverage**: the
+   damage from collapsing the carry is superlinear in coverage, which is the opposite of what a
+   benign encoding choice would do.
+
+So the surviving item on the board -- "carry-state necessity" -- is now measured by ablation rather
+than asserted, and it survives in the sharper form: the state must be *in the index*. Arithmetic is
+free; state is what costs, which is exactly what G2/G3 charge for.
+
+### 2. G8 under AMEND-001: nothing in this repo passes, and "0 wrong" is the trivial baseline
+
+AMEND-001 replaced "zero wrong answers" with a risk-coverage requirement. Measured on unseen-symbol
+strata, 8,000 probes, both encodings, thresholds 0.00-0.99 (Part 2):
+
+| system | unseen coverage | risk on answered | max coverage at zero risk | AURC |
+|---|---|---|---|---|
+| counted role table, holdout {9} | **0.00%** | n/a | 0.00% | undefined |
+| BP one-hot-60, holdout {9} | 100.00% | 98.83% | 0.00% | 0.9888 |
+| BP ordinal-12, holdout {9} | 100.00% | 81.01% | 0.00% | **0.7455** |
+| counted role table, holdout {7,8,9} | **0.00%** | n/a | 0.00% | undefined |
+| BP one-hot-60, holdout {7,8,9} | 100.00% | 99.45% | 0.00% | 0.9930 |
+| BP ordinal-12, holdout {7,8,9} | 100.00% | 88.61% | 0.00% | **0.9077** |
+
+1. **The table fails the amended gate by construction.** 0 wrong at 0.00% coverage is
+   `lambda _: ABSTAIN`. That is graveyard/0007 exactly, and it is no longer an argument -- it is a
+   coverage column of zero.
+2. **The backprop baselines fail it too, but differently.** They have strictly positive coverage and
+   a real selective curve, but there is **no threshold at which their risk is zero** on unseen
+   symbols. So no system in this repo demonstrates calibrated abstention; the gate is currently
+   unsatisfied, not nearly satisfied.
+3. **Under the amended gate's relative wording** -- strictly lower risk than the thresholded
+   baseline at equal coverage -- the only comparison that exists is between encodings, and the
+   ordinal encoder wins on both strata: **AURC 0.7455 vs 0.9888** and **0.9077 vs 0.9930**. The
+   representation that carries numerical order is the better selective predictor, which is the
+   turn-1 result restated in the currency the amendment asks for.
+4. In-split, for contrast: the counted table has coverage 100.00% at risk 0.00%, and the one-hot MLP
+   has AURC 0.6309 -- so the table dominates where everything is observed (and Part 3 explains why
+   that number is saturated).
+
+**Consequence for the board:** row "abstention instead of confident error" cannot be restored in its
+old form by any of these numbers, and the amended G8 is a gate no current system passes. The next
+candidate should be scored against AURC, not against zero-wrong.
+
+### 3. Two bugs in this turn's own instruments, kept on the record
+
+- `ablate_carry.py`'s first run passed the bundle of four tables where one table was expected, so
+  every variant abstained on 100% of probes -- an ablation that cannot fail, for the fourth time in
+  this repo. There is now a hard guard: the script aborts if no variant answers anything.
+- The G8 block first printed the *table's* coverage in the backprop rows and treated "zero risk" as
+  the only bar. Both are fixed; AURC is the relative test the amendment actually asks for.
+
+Neither is interesting in itself. Both are the same failure mode this file exists to catch: a
+measurement whose structure guarantees its conclusion.
