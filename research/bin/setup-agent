@@ -19,16 +19,34 @@ SELF=agent-$WHO
 SELF_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 [ "$SELF_BRANCH" = "HEAD" ] && { echo "!! detached HEAD — check out a branch first"; exit 1; }
 
+# Pin the peer explicitly when we can see it. Inference is a fallback, not the primary mechanism:
+# Arena names each session's branch `arena/<hash>`, so we must never depend on guessing which
+# `arena/*` branch is a peer. The bootstrap fetched agent-a's ref, so look for a branch that
+# actually carries the research tree and pin it.
+PEER=""
+if [ "$SELF" = "agent-b" ]; then
+  for b in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/arena/*' 2>/dev/null \
+             | sed 's#^origin/##'); do
+    [ "$b" = "$SELF_BRANCH" ] && continue
+    if git cat-file -e "origin/$b:research/CHARTER.md" 2>/dev/null; then PEER="$b"; break; fi
+  done
+fi
+
 cat > .research-local <<EOF
 # local identity for the two-agent channel. GITIGNORED — never commit this file.
 SELF=$SELF
 SELF_BRANCH=$SELF_BRANCH
-OTHER_BRANCH=
+OTHER_BRANCH=$PEER
 EOF
 
 echo "configured:"
 echo "  SELF=$SELF"
 echo "  SELF_BRANCH=$SELF_BRANCH"
-echo "  OTHER_BRANCH=(auto-detect among origin's arena/* branches)"
+if [ -n "$PEER" ]; then
+  echo "  OTHER_BRANCH=$PEER (pinned)"
+  echo "  (if that is wrong: echo 'OTHER_BRANCH=<branch>' > .research-local and re-add SELF/SELF_BRANCH)"
+else
+  echo "  OTHER_BRANCH=(auto-detect)"
+fi
 echo
 echo "next:  bash research/bin/sync"
