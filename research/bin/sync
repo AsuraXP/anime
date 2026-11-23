@@ -3,16 +3,11 @@
 #
 #   bash research/bin/sync
 #
-# Mirrors what EVERY OTHER agent wrote into .research-sync/ (gitignored). One peer or three, same
-# command. It never writes into research/ itself, so a stray `git add` can never commit another
-# agent's files onto your branch.
-#
-# Peer discovery: every `arena/*` branch on origin that is not yours and carries `research/CHARTER.md`.
-# Any single peer can be pinned with $OTHER_BRANCH or in .research-local; pinning is a hint, not a
-# filter — sync always lists all peers it can see.
+# Mirrors what EVERY OTHER agent wrote into .research-sync/ (gitignored): inboxes, statuses,
+# threads, graveyard entries, and bench files. It never writes into research/ itself, so a stray
+# `git add` can never commit another agent's files onto your branch.
 set -uo pipefail
 
-# Env must beat the config file, otherwise a wrong config can never be corrected or tested.
 ENV_SELF=${SELF:-}; ENV_SELF_BRANCH=${SELF_BRANCH:-}; ENV_OTHER_BRANCH=${OTHER_BRANCH:-}
 [ -f .research-local ] && . ./.research-local
 [ -n "$ENV_SELF" ] && SELF=$ENV_SELF
@@ -22,67 +17,95 @@ SELF=${SELF:-agent-a}
 SELF_BRANCH=${SELF_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
 
 SYNC=.research-sync
-mkdir -p "$SYNC"
+mkdir -p "$SYNC" "$SYNC/threads" "$SYNC/graveyard" "$SYNC/bench"
+rm -f "$SYNC/.spec-diffs"
 
 echo "== $SELF ($SELF_BRANCH) =="
 
-# Explicit refspec: a single-branch clone otherwise creates no origin/<branch> ref and every read
-# below silently fails.
 git fetch --quiet --force origin 'refs/heads/*:refs/remotes/origin/*' 2>/dev/null \
   || git fetch --quiet origin 2>/dev/null \
   || { echo "!! offline, cannot fetch"; exit 1; }
 
-# ---- discover peers ----
-PEERS=""
-# A peer is ANY other branch carrying an inbox. Do not filter on the branch name: Arena allocates
-# arena/<hash> per session, and a resumed session can land anywhere. The file is the identity.
+# ---- discover active peer branches (one canonical branch per peer agent) ----
+# If an agent's session moved to a new Arena branch, an older closed branch for that same agent may
+# still exist on origin. Pick, for each agent != SELF, the branch whose inbox-agent-<x>.md has the
+# most messages (ties broken by latest commit timestamp).
+declare -A BEST_BR BEST_MSGS BEST_TS
 for b in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/' 2>/dev/null \
            | sed 's#^origin/##'); do
   [ "$b" = "$SELF_BRANCH" ] && continue
   [ "$b" = "HEAD" ] && continue
-  if git ls-tree -r --name-only "origin/$b" research/msg 2>/dev/null | grep -q 'inbox-agent-'; then
-    PEERS="$PEERS $b"
-  fi
-done
-PEERS=$(printf '%s\n' $PEERS)
-if [ -z "$PEERS" ]; then
-  echo "!! no peer branch found on origin carrying research/."
-  echo "   If the other agent has not pushed yet, wait a turn."
-  echo "   If their branch has a different name: echo 'OTHER_BRANCH=<branch>' >> .research-local"
-  exit 1
-fi
-echo "peers: $(printf '%s ' $PEERS)"
-echo
-
-# ---- mirror every peer ----
-for BR in $PEERS; do
-  TAG=$(printf '%s' "$BR" | tr '/' '-')
-  echo "---- from $BR ----"
-
-  # outgoing messages from this peer
-  for f in $(git ls-tree -r --name-only "origin/$BR" research/msg 2>/dev/null | grep 'inbox-'); do
-    base=$(basename "$f")
-    [ "$base" = "inbox-$SELF.md" ] && continue      # our own file, not a peer's
-    git show "origin/$BR:$f" > "$SYNC/$base" 2>/dev/null \
-      && echo "   read $f  ($(grep -c '^## MSG-' "$SYNC/$base" 2>/dev/null || echo 0) msgs)"
-  done
-
-  # their status (present tense)
-  for f in $(git ls-tree -r --name-only "origin/$BR" research/log 2>/dev/null | grep 'status-agent-'); do
-    base=$(basename "$f")
-    [ "$base" = "status-agent-${SELF#agent-}.md" ] && continue
-    git show "origin/$BR:$f" > "$SYNC/$base" 2>/dev/null && echo "   read $f"
-  done
-
-  # spec drift
-  for f in research/CHARTER.md research/ROLES.md research/BOARD.md research/PROTOCOL.md; do
-    if git show "origin/$BR:$f" > "$SYNC/${TAG}-$(basename "$f")" 2>/dev/null; then
-      if [ -f "$f" ] && ! diff -q "$f" "$SYNC/${TAG}-$(basename "$f")" >/dev/null 2>&1; then
-        printf '   ~ %s DIFFERS from this branch\n' "$f"
-        echo "$f" >> "$SYNC/.spec-diffs"
-      fi
+  ts=$(git log -1 --format='%ct' "origin/$b" 2>/dev/null || echo 0)
+  for f in $(git ls-tree -r --name-only "origin/$b" research/msg 2>/dev/null | grep 'inbox-agent-'); do
+    who=$(basename "$f" .md | sed 's/^inbox-//')
+    [ "$who" = "$SELF" ] && continue
+    msgs=$(git show "origin/$b:$f" 2>/dev/null | grep -c '^## MSG-' || true)
+    prev_msgs=${BEST_MSGS[$who]:--1}
+    prev_ts=${BEST_TS[$who]:-0}
+    if [ "$msgs" -gt "$prev_msgs" ] || { [ "$msgs" -eq "$prev_msgs" ] && [ "$ts" -gt "$prev_ts" ]; }; then
+      BEST_BR[$who]="$b"
+      BEST_MSGS[$who]="$msgs"
+      BEST_TS[$who]="$ts"
     fi
   done
+done
+
+PEERS=""
+for who in $(printf '%s\n' "${!BEST_BR[@]}" | sort); do
+  [ -n "$who" ] || continue
+  PEERS="$PEERS ${BEST_BR[$who]}"
+done
+PEERS=$(printf '%s\n' $PEERS)
+
+if [ -z "$PEERS" ]; then
+  echo "!! no peer branch found on origin carrying a peer inbox yet."
+  echo "   If the other agents are still on turn 1, let them finish and push first."
+  exit 1
+fi
+echo "peers: $(for who in $(printf '%s\n' "${!BEST_BR[@]}" | sort); do printf '%s=%s ' "$who" "${BEST_BR[$who]}"; done)"
+echo
+
+# ---- mirror every active peer ----
+for who in $(printf '%s\n' "${!BEST_BR[@]}" | sort); do
+  BR="${BEST_BR[$who]}"
+  TAG=$(printf '%s' "$BR" | tr '/' '-')
+  echo "---- from $who ($BR) ----"
+
+  f="research/msg/inbox-$who.md"
+  if git show "origin/$BR:$f" > "$SYNC/inbox-$who.md" 2>/dev/null; then
+    echo "   read $f  ($(grep -c '^## MSG-' "$SYNC/inbox-$who.md" 2>/dev/null || true) msgs)"
+  fi
+
+  sf="research/log/status-$who.md"
+  if git show "origin/$BR:$sf" > "$SYNC/status-$who.md" 2>/dev/null; then
+    echo "   read $sf"
+  fi
+
+  # Mirror peer artifacts (threads, graveyard, bench) into .research-sync/<dir>/ so every seat can
+  # read candidates, attacks, graveyard walls, and certified harnesses directly without git plumbing.
+  for dir in threads graveyard bench; do
+    for af in $(git ls-tree -r --name-only "origin/$BR" "research/$dir" 2>/dev/null); do
+      base=$(basename "$af")
+      [ "$base" = "README.md" ] && continue
+      # Only mirror if missing locally or differs from our local copy
+      if [ ! -f "$af" ] || ! git diff --quiet "origin/$BR:$af" -- "$af" 2>/dev/null; then
+        git show "origin/$BR:$af" > "$SYNC/$dir/$base" 2>/dev/null \
+          && echo "   mirrored $af -> $SYNC/$dir/$base"
+      fi
+    done
+  done
+
+  # Spec drift against STEWARD branch (only meaningful if Steward updated shared specs)
+  if [ "$who" = "agent-a" ]; then
+    for sp in research/CHARTER.md research/ROLES.md research/BOARD.md research/PROTOCOL.md research/bin/sync research/bin/send; do
+      if git show "origin/$BR:$sp" > "$SYNC/${TAG}-$(basename "$sp")" 2>/dev/null; then
+        if [ -f "$sp" ] && ! diff -q "$sp" "$SYNC/${TAG}-$(basename "$sp")" >/dev/null 2>&1; then
+          printf '   ~ %s UPDATED on steward branch (%s)\n' "$sp" "$BR"
+          echo "$sp:$SYNC/${TAG}-$(basename "$sp")" >> "$SYNC/.spec-diffs"
+        fi
+      fi
+    done
+  fi
 done
 
 echo
@@ -90,7 +113,7 @@ echo "================ status of each peer ================"
 for f in "$SYNC"/status-agent-*.md; do
   [ -e "$f" ] || continue
   echo; echo "### $(basename "$f" .md | sed 's/status-//')"
-  head -12 "$f"
+  head -16 "$f"
 done
 
 echo
@@ -102,17 +125,16 @@ for f in "$SYNC"/inbox-agent-*.md; do
   echo "   full text: $f"
 done
 
+echo
+echo "================ mirrored peer artifacts ================"
+find "$SYNC/threads" "$SYNC/graveyard" "$SYNC/bench" -type f 2>/dev/null | sort | sed 's/^/   /'
+
 if [ -s "$SYNC/.spec-diffs" ]; then
   echo
-  echo "================ SPEC DIFFERS ================"
-  sort -u "$SYNC/.spec-diffs" | while read -r f; do
-    echo "### $f"
-    for m in "$SYNC"/*-"$(basename "$f")"; do
-      [ -e "$m" ] || continue
-      diff -u "$f" "$m" | head -30
-    done
+  echo "================ STEWARD SPEC UPDATES ================"
+  sort -u "$SYNC/.spec-diffs" | while IFS=: read -r sp mirror; do
+    echo "   updated: $sp  (adopt with: cp $mirror $sp)"
   done
-  echo "   Adopt only if a ruling was recorded:  cp .research-sync/<peer>-<file> research/<file>"
 fi
 rm -f "$SYNC/.spec-diffs"
 
@@ -120,4 +142,3 @@ if [ "$SELF" = "agent-a" ]; then SENDARG=""; else SENDARG=${SELF#agent-}; fi
 echo
 echo "Next: read the messages above, then reply with"
 echo "  bash research/bin/send $SENDARG \"subject\" body.md"
-echo "Then refresh the board:  bash research/bin/board"

@@ -3,18 +3,12 @@
 #
 #   bash research/bin/send   "subject" body.md            # agent-a
 #   bash research/bin/send b "subject" body.md            # agent-b
-#   bash research/bin/send b "subject" body.md research/threads/0002-foo-agent-b.md   # extra files
+#   bash research/bin/send c "subject" body.md research/graveyard/0002-foo.md
+#   bash research/bin/send d "subject" body.md research/bench/witnessed_quotient.py research/bench/RESULTS.md
 #
-# Appends a message to YOUR OWN inbox (the one file only you ever write), commits ONLY files you
-# own, pushes ONLY your branch, and VERIFIES the message actually made it into the commit.
-#
-# HARD OWNERSHIP GUARD. Before committing, every staged path is checked against an allowlist:
-#     research/msg/inbox-<you>.md
-#     research/log/decisions-<you>.md
-#     research/log/status-<you>.md
-#     anything passed explicitly on the command line
-# Anything else aborts the commit. This exists because two variants of this script shipped bugs that
-# silently put the wrong files on the wrong branch (D-010, D-012). The guard is cheaper than trust.
+# Appends a message to YOUR OWN inbox (the one file only you ever write), auto-attaches any new or
+# modified *-agent-<x>.* artifact in threads/graveyard/bench, commits ONLY files your seat owns,
+# pushes ONLY your branch, and VERIFIES the message actually made it into the commit.
 set -uo pipefail
 
 ENV_SELF=${SELF:-}; ENV_SELF_BRANCH=${SELF_BRANCH:-}; ENV_BRANCH=${BRANCH:-}
@@ -23,7 +17,6 @@ ENV_SELF=${SELF:-}; ENV_SELF_BRANCH=${SELF_BRANCH:-}; ENV_BRANCH=${BRANCH:-}
 [ -n "$ENV_SELF_BRANCH" ] && SELF_BRANCH=$ENV_SELF_BRANCH
 [ -n "$ENV_BRANCH" ] && BRANCH=$ENV_BRANCH
 SELF=${SELF:-agent-a}
-# any of a|b|c|d as first arg switches identity (4-agent team)
 case "${1:-}" in
   a|b|c|d) SELF=agent-$1; shift ;;
   agent-a|agent-b|agent-c|agent-d) SELF=$1; shift ;;
@@ -32,7 +25,30 @@ BRANCH=${BRANCH:-${SELF_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}}
 
 SUBJECT="${1:-}"; BODY_FILE="${2:-}"; shift 2 2>/dev/null || true
 EXTRA=("$@")
-[ -z "$SUBJECT" ] && { echo "usage: send [b] \"<subject>\" [body.md] [extra files...]"; exit 2; }
+[ -z "$SUBJECT" ] && { echo "usage: send [a|b|c|d] \"<subject>\" [body.md] [extra owned files...]"; exit 2; }
+
+owned_by_self() {
+  local p="$1"
+  case "$p" in
+    "research/msg/inbox-$SELF.md"|"research/log/decisions-$SELF.md"|"research/log/status-$SELF.md") return 0 ;;
+    research/threads/*-"$SELF".md|research/graveyard/*-"$SELF".md|research/bench/*-"$SELF".*) return 0 ;;
+  esac
+  case "$SELF:$p" in
+    agent-a:research/CHARTER.md|agent-a:research/BOARD.md|agent-a:research/ROLES.md|agent-a:research/PROTOCOL.md|agent-a:research/START.md|agent-a:research/README.md|agent-a:research/bin/*) return 0 ;;
+    agent-c:research/graveyard/*) return 0 ;;
+    agent-d:research/bench/*) return 0 ;;
+  esac
+  return 1
+}
+
+# Validate EXTRA paths BEFORE touching the inbox or index so a failed check leaves zero partial state.
+for p in ${EXTRA[@]+"${EXTRA[@]}"}; do
+  [ -e "$p" ] || { echo "!! extra path does not exist: $p"; exit 1; }
+  if ! owned_by_self "$p"; then
+    echo "!! REFUSING TO COMMIT: '$p' is outside $SELF seat ownership (see research/ROLES.md)"
+    exit 1
+  fi
+done
 
 INBOX="research/msg/inbox-$SELF.md"
 mkdir -p research/msg
@@ -51,57 +67,48 @@ ID=$(printf 'MSG-%04d' "$N")
 } >> "$INBOX"
 echo "appended $ID to $INBOX"
 
-# ---- owned paths only, and only those that exist ----
 ALLOW=("$INBOX" "research/log/decisions-$SELF.md" "research/log/status-$SELF.md")
 PATHS=()
-for p in "${ALLOW[@]}"; do [ -e "$p" ] && PATHS+=("$p"); done
-for p in ${EXTRA[@]+"${EXTRA[@]}"}; do
-  [ -e "$p" ] || { echo "!! extra path does not exist: $p"; exit 1; }
-  PATHS+=("$p")
-done
+add_unique() {
+  local target="$1" existing
+  for existing in ${PATHS[@]+"${PATHS[@]}"}; do
+    [ "$existing" = "$target" ] && return 0
+  done
+  PATHS+=("$target")
+}
 
-# Stage our own paths first: `git commit -- <path>` requires the path to exist in the index, so a
-# brand-new inbox file must be added before it can be committed by pathspec.
-git add -- "${PATHS[@]}" || { echo "!! git add failed"; exit 1; }
+for p in "${ALLOW[@]}"; do [ -e "$p" ] && add_unique "$p"; done
 
-# ---- HARD OWNERSHIP GUARD ----
-# Every path we are about to commit must be on the allowlist. Checked directly against PATHS, so the
-# index's pre-existing contents are irrelevant: whatever someone else staged, this command cannot
-# commit it, because we commit explicit paths below rather than "everything in the index".
-# History: variant 1 staged nothing when a log file was missing (message lost, exit 0);
-#          variant 2 swept bootstrap-seeded spec files onto the peer's branch;
-#          variant 3 refused whenever the tree had unrelated staged changes;
-#          variant 4 let an unrelated staged file into the commit.
-# Each of those was a silent write to the wrong place, so the guard is now structural, not advisory.
+# Auto-attach any untracked or modified artifact explicitly suffixed for this agent (*-agent-<x>.*)
+# so a message naming a new thread/attack cannot accidentally ship without the file (cf. agent-b MSG-0001).
+while IFS= read -r f; do
+  [ -n "$f" ] && [ -e "$f" ] || continue
+  case "$f" in
+    *-"$SELF".md|*-"$SELF".py) add_unique "$f" ;;
+  esac
+done < <({
+  git ls-files --others --modified --exclude-standard research/threads research/graveyard research/bench 2>/dev/null
+  git diff --cached --name-only -- research/threads research/graveyard research/bench 2>/dev/null
+} | sort -u)
+
+for p in ${EXTRA[@]+"${EXTRA[@]}"}; do add_unique "$p"; done
+
+# ---- HARD OWNERSHIP GUARD (runs BEFORE git add) ----
 VIOLATIONS=""
 for p in "${PATHS[@]}"; do
-  ok=0
-  for a in "${ALLOW[@]}"; do [ "$p" = "$a" ] && ok=1 && break; done
-  # EXTRA entries must be paths THIS agent owns: named with the agent's suffix, or under its own
-  # thread. Passing "sneaky.bak" must not be a way around the allowlist.
-  for a in ${EXTRA[@]+"${EXTRA[@]}"}; do
-    [ "$p" = "$a" ] || continue
-    case "$p" in
-      *-"$SELF".md|research/log/*-"$SELF".md|research/bench/*-"$SELF".*) ok=1 ;;
-      *) echo "!! extra path '$p' is not owned by $SELF (needs -$SELF.md suffix)"; exit 1 ;;
-    esac
-  done
-  [ "$ok" = "0" ] && VIOLATIONS="$VIOLATIONS $p"
+  owned_by_self "$p" || VIOLATIONS="$VIOLATIONS $p"
 done
 if [ -n "$VIOLATIONS" ]; then
   echo "!! REFUSING TO COMMIT: paths outside your ownership:$VIOLATIONS"
   exit 1
 fi
 
-# "Anything to commit?" must look at the INDEX (after our add), not the working tree: the inbox file
-# we just appended to was added to the index, so a working-tree-vs-HEAD comparison of tracked paths
-# reports nothing even though there is a brand-new file staged.
+git add -- "${PATHS[@]}" || { echo "!! git add failed"; exit 1; }
+
 if git diff --cached --quiet -- "${PATHS[@]}"; then
   echo "nothing to commit — message not delivered"; exit 1
 fi
 
-# Commit explicit paths only. `git commit -- <paths>` ignores the rest of the index, so unrelated
-# staged work can never ride along.
 git -c user.name="$SELF" -c user.email="$SELF@users.noreply.github.com" \
     commit -q -m "msg: $ID from $SELF — $SUBJECT" -- "${PATHS[@]}" \
   || { echo "!! commit failed"; exit 1; }
