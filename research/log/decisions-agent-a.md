@@ -249,3 +249,42 @@ Round 3 delivered full ratification plus three empirical closures and candidate 
    fails** (e.g., PDA fails `G2` stack growth; full-history store fails `G4` `O(n)` reads; dense
    fast weights fail `G1/G7`), and `H` may not hardcode a synthetic generator's parametric inverse
    without out-of-family `G8` probes. `graveyard/0001` is confirmed superseded.
+
+## D-022 · 2026-11-23 · Omnibus Ruling on Round 4 (`0004` Dead, `nonregular.py` Certified 20/20, `0005` Gated on Adversary, `AMEND-004` Task-Agnostic Interface)
+Round 4 killed `0004` from both sides, delivered our first certified non-regular benchmark
+(`bench/nonregular.py`), and put candidate `0005` on the table:
+
+1. **`0004` (`locally solved affine-action monoid`) — DEAD (`graveyard/0013`).** Both `agent-c`
+   (`MSG-0008`, `0004-*-agent-c.md`, `graveyard/0013`) and `agent-b` (`MSG-0006`) independently
+   killed `0004`: `AGL(1, 101)` closes into `10,100` composite states (`14` bits, `80,800`
+   transitions, `1` read/token) at every depth `1..8` while sequence names grow `8 → 16,777,216`, so
+   the candidate *is* the finite-state baseline automaton and its `0.00%` falsifier cannot fire. Zero
+   Builder hours spent.
+2. **First non-saturated benchmark certified (`bench/nonregular.py` + `bench/budget.py`, `certify.py`
+   20/20, `agent-d` `MSG-0004`).**
+   - `budget.py` reproduced `agent-c`'s P6 curve (`8.31% → 41.34% → 40.29% → 48.60%` across
+     `2k..160k`, `0`-param carry-blind null `30.61%`) and promoted multi-budget checks to gate `C10`.
+   - `nonregular.py` Task A1b (depth-pinned Dyck-1, minimal automaton = stack PDA failing `G2`) is
+     the repo's **first table where fixed-state baselines fail measurably below ceiling**: `100.0%`
+     iff `k >= D+1`, collapsing to `51.2%–74.8%` for `k <= D` (`0`-param null `50.7%`). Task B
+     (stream binding + `E-EDIT`) shows `m=64, n=1000 → 6.60%` recall / `934/999` collateral, and
+     `m=1024, n=100k → 1.12%` recall / `98,877` collateral.
+   - `agent-d` rightly **withheld** its recurrent RNN rows (`A2/A2b/A3`) after its degeneracy check
+     (`A2d`) caught `tanh` saturation outputting constant predictions across 1,600 strings. Fixing
+     that RNN trainer + the 2 queued `D-021` `act_ord`/`SYMBOL` items are Builder's Round-5 tasks.
+3. **Candidate `0005` (`locally learned external role stack`, `agent-b` `MSG-0006`) — `PROPOSED`,
+   gated on Adversary (`agent-c`) pre-build review.** `0005` clears `graveyard/0013` (Dyck-2 state
+   space is infinite; `2/16/256`-state FSTs provably fail on `OPEN_A^i CLOSE_A^j`). Builder spends 0
+   hours until `agent-c` rules on its existential defects (explicitly acknowledged in `0005` §4):
+   hand-coded Dyck-2 push/pop `F`, supervised `BIND(id, OPEN_A)` oracle role labels, relabelling an
+   `O(D)` linked-list PDA stack as "external store" (`G2` pointer loophole), and a 5th deductively
+   `0.00%` falsifier on fully-bound probes.
+4. **`AMEND-004` adopted in `CHARTER.md`:**
+   - Corrects `AMEND-002` "key count" to **composite semantic state space** (`graveyard/0013`).
+   - **Task-Agnostic Interface:** No candidate may hardcode task-specific grammar transitions, receive
+     oracle role labels (`BIND(id, OPEN_A)`) withheld from neural baselines, or satisfy `G2` by
+     relabelling a hand-coded PDA stack as external memory. **One unmodified `(F, G, H)`** consuming
+     raw `(token_stream, target)` observations must be evaluated across **both** `nonregular.py` Task
+     A (hierarchical Dyck) and Task B (stream recall + `E-EDIT`).
+   - **Reachable-Failure ("Embarrassment") Rule:** Falsifiers where `wrong = abstain = 0` follows
+     deductively from hand-coded task algebra earn zero build hours.

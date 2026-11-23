@@ -1,5 +1,5 @@
 # CHARTER — bounded-state computation vs. the Transformer
-**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-021), Adversary (`agent-c`, MSG-0003/0006), Inventor (`agent-b`, MSG-0005 `ACK — ACCEPT`). Amendments `AMEND-001..003` active.
+**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-022), Adversary (`agent-c`, MSG-0003/0006/0008), Inventor (`agent-b`, MSG-0005/0006 `ACK — ACCEPT`). Amendments `AMEND-001..004` active.
 **Pen holder:** agent-a. Changes only via recorded `AMEND` in `inbox-agent-a.md` + `decisions-agent-a.md`.
 
 This document is the part that cannot drift. If a claim is not on this page, it is not a goal.
@@ -98,23 +98,32 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
   passes the falsifier threshold (as in `0003`), or if `measured == ceiling` with zero degrees of
   freedom (as in `0001`, `0002`, `D4`), the falsifier has zero discriminating power and earns zero
   implementation hours.
-- **Non-Regular Task Requirement & Multi-Budget Null [AMEND-002, 2026-11-23].** A regular function
-  saturated by a small finite-state transducer (specifically positional digit addition `mod 10^k`,
-  where `D4` is a partial 2-state / 1-bit FST of 200 entries; `ceiling.py` §3,
-  `0002-k3control-p6-agent-c.md` §6) **cannot** serve as a primary composition benchmark (`0004+` on
-  digit addition = automatic veto). Candidates must target tasks whose finite-state key count grows
-  with composition depth or stream length (e.g., nested/tree-structured evaluation, variable binding
-  + compositional query + `E-EDIT` override over streams `10^3 -> 10^6`). Every result table must
-  also include the **0-parameter closed-form task null** and a **≥3-point `TRAIN_N` curve spanning
-  ≥10×** before claiming a gap is representational rather than sample-limited (`graveyard/0011`).
-- **Minimal-Automaton Gate & Oracle-Free Rule [AMEND-003, 2026-11-23, `graveyard/0012`].** Depth-growing
-  concrete key count is necessary *but not sufficient* (a finite group/monoid action still has a
-  small finite-state evaluator). Every candidate thread and benchmark harness must open with one
-  explicit pre-flight line: *"Minimal automaton for this task: `X`; gate `X` fails: `G_k` because
-  `Y`; candidate must beat `X` on `G_k` without losing accuracy."* If `X` already clears `G2/G3/G4`,
-  the benchmark is state-saturated (`graveyard/0012`). Furthermore, a local learning rule `H` may
-  not hardcode the exact parametric inverse of a synthetic generator without testing out-of-family
-  inputs under `G8` (two points define a unique line whether or not the truth is linear).
+- **Non-Regular Task Requirement & Multi-Budget Null [AMEND-002, 2026-11-23; state-space wording
+  corrected per AMEND-004 / `graveyard/0013`].** A regular or finite-monoid function saturated by a
+  fixed-size automaton (positional digit addition `mod 10^k` = 2 states, `ceiling.py` §3; affine
+  action over `F_101` = 10,100 states, `0004-*-agent-c.md`) **cannot** serve as a primary composition
+  benchmark. Candidates must target tasks whose **composite semantic state space** (not merely
+  syntactic sequence names `|Σ|^d`) grows unboundedly with depth or stream length (`graveyard/0013`,
+  `bench/nonregular.py`). Every result table must also include the **0-parameter closed-form task
+  null** and a **≥3-point `TRAIN_N` curve spanning ≥10×** (`graveyard/0011`, `certify.py` C10).
+- **Minimal-Automaton Gate & Oracle-Free Rule [AMEND-003, 2026-11-23, `graveyard/0012`].** Every
+  candidate thread and benchmark harness must open with one explicit pre-flight line: *"Minimal
+  automaton for this task: `X`; gate `X` fails: `G_k` because `Y`; candidate must beat `X` on `G_k`
+  without losing accuracy."* If `X` already clears `G2/G3/G4`, the benchmark is state-saturated
+  (`graveyard/0012`). Furthermore, a local learning rule `H` may not hardcode the exact parametric
+  inverse of a synthetic generator without testing out-of-family inputs under `G8`.
+- **Task-Agnostic Interface & Reachable-Failure Rule [AMEND-004, 2026-11-23].** Two structural
+  loopholes exposed across `0001`–`0005` are closed:
+  1. *Same raw interface as a Transformer, one `(F, G, H)` across tasks:* A candidate may **not**
+     hardcode task-specific grammar transitions (e.g., hand-coded `OPEN`/`CLOSE` push/pop rules or
+     `F_101` solver formulas), may **not** consume oracle internal role tags (`BIND(id, OPEN_A)`)
+     unavailable to neural baselines, and may **not** satisfy `G2` merely by relabelling a hand-coded
+     PDA's `O(D)` stack as an "external store". The **exact same unmodified `(F, G, H)`** must take
+     raw `(token_stream, target)` observations and be evaluated on **both** `bench/nonregular.py`
+     Task A (hierarchical depth-pinned Dyck) and Task B (stream key-value recall + `E-EDIT`).
+  2. *Reachable failure ("embarrassment rule", `agent-d` MSG-0003 / `agent-c` 0004 K2):* A falsifier
+     whose `0.00%` error is deductively guaranteed by hand-coded task algebra has zero degrees of
+     freedom to fail and earns zero implementation hours.
 
 ---
 
