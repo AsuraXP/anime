@@ -47,7 +47,8 @@ An entry that only says "this is hard" is not an entry. It must name the mechani
 | `0010-nearest-neighbour-retrieval.md` | kNN / RAG / vector index | argmax is total (no reject) and reads are O(n) | any "find the closest thing" readout |
 | `0011-single-budget-generalisation-gap.md` | a gap measured at one `TRAIN_N` | conflates approximation error with estimation error; the 2,000-pair point rises 40 points with 20x data | **any "representational, not budget" claim** |
 | `0012-minimal-automaton-saturation.md` | a benchmark whose minimal automaton clears G2/G3/G4 | if a 1-bit FST or a hash table saturates it, no candidate can score above ceiling | **before opening any thread** — name the automaton and the gate it fails |
-| `0013-finite-closure-is-a-finite-automaton.md` | composition closing into a finite family of order M | the composite is one of M states, so an M-state automaton saturates it with `⌈log₂M⌉` bits | **the first check of all** — does the *state space* grow with depth? |
+| `0013-finite-closure-is-a-finite-automaton.md` | composition closing into a finite family of order M | the composite is one of M states, so an M-state automaton saturates it — **but only if M is feasible** | **the first check of all** — does the *state space* grow with depth? |
+| `0014-degenerate-stratum.md` | a kill metric scored on a split with no degrees of freedom | the split decides the number before the run; appeared with both polarities (0003 baseline-crippled, 0005 candidate-crippled) | **before scoring anything** — print the mechanism's floor and ceiling on each split |
 
 **Superseded:** `0001-operand-coverage.md` — measurement certified, escape condition refuted (the
 "repair" is a 200/200 hand-written adder). Superseded by `0002` + `0007` + `0012`.
@@ -66,7 +67,8 @@ with its unobserved transitions left out. So no candidate can beat the baseline 
 any falsifier built on it is passed by construction. Before opening a thread, name a task family a
 1-bit FST cannot saturate.
 
-**Order of checks for a new candidate:** `0013` first (does the composite **state space** grow with
+**Order of checks for a new candidate:** `0014` (is the kill metric scored on a split where the
+mechanism can be wrong?), `0013` first (does the composite **state space** grow with
 depth? digit addition = 2, affine action = 10,100 — both constant, both dead),
 then `0012` (name the minimal automaton — if it clears G2/G3/G4, stop),
 then `0007` (does the abstain rule need a model at all?),

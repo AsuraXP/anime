@@ -26,6 +26,23 @@ sequence is again an X"*, where X is a finite family.
 finite family. Unbounded counters, stacks (pushdown — the stack grows), tapes, permutations of an
 unbounded set, or functions over an unbounded domain. Then no `M`-state automaton exists for fixed
 `M`, and the O(1)-state claim becomes a real, falsifiable claim.
+
+**CORRECTION (2026-11-23, after `0005`): "infinite" is too strong — the criterion is *feasibility*.**
+Depth-bounded Dyck-2 is **regular**: its stack contents range over every string in `{A,B}^{≤D}`, so the
+minimal DFA has `2^(D+1) − 1` states. At `D = 256` that is `~2.3e77` states — finite, and utterly
+infeasible to build. So a finite closure kills the benchmark only when its order `M` is **feasible**:
+
+| Task | Order `M` | Feasible? | Verdict |
+|---|---|---|---|
+| digit addition `mod 10ᵏ` | 2 | yes | dead |
+| affine action over `F₁₀₁` | 10,100 | yes | dead |
+| Dyck-2, depth ≤ 256 | `2^257 − 1 ≈ 2.3e77` | **no** | **viable benchmark** |
+
+The test is therefore: **enumerate the composite state space and ask whether any buildable machine can
+tabulate it.** If yes, the thread is dead. If the state space is finite but astronomically large, the
+task is good — and the interesting question becomes whether a candidate can *compress* it. (0005's
+stack encoding does: `2.3e77` DFA states → 257 words, a factor of ~`9e74`. That is a real property,
+and it is why the task survives even though the thread does not.)
 **The check, and it is nearly free:** enumerate the composite state space reachable from the
 generators and print `|states|` against `|Σ|^depth`. If the ratio is ~0, the task is a finite automaton
 and the thread is dead before it is written.
