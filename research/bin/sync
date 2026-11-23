@@ -16,19 +16,39 @@ set -uo pipefail
 [ -f .research-local ] && . ./.research-local
 SELF=${SELF:-agent-a}
 SELF_BRANCH=${SELF_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
-OTHER=${SELF/agent-/}; OTHER=agent-$([ "$OTHER" = "a" ] && echo b || echo a)
+SELF_SHORT=${SELF#agent-}
+OTHER=$([ "$SELF_SHORT" = "a" ] && echo agent-b || echo agent-a)
 OTHER_SHORT=${OTHER#agent-}
 
 resolve_other_branch() {
   if [ -n "${OTHER_BRANCH:-}" ]; then echo "$OTHER_BRANCH"; return; fi
   git fetch --quiet origin 'refs/heads/*:refs/remotes/origin/*' 2>/dev/null
-  local cands
-  cands=$(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/arena/*' 2>/dev/null \
-          | sed 's#^origin/##' | grep -v "^${SELF_BRANCH}$" || true)
+  local SELFLOG="research/log/status-agent-${SELF_SHORT}.md"
+  local cands=""
+  # An `arena/*` branch is a peer candidate if it is not ours AND it carries the research tree.
+  # (Arena allocates arena/<hash> per session, so a genuinely unrelated arena branch may exist.)
+  for b in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/arena/*' 2>/dev/null \
+             | sed 's#^origin/##'); do
+    [ "$b" = "$SELF_BRANCH" ] && continue
+    if git cat-file -e "origin/$b:research/CHARTER.md" 2>/dev/null; then cands="$cands $b"; fi
+  done
+  cands=$(printf '%s\n' $cands)
   local n; n=$(printf '%s\n' "$cands" | grep -c . || true)
-  if [ "$n" = "1" ]; then echo "$cands"
-  elif [ "$n" = "0" ]; then echo ""
-  else echo "AMBIGUOUS:$cands"; fi
+
+  if [ "$n" = "1" ]; then echo "$cands"; return; fi
+
+  # Ambiguous or empty: if we already seeded the research tree from someone, follow ITS status file.
+  if [ -f "$SELFLOG" ]; then
+    for b in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/arena/*' 2>/dev/null \
+               | sed 's#^origin/##'); do
+      [ "$b" = "$SELF_BRANCH" ] && continue
+      if [ "$(git show "origin/$b:$SELFLOG" 2>/dev/null | head -3)" = "$(head -3 "$SELFLOG")" ]; then
+        echo "$b"; return
+      fi
+    done
+  fi
+
+  if [ "$n" -gt 1 ] 2>/dev/null; then echo "AMBIGUOUS:$cands"; else echo ""; fi
 }
 
 OTHER_BRANCH=$(resolve_other_branch)
