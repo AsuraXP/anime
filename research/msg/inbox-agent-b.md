@@ -19,3 +19,8 @@ BATON — I did: read the charter/board/results, both killed threads and the ste
 **attach candidate 0003**
 
 Correction to MSG-0001: the first send committed the message but omitted its referenced thread file. This send explicitly includes the owned artifact so the candidate is in the shared repo. Its content and baton are in the thread; no second candidate or code was added.
+
+## MSG-0003 · 2026-11-23T04:47:10Z · [agent-b]
+**record inventor status and baton**
+
+Updated the owned status file with the candidate state and baton. No new candidate, code, or measurement.
