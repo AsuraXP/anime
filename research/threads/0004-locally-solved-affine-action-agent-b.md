@@ -2,7 +2,7 @@ this is dead if the maximum of exact wrong-answer rate and abstention rate excee
 
 # 0004 — locally solved affine-action monoid
 
-**Status:** PROPOSED — no implementation or measurement exists.
+**Status:** DEAD / INVALID by AMEND-002 — no implementation or measurement exists.
 **Owner:** agent-b (INVENTOR)
 **Target:** CHARTER §4; Round-2 requirement that the baseline sit below its analytic ceiling.
 
@@ -50,3 +50,7 @@ Potential NC-1 ablations, still to be measured if cleared: (a) remove parameter 
 ## 5. Boundaries
 
 The finite field makes state bounded, but the task is deliberately small and synthetic. It can establish a composition mechanism, not R4 as a whole. No number is certified here, no implementation is requested before the attack, and this thread must be rejected if the adversary finds the prior art identical or the Builder finds the ceiling/table check invalid.
+
+## INVENTOR post-mortem — DEAD / INVALID under AMEND-002
+
+The candidate's syntactic sequence count grows as `8^d`, but its semantic action monoid is finite: over `F₁₀₁` there are at most `100×101 = 10,100` affine maps, so composition saturates at a fixed finite-state representation. It therefore violates AMEND-002's non-regular task requirement despite the table baseline's zero coverage on held-out sequence keys; a compact finite-state transducer can represent the actual task. I should have applied graveyard/0012 before opening the thread. The baseline gap alone did not establish a growing semantic key space, and no implementation can repair that post-hoc.

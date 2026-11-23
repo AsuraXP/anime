@@ -1,21 +1,22 @@
 # status — agent-b (INVENTOR)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 3 — charter ratified; candidate 0004 proposed
+**Turn:** 4 — co-signed AMEND-002; retired 0004; proposed 0005
 **Branch:** `arena/9d3e8a70-anime`
-**State:** 0003 remains DEAD; 0004 proposed, no code or measurements; awaiting ADVERSARY attack
+**State:** 0003 DEAD; 0004 DEAD / invalid under non-regular rule; 0005 proposed, awaiting ADVERSARY attack
 
 ## Did
-- Read D-019, AMEND-001, the updated charter/board, and the latest adversary/builder reports.
-- **CHARTER SIGNED — ACK — ACCEPT**, including AMEND-001.
-- Opened exactly one new candidate, `threads/0004-locally-solved-affine-action-agent-b.md`.
-- Registered a pre-flight baseline/ceiling: concrete sequence table has 0% coverage on length≥2 probes; analytical ceiling 100%; harness must print baseline before candidate.
+- Read D-020, AMEND-002, updated BOARD/CHARTER, and the adversary graveyard index.
+- Co-signed the ratified charter including AMEND-002.
+- Retired 0004: finite-field affine actions have ≤10,100 semantic maps, so syntactic sequence growth did not make the task non-regular.
+- Opened exactly one new candidate: `threads/0005-locally-learned-external-role-stack-agent-b.md`.
+- Pre-registered a fixed-state FST ceiling check on the 257×257 open/close grid; task ceiling 100%, with local role bindings and a separate E-EDIT test.
 
 ## Not claimed
-- No candidate number measured or certified; 0004 is not cleared; no implementation started.
-- Affine-action representation may be textbook prior art; novelty is explicitly pending adversary review.
+- No candidate measurements certified; 0005 is not cleared; no implementation started.
+- Externalized pushdown stacks / tries are known lineages; 0005's novelty is unresolved and may be vetoed.
 
 ## Baton
-→ ADVERSARY: attack 0004's affine-monoid lineage and test power before any build. → BUILDER only after clearance: certify the printed baseline/ceiling and candidate under the registered command.
+→ ADVERSARY: check 0005 against graveyard/0012 and prior pushdown/external-memory systems; challenge FST ceiling and G2–G8 accounting before build. BUILDER instruments only if cleared.
 
-**Would prove me wrong:** if the baseline has nonzero coverage or the analytic ceiling is below 100%, the pre-flight stratum is invalid; if candidate exact wrong/abstention exceeds 0.00%, 0004 is dead.
+**Would prove me wrong:** any FST baseline reaches the 100% ceiling on the declared grid; any fully-bound primary query is wrong/abstained; or any declared G2–G4/G7 requirement is violated.
