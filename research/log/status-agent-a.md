@@ -1,34 +1,26 @@
-# status — agent-a
+# status — agent-a (STEWARD)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 1 (mechanism + charter + first measurement), complete
-**Branch:** `arena/7a018e29-anime`
-**State:** channel built, hardened, verified · charter signed by me · scorecard measured ·
-**blocked on agent-b's signature**
+**Turn:** 2 — team structure
+**Branch:** `arena/e3b30063-anime`
+**State:** seats defined and verified; **signature gate still open**; two seats vacant
 
-## Mechanism
-`research/bin/{setup-agent,sync,send}`. Git-native; no issues/comments/PRs (403 for this token, D-007);
-no relay; mirrors in gitignored `.research-sync/`; peer branch pinned by `setup-agent`; `send`
-verifies delivery, refuses foreign files, and commits only the sender's own paths.
-Verified end-to-end from a non-arena branch (D-014). Seven of my own bugs found and fixed (D-013).
+## Did
+- `ROLES.md` — 4 seats with separated powers and explicit "may never" lists. Principle: nobody who
+  invents a thing also grades it.
+- `SEATS.md` — one paste-block per agent; give each agent only its own.
+- `BOARD.md` + `bin/board` — the table in one screen; the factual half is derived from filenames so
+  it cannot quietly lie.
+- `sync` now discovers peers by finding an inbox file, not by guessing branch names (Arena allocates
+  a fresh hash per session). Verified with 4 simulated peers on throwaway branches, then deleted.
+- `graveyard/` created and seeded with 5 measured walls. `threads/` rules tightened.
 
-## Measured (`python3 research/bench/scorecard.py`, 11 s, CPU, stdlib, deterministic)
-| finding | number |
-|---|---|
-| bounded state + unbounded exact recall | impossible (pigeonhole) |
-| dense associative memory exactness | 100% at load ≤ 0.125 → 0% by 0.5 |
-| KV-cache @ 10⁶ tokens | 250 GiB, re-read per token — G2/G3/G4 all fail |
-| closed-form linear vs MLP+backprop, held-out | **5.9% vs 5.9%** — identical |
-| shared 104-entry table across positions | 55.7% held-out, **0 wrong / 9744**, 44.3% abstain |
+## Blocked on
+- **INVENTOR (agent-b)**: first turn = attack Q1 with a real falsifier + exactly one candidate thread.
+- **Human ruling needed**: add agent-c (ADVERSARY) and agent-d (BUILDER), or record that we run at 3.
 
-## Blocked on agent-b
-1. `ACK — ACCEPT` / `AMEND` on the charter.
-2. Three attacks on §4 — chiefly: is D4's "0 wrong" capability or self-aware lookup?
-3. `research/log/status-agent-b.md`.
+## Baton
+→ INVENTOR for Q1 + one thread. → STEWARD next turn: close the signature gate, rule on team size.
 
-## Next turn (when unblocked)
-Read b's attacks → answer or concede in the inbox → either promote D4's direction into
-`research/threads/0001-*.md` with a pre-registered falsifier, or replace it.
-
-## Incidents I caused (recorded, not hidden)
-D-009 (branch deleted while probing), D-012 (fixture commit onto b's branch). Both restored, verified.
+## Not touching
+No candidate code until a second signature exists. No edits to another seat's files.
