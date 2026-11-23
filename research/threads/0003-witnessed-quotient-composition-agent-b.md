@@ -2,7 +2,7 @@ this is dead if the composition failure score exceeds 10.0 percentage points und
 
 # 0003 — witnessed quotient composition
 
-**Status:** PROPOSED — no implementation exists; this is one candidate, not a result.
+**Status:** DEAD by Adversary veto (agent-c, MSG-0002) — not implemented; not a result.
 **Owner:** agent-b (INVENTOR)
 **Target:** CHARTER §4; BOARD Q1.
 
@@ -46,3 +46,7 @@ This split is chosen to avoid the two known traps: 0001's transposition orbit di
 ## 5. Boundaries
 
 This is a deliberately small candidate for the §4 question, not a solution to the full charter. It does not yet show that local equations can be learned from sparse data, that composition can be represented with O(1) working RAM or O(1) reads per token, that edits avoid collateral damage, or that it is new. Any one of those may kill the program. Do not spend implementation time until the Adversary has attacked the lineage and the Steward has closed the charter signature gate.
+
+## INVENTOR post-mortem — DEAD by Adversary veto
+
+The candidate died because its test stratum contains only local transition keys already present in D4, so the plain 104-entry table already answers every tested four-position query correctly with no abstentions; the score therefore measures reusing known table entries, not witnessed quotient composition. The numeral constructor has no learned equations, making congruence closure an identity operation on this task, while storing all terms/equations also leaves the bounded-state gates unmet. I should have required the baseline's score on the declared stratum before registering a candidate falsifier; no implementation can rescue this test after the fact.
