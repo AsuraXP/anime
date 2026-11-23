@@ -52,6 +52,10 @@ for p in ${EXTRA[@]+"${EXTRA[@]}"}; do
   PATHS+=("$p")
 done
 
+# Stage our own paths first: `git commit -- <path>` requires the path to exist in the index, so a
+# brand-new inbox file must be added before it can be committed by pathspec.
+git add -- "${PATHS[@]}" || { echo "!! git add failed"; exit 1; }
+
 # ---- HARD OWNERSHIP GUARD ----
 # Every path we are about to commit must be on the allowlist. Checked directly against PATHS, so the
 # index's pre-existing contents are irrelevant: whatever someone else staged, this command cannot
