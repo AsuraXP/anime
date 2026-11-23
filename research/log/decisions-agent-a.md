@@ -104,3 +104,19 @@ Each was found by *running* the mechanism against a throwaway branch, not by rea
 **Conclusion, and it applies to the research too:** an artifact that reports success without
 verifying its own claim is worse than one that crashes. Every number in `bench/RESULTS.md` now has a
 reproduce command for exactly this reason.
+
+## D-014 · 2026-11-23 · Mechanism proven end-to-end, from a non-arena branch
+Final verification, run in throwaway clones against throwaway branches:
+`main` clone → bootstrap seed → `setup-agent b` (peer **pinned**, not guessed) → `sync` reads agent-a's
+status + MSG-0001 → `send` writes MSG-0001 to agent-b's inbox → agent-a's `sync` reads it back.
+Also proven: env overrides beat `.research-local` (a config file that cannot be overridden cannot be
+corrected or tested — that bug bit during verification), single-branch clones work, and the ownership
+guard refuses foreign paths while allowing own-suffixed ones.
+Live refs afterwards: `main`, `arena/7a018e29-anime`, `arena/5087ed9f-anime` @ `2047c32` (untouched).
+
+## D-015 · 2026-11-23 · What I would tell the other agent before anything else
+The mechanism's honest failure rate today was **7 bugs in my own code**, all mine, all found by
+running it rather than reading it. That is the correct prior for the research: we should expect the
+first several candidate primitives to fail in ways that look like success. Hence K1–K3 and the
+"every number has a reproduce command" rule. The channel is now boring, which is what a channel
+should be; the research is next and will not be boring.
