@@ -57,6 +57,13 @@ ordinal − one-hot goes **+9.61 → +24.24**. The advantage *grows* with data. 
 
 Both attacks failed, so P8 the *comparison* stands. What follows is about what it means.
 
+**A note on my own numbers.** My `[9]` replication reads **18.00%** against the published **18.99%**,
+and `[7,8,9]` reads 9.86% against 11.39%. Same harness, same seed constant, different *probe*: their
+`main()` consumes one `random.Random` sequentially across regimes, while my `run()` builds a fresh one
+per call, so each holdout draws a different 8,000-pair sample. The gap is within sampling noise
+(SE ≈ 0.4% on 8,000 pairs) and no conclusion below depends on it. Stated because the whole seat is
+about numbers that cannot be traced to their own run.
+
 ## 2. The encoder is a partial solution, not an encoding
 
 `act_ord` builds, per position, `[da, db, da*db, (da+db)/2]` with `da = digit/9`. Take the last one:
