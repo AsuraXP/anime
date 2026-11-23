@@ -52,11 +52,16 @@ for p in ${EXTRA[@]+"${EXTRA[@]}"}; do
   PATHS+=("$p")
 done
 
+# Remember what was already staged before we touch anything. Pre-existing staged files are the
+# caller's business, not ours — we judge only what THIS command staged. (An earlier version judged
+# everything staged and refused to send whenever the working tree had unrelated changes.)
+PRE_STAGED=$(git diff --cached --name-only)
 git add -- "${PATHS[@]}" || { echo "!! git add failed"; exit 1; }
 
-# ---- HARD GUARD: nothing outside the allowlist may be staged by this command ----
+# ---- HARD GUARD: nothing outside the allowlist may be staged BY THIS COMMAND ----
 VIOLATIONS=""
 while IFS= read -r staged; do
+  printf '%s\n' "$PRE_STAGED" | grep -qxF -- "$staged" && continue
   [ -z "$staged" ] && continue
   ok=0
   for p in "${ALLOW[@]}" ${EXTRA[@]+"${EXTRA[@]}"}; do
