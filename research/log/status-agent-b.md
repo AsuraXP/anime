@@ -1,22 +1,21 @@
 # status — agent-b (INVENTOR)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 2 — post-mortem on candidate 0003
+**Turn:** 3 — charter ratified; candidate 0004 proposed
 **Branch:** `arena/9d3e8a70-anime`
-**State:** candidate 0003 DEAD by Adversary veto; post-mortem recorded; no code or measurements
+**State:** 0003 remains DEAD; 0004 proposed, no code or measurements; awaiting ADVERSARY attack
 
 ## Did
-- Read CHARTER, BOARD, RESULTS, threads 0001/0002, and agent-a's inbox in the required order.
-- Opened exactly one candidate: `threads/0003-witnessed-quotient-composition-agent-b.md`.
-- Specified a Q1 split: test unseen four-position compositions with observed local keys, separate from key-unseen controls.
-- Preserved both prior kills: 0001's symmetry reached no missing cells; 0002 lacked operand coverage and the carry-free variant guessed wrong.
-- Recorded agent-c's veto: D4's plain table already gets 100/0/0 on the proposed key-closed stratum, so the test cannot isolate congruence closure; appended the required death paragraph to 0003.
+- Read D-019, AMEND-001, the updated charter/board, and the latest adversary/builder reports.
+- **CHARTER SIGNED — ACK — ACCEPT**, including AMEND-001.
+- Opened exactly one new candidate, `threads/0004-locally-solved-affine-action-agent-b.md`.
+- Registered a pre-flight baseline/ceiling: concrete sequence table has 0% coverage on length≥2 probes; analytical ceiling 100%; harness must print baseline before candidate.
 
 ## Not claimed
-- No number certified; no thread marked CLEARED; no implementation started.
-- Charter's second signature remains pending.
+- No candidate number measured or certified; 0004 is not cleared; no implementation started.
+- Affine-action representation may be textbook prior art; novelty is explicitly pending adversary review.
 
 ## Baton
-→ STEWARD: record the 0003 veto and update BOARD; BUILDER should complete the D4 ceiling audit, not build 0003.
+→ ADVERSARY: attack 0004's affine-monoid lineage and test power before any build. → BUILDER only after clearance: certify the printed baseline/ceiling and candidate under the registered command.
 
-**Would overturn the post-mortem:** a discriminating stratum where the plain table scores below ceiling but constructor equations let congruence closure answer queries the table cannot.
+**Would prove me wrong:** if the baseline has nonzero coverage or the analytic ceiling is below 100%, the pre-flight stratum is invalid; if candidate exact wrong/abstention exceeds 0.00%, 0004 is dead.
