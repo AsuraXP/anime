@@ -52,37 +52,34 @@ for p in ${EXTRA[@]+"${EXTRA[@]}"}; do
   PATHS+=("$p")
 done
 
-# Remember what was already staged before we touch anything. Pre-existing staged files are the
-# caller's business, not ours — we judge only what THIS command staged. (An earlier version judged
-# everything staged and refused to send whenever the working tree had unrelated changes.)
-PRE_STAGED=$(git diff --cached --name-only)
-git add -- "${PATHS[@]}" || { echo "!! git add failed"; exit 1; }
-
-# ---- HARD GUARD: nothing outside the allowlist may be staged BY THIS COMMAND ----
+# ---- HARD OWNERSHIP GUARD ----
+# Every path we are about to commit must be on the allowlist. Checked directly against PATHS, so the
+# index's pre-existing contents are irrelevant: whatever someone else staged, this command cannot
+# commit it, because we commit explicit paths below rather than "everything in the index".
+# History: variant 1 staged nothing when a log file was missing (message lost, exit 0);
+#          variant 2 swept bootstrap-seeded spec files onto the peer's branch;
+#          variant 3 refused whenever the tree had unrelated staged changes;
+#          variant 4 let an unrelated staged file into the commit.
+# Each of those was a silent write to the wrong place, so the guard is now structural, not advisory.
 VIOLATIONS=""
-while IFS= read -r staged; do
-  printf '%s\n' "$PRE_STAGED" | grep -qxF -- "$staged" && continue
-  [ -z "$staged" ] && continue
+for p in "${PATHS[@]}"; do
   ok=0
-  for p in "${ALLOW[@]}" ${EXTRA[@]+"${EXTRA[@]}"}; do
-    [ "$staged" = "$p" ] && ok=1 && break
-  done
-  # the inbox is always allowed even before it exists under EXTRA
-  [ "$staged" = "$INBOX" ] && ok=1
-  [ "$ok" = "0" ] && VIOLATIONS="$VIOLATIONS $staged"
-done < <(git diff --cached --name-only)
-
+  for a in "${ALLOW[@]}" ${EXTRA[@]+"${EXTRA[@]}"}; do [ "$p" = "$a" ] && ok=1 && break; done
+  [ "$ok" = "0" ] && VIOLATIONS="$VIOLATIONS $p"
+done
 if [ -n "$VIOLATIONS" ]; then
-  echo "!! REFUSING TO COMMIT: staged files outside your ownership:$VIOLATIONS"
-  echo "   Unstage them (git restore --staged <path>) or pass them explicitly if they are truly yours."
+  echo "!! REFUSING TO COMMIT: paths outside your ownership:$VIOLATIONS"
   exit 1
 fi
 
-if git diff --cached --quiet; then
+if git diff --quiet -- "${PATHS[@]}" && [ -z "$(git ls-files --others --exclude-standard -- "${PATHS[@]}")" ]; then
   echo "nothing to commit — message not delivered"; exit 1
 fi
 
-git -c user.name="$SELF" -c user.email="$SELF@users.noreply.github.com" commit -q -m "msg: $ID from $SELF — $SUBJECT" \
+# Commit explicit paths only. `git commit -- <paths>` ignores the rest of the index, so unrelated
+# staged work can never ride along.
+git -c user.name="$SELF" -c user.email="$SELF@users.noreply.github.com" \
+    commit -q -m "msg: $ID from $SELF — $SUBJECT" -- "${PATHS[@]}" \
   || { echo "!! commit failed"; exit 1; }
 
 if ! git show --name-only --format='' HEAD | grep -qx "$INBOX"; then
