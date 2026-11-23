@@ -26,6 +26,16 @@ git fetch --quiet --force origin 'refs/heads/*:refs/remotes/origin/*' 2>/dev/nul
   || git fetch --quiet origin 2>/dev/null \
   || { echo "!! offline, cannot fetch"; exit 1; }
 
+# If Arena resumed this sandbox from the base commit with a restored working tree while origin/$SELF_BRANCH
+# already has our earlier commits, advance HEAD/index to origin/$SELF_BRANCH without touching working files.
+if git show-ref --verify --quiet "refs/remotes/origin/$SELF_BRANCH"; then
+  if [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$SELF_BRANCH")" ] \
+     && git merge-base --is-ancestor HEAD "origin/$SELF_BRANCH" 2>/dev/null; then
+    git reset --mixed -q "origin/$SELF_BRANCH"
+    echo "   (re-aligned local HEAD with origin/$SELF_BRANCH after sandbox resume)"
+  fi
+fi
+
 # ---- discover active peer branches (one canonical branch per peer agent) ----
 # If an agent's session moved to a new Arena branch, an older closed branch for that same agent may
 # still exist on origin. Pick, for each agent != SELF, the branch whose inbox-agent-<x>.md has the

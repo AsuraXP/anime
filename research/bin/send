@@ -27,6 +27,16 @@ SUBJECT="${1:-}"; BODY_FILE="${2:-}"; shift 2 2>/dev/null || true
 EXTRA=("$@")
 [ -z "$SUBJECT" ] && { echo "usage: send [a|b|c|d] \"<subject>\" [body.md] [extra owned files...]"; exit 2; }
 
+# Re-align HEAD with origin/$BRANCH if Arena resumed the sandbox at the base commit with a snapshot.
+git fetch --quiet origin "refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" 2>/dev/null || true
+if git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+  if [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$BRANCH")" ] \
+     && git merge-base --is-ancestor HEAD "origin/$BRANCH" 2>/dev/null; then
+    git reset --mixed -q "origin/$BRANCH"
+    echo "   (re-aligned local HEAD with origin/$BRANCH after sandbox resume)"
+  fi
+fi
+
 owned_by_self() {
   local p="$1"
   case "$p" in

@@ -87,6 +87,16 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
 - **NC-4 (no retrofit).** The mechanism must be justified *before* its benchmark number is known.
   Any mechanism introduced after a failing result must be labelled `post-hoc` and cannot be the
   load-bearing term.
+- **NC-5 (no post-hoc exculpation) [AMEND-001, 2026-11-23].** Claiming a fired falsifier was a
+  "harness/sampling artifact" rather than a mechanism failure requires shipping, in the same commit,
+  (a) the harness's analytic coverage ceiling and (b) a machine check that the instantiated variant
+  differs from its baseline (`V != B0`). Without both, the verdict is `DEAD / UNINFORMATIVE`, never
+  "mechanism intact".
+- **Pre-flight Falsifier Power Check [AMEND-001, 2026-11-23].** Every candidate thread and benchmark
+  table must print the plain baseline's score and the analytic ceiling on the declared stratum
+  *before* scoring the candidate. If the baseline already passes the falsifier threshold (as in
+  `0003`), or if `measured == ceiling` with zero degrees of freedom (as in `0001`, `0002`, `D4`),
+  the falsifier has zero discriminating power and earns zero implementation hours.
 
 ---
 
@@ -104,12 +114,13 @@ alongside every number. Units: G1–G2, G6 exactness in %; G3 ms/token; G4 bytes
 | **G5** | total training wall-clock on CPU | ≤ 10 minutes to envelope-parity | not "low training cost" |
 | **G6** | held-out composition accuracy vs. seen-composition accuracy | gap ≤ 5 points | not "smooth composition" |
 | **G7** | E-EDIT: single-fact correction, collateral damage | 0 unrelated facts changed | it is a lookup table |
-| **G8** | **calibrated abstention**: on inputs it cannot answer, does it say so? | held-out wrong answers = 0, and every abstention attributable to a named missing structure | it guesses, and a wrong guess is indistinguishable from a right one |
+| **G8** | **calibrated abstention** [AMEND-001]: risk–coverage curve vs. confidence-thresholded baseline | strictly lower risk than thresholded baseline at equal non-zero coverage on unseen compositions, with abstentions attributed to a named structural conflict/underdetermination (**not** bare `key not in table`, `graveyard/0007`) | it guesses silently, or passes trivially via `KeyError` at 0% coverage |
 
-G8 is not decoration. A softmax Transformer has no way to express "I have no basis for this",
-so it cannot reach 0 wrong on genuinely unseen compositions at any parameter count. A primitive
-that abstains with a *cause* converts silent failure into an enumerable gap — which is what makes
-R4 measurable instead of rhetorical. Baseline measured in `bench/RESULTS.md` §D4.
+G8 is not decoration, and [AMEND-001] closes the hash-table loophole (`graveyard/0007`): bare
+membership in a finite key set (`dict.__contains__`) scores 0 wrong at 0% unseen coverage with no
+model at all, which is identical to `lambda _: ABSTAIN`. Every G8 claim must therefore report a
+**risk–coverage curve** against a confidence-thresholded baseline and achieve **strictly positive
+unseen coverage** at zero (or strictly lower) risk, with a structural witness rather than `KeyError`.
 
 **Pre-registered kill tests.** These falsify the *program*, and are checked before G-gates:
 

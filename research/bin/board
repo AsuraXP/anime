@@ -1,40 +1,55 @@
 #!/usr/bin/env bash
-# research/bin/board — regenerate the factual half of BOARD.md from the repo.
+# research/bin/board — derive the factual state across this branch + .research-sync/ peers.
 #
 #   bash research/bin/board
-#
-# The narrative half (baton, rulings) is written by the Steward. Everything that can be derived from
-# filenames is derived, because a board that lies about the facts is worse than no board.
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo "# derived board — $(date -u +%Y-%m-%dT%H:%M:%SZ) — branch $BRANCH"
 echo
-echo "## Candidates in threads/"
-if [ -d research/threads ]; then
-  found=0
-  for f in research/threads/[0-9]*.md; do
+echo "## Threads (local + synced peers)"
+{
+  for f in research/threads/[0-9]*.md .research-sync/threads/[0-9]*.md; do
     [ -e "$f" ] || continue
-    found=1
-    state=$(grep -m1 -oE '^\*\*Status:\*\* .*' "$f" | sed 's/^\*\*Status:\*\* //')
-    echo "- \`$f\` — ${state:-NO STATUS LINE}"
+    base=$(basename "$f")
+    echo "$base|$f"
   done
-  [ "$found" = 0 ] && echo "- (none)"
-else echo "- (no threads/ directory)"; fi
+} | sort -t'|' -k1,1 -u | while IFS='|' read -r base f; do
+  state=$(grep -m1 -oE '^\*\*Status:\*\* .*' "$f" | sed 's/^\*\*Status:\*\* //')
+  echo "- \`$base\` — ${state:-NO STATUS LINE}"
+done
+
 echo
-echo "## Graveyard"
-if [ -d research/graveyard ] && [ -n "$(ls -A research/graveyard 2>/dev/null)" ]; then
-  ls research/graveyard/*.md 2>/dev/null | while read -r f; do echo "- \`$f\`"; done
-else echo "- (empty — ADVERSARY seat has not run)"; fi
+echo "## Graveyard (local + synced peers)"
+{
+  for f in research/graveyard/[0-9]*.md .research-sync/graveyard/[0-9]*.md; do
+    [ -e "$f" ] || continue
+    echo "$(basename "$f")|$f"
+  done
+} | sort -t'|' -k1,1 -u | while IFS='|' read -r base f; do
+  title=$(head -n1 "$f" | sed 's/^# *//')
+  echo "- \`$base\` — $title"
+done
+
+echo
+echo "## Bench harnesses (local + synced peers)"
+{
+  for f in research/bench/*.py .research-sync/bench/*.py; do
+    [ -e "$f" ] || continue
+    echo "$(basename "$f")"
+  done
+} | sort -u | while read -r base; do echo "- \`research/bench/$base\`"; done
+
 echo
 echo "## Inboxes (message counts)"
-for f in research/msg/inbox-*.md; do
+for f in research/msg/inbox-*.md .research-sync/inbox-*.md; do
   [ -e "$f" ] || continue
-  printf -- '- `%s` — %s messages\n' "$f" "$(grep -c '^## MSG-' "$f" 2>/dev/null || echo 0)"
-done
+  printf -- '- `%s` — %s messages\n' "$(basename "$f")" "$(grep -c '^## MSG-' "$f" 2>/dev/null || echo 0)"
+done | sort -u
+
 echo
-echo "## Ownership check (files outside any seat's ownership = protocol violation)"
+echo "## Ownership check (tracked files outside seat schema = protocol violation)"
 git ls-files 'research/*' 2>/dev/null | grep -vE \
-  '(CHARTER|BOARD|ROLES|SEATS|PROTOCOL|README|BOOTSTRAP|HANDOFF)\.md|research/(bench|bin|templates|graveyard)/|research/threads/(README|[0-9])|research/log/(decisions|status)-agent-[a-z]\.md|research/msg/' \
+  '(CHARTER|BOARD|ROLES|SEATS|START|PROTOCOL|README|BOOTSTRAP|HANDOFF)\.md|research/(bench|bin|templates|graveyard)/|research/threads/(README|[0-9])|research/log/(decisions|status)-agent-[a-z]\.md|research/msg/' \
   || echo "- none"
