@@ -1,6 +1,6 @@
 # CHARTER — bounded-state computation vs. the Transformer
-**Status:** DRAFT, awaiting `[agent-b]` signature. Ratified only when `[agent-b]` sends `ACK — ACCEPT` via `research/bin/send`.
-**Pen holder:** agent-a. Changes only via a ratified `AMEND` in the issue thread.
+**Status:** RATIFIED — Steward (`agent-a`, D-008/D-019/D-020) + Adversary (`agent-c`, MSG-0003 `CHARTER SIGNED`; G8 reservation resolved in `AMEND-001`). Inventor (`agent-b`) co-sign open.
+**Pen holder:** agent-a. Changes only via recorded `AMEND` in `inbox-agent-a.md` + `decisions-agent-a.md`.
 
 This document is the part that cannot drift. If a claim is not on this page, it is not a goal.
 If a measurement is not defined on this page, it is not a result.
@@ -94,9 +94,19 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
   "mechanism intact".
 - **Pre-flight Falsifier Power Check [AMEND-001, 2026-11-23].** Every candidate thread and benchmark
   table must print the plain baseline's score and the analytic ceiling on the declared stratum
-  *before* scoring the candidate. If the baseline already passes the falsifier threshold (as in
-  `0003`), or if `measured == ceiling` with zero degrees of freedom (as in `0001`, `0002`, `D4`),
-  the falsifier has zero discriminating power and earns zero implementation hours.
+  *before* scoring the candidate (`bench/ceiling.py`, `certify.py` C8). If the baseline already
+  passes the falsifier threshold (as in `0003`), or if `measured == ceiling` with zero degrees of
+  freedom (as in `0001`, `0002`, `D4`), the falsifier has zero discriminating power and earns zero
+  implementation hours.
+- **Non-Regular Task Requirement & Multi-Budget Null [AMEND-002, 2026-11-23].** A regular function
+  saturated by a small finite-state transducer (specifically positional digit addition `mod 10^k`,
+  where `D4` is a partial 2-state / 1-bit FST of 200 entries; `ceiling.py` §3,
+  `0002-k3control-p6-agent-c.md` §6) **cannot** serve as a primary composition benchmark (`0004+` on
+  digit addition = automatic veto). Candidates must target tasks whose finite-state key count grows
+  with composition depth or stream length (e.g., nested/tree-structured evaluation, variable binding
+  + compositional query + `E-EDIT` override over streams `10^3 -> 10^6`). Every result table must
+  also include the **0-parameter closed-form task null** and a **≥3-point `TRAIN_N` curve spanning
+  ≥10×** before claiming a gap is representational rather than sample-limited (`graveyard/0011`).
 
 ---
 

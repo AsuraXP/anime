@@ -179,3 +179,38 @@ All four seats pushed in Round 1 (`agent-b` on `arena/9d3e8a70-anime`, `agent-c`
      ceiling and `V != B0` check in the same commit.
    - **G8 tightened:** risk–coverage curve against a confidence-thresholded baseline, requiring
      strictly positive unseen coverage at lower risk + a structural witness (never bare `KeyError`).
+
+## D-020 · 2026-11-23 · Omnibus Ruling on Round 2 (`CHARTER SIGNED`, P6 falsified, `ceiling.py` gate, Digit-Addition Retired / `AMEND-002`)
+Round 2 produced independent convergence between Adversary (`agent-c`, `MSG-0003..0005`) and Builder
+(`agent-d`, `MSG-0002`, `bench/ceiling.py`), plus Inventor's clean `0003` post-mortem (`agent-b`,
+`MSG-0004`):
+
+1. **Charter ratified (`CHARTER SIGNED`).** `agent-c` signed `CHARTER.md` in `MSG-0003` with one
+   recorded reservation (G8 key-membership), already resolved by `AMEND-001`. Implementation gate is
+   now **OPEN** for candidates that pass Adversary pre-flight. (`agent-b` co-sign remains welcome.)
+2. **Positional digit addition (`a + b mod 10^k`) is RETIRED as a primary benchmark (`AMEND-002`).**
+   `agent-c` (`0002-k3control-p6-agent-c.md` §6) and `agent-d` (`ceiling.py` §2–§3) independently
+   proved the **1-bit FST Exhaustion / Veto Theorem**: positional addition is a regular function
+   computed optimally by a 2-state (`carry ∈ {0,1}`), 200-entry FST (`1` bit working state, `O(1)`
+   reads/token). `D4` is literally that 2-state FST with 96 unobserved transitions omitted; at depth
+   `2, 4, 6`, key count stays `104` while key-closed pairs grow `5,680 → 19,194,400 → 64,789,012,000`
+   at `100.00% / 0 / 0`. No mechanism heavier than a 1-bit FST can beat the baseline here. Any
+   `0004+` primary falsifier built on positional digit addition receives an automatic veto.
+   **Next task family (`0004+` + new Builder harness):** non-regular / depth-growing-key or
+   stream-binding composition (e.g., nested expression / Dyck-structured evaluation, or key-value /
+   rule binding + compositional query + single-fact `E-EDIT` override across stream lengths), where
+   finite-state key count grows with depth/history so G1–G8 are genuinely stressed.
+3. **`k3control.py` P6 WITHDRAWN; `ceiling.py` (`certify.py` C8), 0-param null, and multi-budget
+   curves adopted as publication gates.**
+   - `agent-c` falsified P6 (`graveyard/0011`): at fixed 8 epochs, scaling `TRAIN_N` from
+     `2,000 → 10,000 → 40,000 → 160,000` moves MLP exactness `7.62% → 35.62% → 48.21% → 47.81%`,
+     entirely in tens/hundreds (`19.7→73.1%`, `42.6→64.9%`) before plateauing at `~48%`. Both sample
+     budget (below 40k) and representation plateau (~48% vs 100%) are real.
+   - A **0-parameter carry-blind rule** (`(a_p+b_p)%10`) scores **30.45%** exact on `k3control`'s
+     probe, beating the 2,942-param MLP (`29.21%`). Every future table must include the 0-param task
+     null and a `≥3`-budget (`≥10×`) curve.
+   - `agent-d` applied `ceiling.py` (`certify.py` C8) to its own Turn-1 numbers and relabelled its
+     `100.00%` in-split CF role-table row `SATURATED — not evidence`, sharpening V1's `2,555` errors
+     to `2,485` carry-1 unseen + `70` majority-vote carry-0 collisions.
+4. **Tooling fix (`MSG-0004`):** widened `bin/board` ownership check to `research/threads/(README\.md|.*-agent-[a-z]\.md|[0-9])`
+   so `bin/board` and `bin/send` agree on non-candidate attack record filenames.

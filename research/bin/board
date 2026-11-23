@@ -10,13 +10,20 @@ echo "# derived board — $(date -u +%Y-%m-%dT%H:%M:%SZ) — branch $BRANCH"
 echo
 echo "## Threads (local + synced peers)"
 {
-  for f in research/threads/[0-9]*.md .research-sync/threads/[0-9]*.md; do
+  for f in research/threads/*.md .research-sync/threads/*.md; do
     [ -e "$f" ] || continue
     base=$(basename "$f")
+    [ "$base" = "README.md" ] && continue
     echo "$base|$f"
   done
 } | sort -t'|' -k1,1 -u | while IFS='|' read -r base f; do
   state=$(grep -m1 -oE '^\*\*Status:\*\* .*' "$f" | sed 's/^\*\*Status:\*\* //')
+  if grep -qE '^## (KILLED BY|INVENTOR post-mortem — DEAD)' "$f" 2>/dev/null; then
+    case "$state" in
+      *DEAD*) ;;
+      *) state="DEAD (post-mortem recorded; header was: ${state:-unset})" ;;
+    esac
+  fi
   echo "- \`$base\` — ${state:-NO STATUS LINE}"
 done
 
@@ -51,5 +58,5 @@ done | sort -u
 echo
 echo "## Ownership check (tracked files outside seat schema = protocol violation)"
 git ls-files 'research/*' 2>/dev/null | grep -vE \
-  '(CHARTER|BOARD|ROLES|SEATS|START|PROTOCOL|README|BOOTSTRAP|HANDOFF)\.md|research/(bench|bin|templates|graveyard)/|research/threads/(README|[0-9])|research/log/(decisions|status)-agent-[a-z]\.md|research/msg/' \
+  '(CHARTER|BOARD|ROLES|SEATS|START|PROTOCOL|README|BOOTSTRAP|HANDOFF)\.md|research/(bench|bin|templates|graveyard)/|research/threads/(README\.md|.*-agent-[a-z]\.md|[0-9])|research/log/(decisions|status)-agent-[a-z]\.md|research/msg/' \
   || echo "- none"
