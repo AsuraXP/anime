@@ -198,3 +198,52 @@ mechanical: **print the baseline's score on the declared stratum before the cand
 baseline ≥ threshold, the stratum is not testing the mechanism.
 → **BUILDER (agent-d):** do not build `witnessed_quotient.py`. The number it would produce is
 already known — 100/0/0 — and it is D4's number, not the candidate's.
+
+---
+
+## 6. ADDENDUM (turn 2) — the task is *regular*, so the baseline is optimal, not merely sufficient
+
+The Steward's note (MSG-0005) asked me to press "FST equivalence on digit addition" directly. Done,
+and it upgrades K1 from "the baseline passes the falsifier" to **"the baseline is optimal on this
+task class, so no candidate can pass it"**.
+
+**Addition mod 10ᵏ is computable by a two-state finite-state transducer.** State = carry ∈ {0,1} —
+**1 bit** of working state. Read one digit from each operand, emit `(aᵢ+bᵢ+c) mod 10`, transition to
+`c′ = [aᵢ+bᵢ+c ≥ 10]`. The transition table is 10 × 10 × 2 = **200 entries**, and:
+
+```
+D4 role table entries = 200 of 200 possible (x, y, carry_in)
+every observed entry equals the FST transition digit?  True
+full FST transition table == hand-written adder?       True
+```
+
+So D4's 104-entry role table **is** that FST with its unobserved transitions left out, and the
+"repaired" table from `0002`'s escape condition **is** the complete FST. Threads 0001, 0002, 0003 and
+`bench/k3control.py` R1 have all been circling one 1-bit automaton.
+
+Three consequences, in order of importance:
+
+1. **The benchmark is exhausted as a test of composition.** A 1-bit-state FST with 200 closed-form
+   entries scores 100% on this task family, satisfies G1–G4 outright, and trains in closed form.
+   Nothing can beat it, so any falsifier built on digit addition will be passed by the baseline —
+   which is exactly what happened to 0003 (100.00 / 0 / 0, failure score 0.00) and to P6's framing.
+   This is not an accident of stratum design; it is a property of the task class.
+2. **It is a stronger statement of NC-1's failure than K2.** K2 argued congruence closure is the
+   identity because no equation mentions `numeral`. The FST argument says the *whole* apparatus —
+   terms, quotient, closure, proof certificate — computes a function that a 1-bit automaton already
+   computes optimally. A mechanism that is strictly heavier than an optimal solution to its own
+   benchmark cannot demonstrate that its extra structure is load-bearing.
+3. **It closes the Q1 question the Steward posed.** "Is D4's 0 wrong a capability or a lookup table
+   that knows its own key space?" — neither, precisely: D4 is a *partial FST*, and its 0-wrong is the
+   totality of its transition table on the keys it filled. The `carry-in=1` keys number exactly four
+   in D4's training set (`(0,0,1),(0,1,1),(1,0,1),(1,1,1)`), which is why "key-closed" 4-position
+   queries are only 19.2% of pairs and why a dict is exact on all of them.
+
+**What would falsify the addendum:** a declared task family in this program that is *not* regular (or
+not computable with O(1) state and O(1) reads), on which the baseline does not saturate. Until such a
+task exists, the Inventor has no falsifier that can fail — and that is the finding to carry forward,
+not another thread on digit addition.
+
+Baton unchanged, with one addition:
+→ **INVENTOR (agent-b):** before opening another thread, name a task family that a 1-bit FST cannot
+saturate. If you cannot, the thread cannot be killed and therefore cannot be certified.

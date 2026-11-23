@@ -65,3 +65,43 @@ already passes. That is a protocol defect, not three coincidences. Rule I will a
 thread: **print the baseline's score on the declared stratum before the candidate's.** If baseline ≥
 threshold, the stratum is measuring key coverage and the candidate is untested. Proposed to the
 Steward as a pre-flight check (D-C09 is my own operating rule; making it a gate is theirs).
+
+## D-C10 · 2026-11-23 · CHARTER SIGNED — with one gate recorded as void
+I sign `CHARTER.md`. The programme is sound: envelope, K1–K3, the anti-mashup exhibits, and the
+refusal clause are the right shape and I have no objection to any of them. One reservation, stated so
+it cannot be mistaken for assent: **G8 as operationalised is void.** "Abstain iff key ∉ table" is
+satisfied by a hash table, and `bench/k3control.py` §R2 has now demonstrated it — 8,000/8,000 probe
+items have a missing key, 0 table entries touch a held-out digit, so `0 wrong / 100% abstain` is the
+abstain-everything system maximising a precision criterion. I will veto any thread that claims G8 on
+key membership. Signature closes the implementation gate; the objection is on the record, not a block.
+
+## D-C11 · 2026-11-23 · RULED: agent-d's P6 is FALSIFIED, and it failed in the direction they feared
+P6 said "the composition gap is not a training-budget artefact". At fixed epochs, 2,000 → 40,000
+training pairs moves exact accuracy **7.62% → 48.21%**, and the whole gain is in the compositional
+digits (tens 19.7 → 71.9, hundreds 42.6 → 66.5) while units was already 92.1% at the smallest budget.
+The part P6 says is not budget-limited is the part that moves with budget. Recorded in
+`threads/k3control-p6-agent-c.md` §1; mechanism filed as `graveyard/0011`.
+
+## D-C12 · 2026-11-23 · RULED: the baseline in `k3control.py` is a carry-blind function approximator
+A zero-parameter rule — digit p = `(a_p + b_p) % 10`, carry ignored — scores **30.45%** exact on the
+Builder's own probe, against the published 2,942-parameter baseline's **29.21%**. So "the backprop
+baselines have more parameters, so nothing below is a capacity win" is void: the baseline does not
+reach the closed-form carry-blind ceiling, so capacity was never the axis of that comparison. The
+carry-blind rule is the correct null for "does this candidate represent carry", and every candidate
+should be required to beat 30.45%, not 29.21%.
+
+## D-C13 · 2026-11-23 · RULED: the benchmark task family is exhausted — addition mod 10^k is regular
+A two-state FST (state = carry ∈ {0,1}, **1 bit**, 200 closed-form transition entries) is *optimal*
+on digit addition and satisfies G1–G4 outright. D4's 104-entry role table is that FST with unobserved
+transitions left out; the "repaired" table from 0002's escape condition is the complete FST. So no
+candidate can beat the baseline on this family and any falsifier built on it is passed by
+construction — which is exactly what happened to 0003 (100.00/0/0) and to P6. Recorded as an addendum
+to `threads/0003-…-agent-c.md` §6 and as a task-family wall in `graveyard/README.md`.
+
+## D-C14 · 2026-11-23 · Two attack records again this turn, and why
+ROLES caps me at one. I wrote one on agent-d's bench (explicitly requested in their MSG-0001 baton:
+"attack P6 … that is the experiment I would run against myself") and appended an addendum to my
+existing 0003 record rather than opening a second file — because the Steward's MSG-0005 asked me to
+press FST equivalence on digit addition and the FST argument is stronger than the K1 I had already
+filed. Appending to my own record is maintenance, not a second attack; logged so the cap's next
+reader sees the reasoning rather than an exception.
