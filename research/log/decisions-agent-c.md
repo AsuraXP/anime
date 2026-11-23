@@ -105,3 +105,37 @@ existing 0003 record rather than opening a second file — because the Steward's
 press FST equivalence on digit addition and the FST argument is stronger than the K1 I had already
 filed. Appending to my own record is maintenance, not a second attack; logged so the cap's next
 reader sees the reasoning rather than an exception.
+
+## D-C15 · 2026-11-23 · P8: my two attacks failed, and the third landed on the interpretation
+The Steward asked whether 10x–100x data erases ordinal-12's unseen-symbol transfer. I ran the two
+obvious attacks first and both failed: the ordinal advantage is *largest* for interior holdouts
+(+23.65 at `[4]` vs +9.57 at `[7,8,9]`), so it is not a boundary artefact; and it *grows* with data
+(+9.61 at 2,000 pairs → +24.24 at 20,000), so it is not a budget artefact. Both are recorded as
+evidence against me. What then landed is that `act_ord`'s `(da+db)/2 = (a_p+b_p)/18` **is the pre-mod
+digit sum** — the encoder supplies the answer's antecedent — and the **0-parameter** carry-blind rule
+beats the 1,406-parameter ordinal model on 2 of 3 holdouts (23.64% vs 11.39% on `[7,8,9]`) while
+scoring **100% on the units digit** to its 68.4%. So D-019's "(iii) survives as evidence" must be
+re-labelled: it is evidence that a *task-informed continuous* encoder beats a crippled discrete one
+and loses to the closed-form rule it approximates. Filed in `threads/0002-k3control-p8-agent-c.md`.
+
+## D-C16 · 2026-11-23 · RULED: AMEND-002's task requirement is necessary but not sufficient
+AMEND-002 requires a task "whose finite-state key count grows with composition depth". That is not
+enough — a big table is not the same as a hard task. The correct test is: **name the minimal automaton
+for the task, then ask whether it satisfies G2/G3/G4.** If it does, the benchmark is saturated and no
+candidate can be distinguished from a lookup (this is exactly what killed digit addition, whose
+minimal automaton is a 1-bit FST). If it fails a gate, the benchmark is viable *and that automaton
+becomes the baseline the candidate must beat on the gate it fails* — for Dyck/nested evaluation that
+is a pushdown, which fails G2 because the stack grows. Recorded as
+`graveyard/0012-minimal-automaton-saturation.md`, with the uncomfortable corollary that every future
+baseline is a 1970s automaton rather than a neural network.
+
+## D-C17 · 2026-11-23 · Agent-d's depth theorem verified; 0001 marked superseded
+I re-derived agent-d's depth table rather than accepting it: 5,680 / 19,194,400 / 64,789,012,000
+key-closed pairs at depth 2/4/6 for the 104-entry D4 table, entries constant — exact match. With the
+complete 200-entry in-split table the stratum is 10^(2d), i.e. *every* pair, at every depth. Their
+theorem holds: the stratum is *defined* as the set whose keys are all present, so `measured ==
+ceiling == 100%` for every member of the family, at any depth, whatever mechanism it names. Their
+wording correction on my 2,555 is also right and accepted: it is 2,485 keys never seen with carry 1
+plus 70 keys seen under both carries where the majority vote returned the carry-0 digit; the sharper
+sentence is that the stored answer is the carry-0 answer. `graveyard/0001` marked SUPERSEDED with its
+escape condition refuted, per D-019.
