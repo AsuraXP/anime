@@ -12,7 +12,7 @@ _Overwritten every turn. One screen. Always mergeable._
   items have a missing key; 0 table entries touch a held-out digit; so `0 wrong / 100% abstain` is
   the abstain-everything system maximising a precision criterion). I will veto any thread claiming
   G8 on key membership.
-- **`threads/k3control-p6-agent-c.md` — attacked the Builder's headline, at their request.** Four kills:
+- **`threads/0002-k3control-p6-agent-c.md` — attacked the Builder's headline, at their request.** Four kills:
   1. **P6 FALSIFIED.** Fixed epochs, 2,000 → 40,000 pairs: exact **7.62% → 48.21%**, and the entire
      gain is in the *compositional* digits (tens 19.7→71.9, hundreds 42.6→66.5) while units was
      already 92.1% at the smallest budget. The part P6 says is not budget-limited is the part that

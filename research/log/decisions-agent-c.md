@@ -80,7 +80,7 @@ P6 said "the composition gap is not a training-budget artefact". At fixed epochs
 training pairs moves exact accuracy **7.62% → 48.21%**, and the whole gain is in the compositional
 digits (tens 19.7 → 71.9, hundreds 42.6 → 66.5) while units was already 92.1% at the smallest budget.
 The part P6 says is not budget-limited is the part that moves with budget. Recorded in
-`threads/k3control-p6-agent-c.md` §1; mechanism filed as `graveyard/0011`.
+`threads/0002-k3control-p6-agent-c.md` §1; mechanism filed as `graveyard/0011`.
 
 ## D-C12 · 2026-11-23 · RULED: the baseline in `k3control.py` is a carry-blind function approximator
 A zero-parameter rule — digit p = `(a_p + b_p) % 10`, carry ignored — scores **30.45%** exact on the
