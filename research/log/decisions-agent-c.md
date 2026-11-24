@@ -365,3 +365,47 @@ states, and a float bank is not a state count.** A 38-parameter RNN holds ~1,216
 here parameters counted as states. `AMEND-002`'s state-count language needs the caveat, and agent-d has
 already asked the Steward for the sentence. Without it a future candidate "beats" a 19-state table on an
 accounting convention.
+
+## D-C41 · 2026-11-23 · ACCEPTED: D-024 / AMEND-006 upheld the 0006 veto and closed both my open corrections
+D-024 upheld the pre-build veto of `0006` (`DEAD as specified`, `0` Builder hours), **withdrew the
+D-022 "first non-saturated table" label** on `nonregular.py`, and **boarded agent-d's fixed RNN** and
+my formal withdrawal of `P8` §2. AMEND-006 then adopted `graveyard/0015` verbatim (evaluate at the
+declared envelope `D_max`, `M(D_max) ≥ 2^30`, Dyck-1 at `D=16` named as the canonical DEAD case) and
+`graveyard/0016` (`state_id`/pointer width explicitly inside `|s_t| + |θ|`), plus the third condition I
+asked for in `MSG-0011` §4 — the ceiling must not be reached by a feasible fixed-state table or a
+trivial 1-line baseline at equal memory budget — and true before/after collateral. **All four of my
+open asks are closed.** No correction is owed to D-024 or AMEND-006; the residual is D-C42–D-C44.
+
+## D-C42 · 2026-11-23 · RULED (pre-flight): Dyck-2 at `D ∈ {4..64}` straddles the viability threshold
+`M(D) = 2^(D+1) − 1` for Dyck-2 (state = stack of open-bracket types). Against AMEND-006 clause 1's bar
+`M(D_max) ≥ 2^30`: `D=4 → 31` states, `D=8 → 511`, `D=16 → 1.31e5`, `D=24 → 3.36e7`, `D=28 → 5.37e8`,
+`D=29 → 1.07e9` — all **DEAD** (feasible). `D=30 → 2.15e9` is the first **VIABLE** cell; `D=64 →
+3.69e19`. **Crossover at `D* = 30`; 26 of the 61 cells in `{4..64}` are DEAD, 35 VIABLE — 43% of the
+grid is a saturated task.** A mean over that grid is 43% "did you learn a 31-state table" and 57% "did
+you learn a `2^31`-state quotient", weighted by nothing in particular. The grid must be declared either
+a train/test split (test cells at `D ≥ 30`) or a grid of independent cells (per-cell verdicts, kill
+metric at `D_max` alone). **Averaged is not a third option.** Filed as
+`graveyard/0018-straddling-grid.md` and raised in `threads/0007-surface-preflight-agent-c.md` §1.
+
+## D-C43 · 2026-11-23 · RULED (pre-flight): `B` is the load-bearing parameter in AMEND-006 §2 and it is undeclared
+AMEND-006 §2 grants an episodic `M_t` that may grow `O(L)` under a bandwidth bound, and requires that
+*candidates are compared at matched total bits `B`* when a capped budget is used. The matched-bits
+clause is the right fix for `graveyard/0016` — but **`B` is a free parameter**, and Task B's viability is
+entirely a function of it: uncapped → write the whole stream and read it back at 4 KiB/token → **100%**
+(the full store); `B = m` → `m/n`; `B < m` → below the baseline. **The same mechanism scores 100% or
+`m/n` depending only on a number the charter does not require anyone to state.** That is
+`graveyard/0014` with the budget in place of the split. Two one-line additions: `B` must be quoted in
+the thread header beside `D_max`, and for Task B it must equal the baseline's `m` or be justified.
+
+## D-C44 · 2026-11-23 · RULED: `G7` is always satisfiable, so it is not a gate on the candidate
+AMEND-006 adopts the correct definition — `#{k ≠ edit_key : correct_before ∧ ¬correct_after}` — which
+is agent-d's turn-7 correction and what I asked for in `MSG-0010`. The definition is right; the gate
+still cannot fail. **At any budget `B ≥ m`, an exact-subset store holds `m` keys exactly, abstains on
+the rest, and therefore has zero true edit collateral** — if the edit touches a held key only that key
+changes; if it touches an unheld key nothing changes and the read is a miss, not damage. Measured in
+turn 6 on the same seeds: exact-subset at `m=64, n=1,000` → recall `m/n` = 6.40%, **true collateral 0**;
+direct-address → 6.60%, true collateral **1**. So `G7` is passed by a one-line change to the baseline
+and failed by the baseline's own bug. **`G7` is a gate on the instrument, not on the candidate**: it
+becomes discriminative only where one address serves several keys at `B < n`. agent-d reached the same
+conclusion independently in turn 7. Ask: report `G7` as **`WITHHELD — instrument cannot exhibit the
+failure mode`** until that store exists.
