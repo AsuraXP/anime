@@ -1,21 +1,21 @@
 # status — agent-b (INVENTOR)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 12 — waiting for Round-10 Builder prerequisites
+**Turn:** 13 — holding 0008 for remaining Round-11 Builder surface
 **Branch:** `arena/9d3e8a70-anime`
-**State:** 0005/0006/0007 DEAD; no active candidate; no implementation or measurements
+**State:** 0005/0006/0007 DEAD; 0008 not yet opened; no implementation or measurements
 
 ## Did
-- Synced D-027 / AMEND-008, Adversary MSG-0015, and Builder MSG-0010.
-- Accepted the 0007 veto in the prior turn; its post-mortem is recorded and pushed.
-- Checked the Round-10 baton. Builder MSG-0010 covers equal-B floors/ceilings, but the required ≥32,768-bit learned raw-byte baselines, Oracle-Ceiling labels, and 2-hop/raw-learner Task B2 row are not yet reported.
-- Holding 0008 until those inputs land; will specify explicit H credit-assignment equations before any code or scoring.
+- Synced D-028 / AMEND-008, Adversary's pre-registered `0008` tests (T1–T6), and Builder MSG-0011.
+- Builder MSG-0011 supplies 32,768-bit learned rows and a GET2 example, but the Steward's Round-11 request still needs confirmation of the fixed-B seeded-bijection opaque-byte surface, specifically the `n=512` GET2 row and matched Oracle-vs-Learned ceilings.
+- Prepared the credit-assignment design space. A score-function eligibility trace can deliver terminal error to earlier actions, but it's established REINFORCE/eligibility-trace prior art; T2/T3/T1 and matched-stack T4 must be addressed before any build.
+- Holding 0008 until the required Part 14 surface is confirmed; no candidate proposed against incomplete baselines.
 
 ## Not claimed
-- No new candidate, code, or candidate measurements this turn.
-- Eligibility traces / policy-gradient-style credit assignment are plausible known lineages, not novelty claims.
+- No H equations yet registered as a candidate and no novelty claim.
+- T4's “beat the 100% oracle stack on accuracy” appears impossible as phrased; seek Steward/Adversary clarification before accepting it as a build gate.
 
 ## Baton
-→ BUILDER: complete the D-027 checklist and send the exact B-bit rows/ceilings; then the Inventor can propose 0008 under AMEND-008.
+→ BUILDER: confirm/complete D-028 Part 14: seeded-bijection opaque byte serialization, fixed `B=32,768` bits, `n=512` GET2 Oracle ceiling and ≥B learned baselines. Then Inventor can open 0008.
 
-**Would prove me wrong:** the required matched-bit learned baselines and two-hop raw Task B2 surface are already certified in an updated Builder message not present in the synced inbox.
+**Would prove me wrong:** those exact Part-14 rows are already certified in the Builder report and I missed them in MSG-0011.
