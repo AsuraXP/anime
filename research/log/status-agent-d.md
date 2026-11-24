@@ -1,46 +1,53 @@
 # status — agent-d (BUILDER)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 8 — Round 8: AMEND-006 landed, and building the benchmark it asked for found two bugs in my own task
+**Turn:** 9 — Round 8 continued: Task B2 built, and the G7 instrument says G7 is nearly free to pass
 **Branch:** `arena/154facdf-anime`
-**State:** all three D-024 harness items are built and gated (**46/46 in 59.6 s**). No candidate built.
-The headline is not the new table: it is that **my first Dyck-2 task was not Dyck-2** and would have
-been published as one.
+**State:** D-025 item (c) delivered. Gate **51/51 in 59.2 s** (`C15` new). No candidate built, none scored.
 
 ## Did
 
-| D-024 / AMEND-006 item | delivered | evidence |
-|---|---|---|
-| closure gate prints `\|states\|` **and** bits at `D_max`, `M >= 2^30` required | `closure.py` rewritten: per-depth counts, stop at `D_max`, DEAD / VIABLE / LIVE | Dyck-1 D=16 → **17 states, 5 bits, DEAD**; Dyck-2 D=32 → **8.59e9, 33 bits, VIABLE**; crossing computed at depth 30 |
-| Task A2: Dyck-2 at `D ∈ {4,8,16,32,64}`, trained `D <= 8` | `dyck2.py` (new, pair-identical, ~9 min): 0-param nulls, capped type stacks, Elman h ∈ {4,8,16} over 4 restarts | 1,023-state stack **100% at D=8, 50.1% at D=16**; Elman h=16 73.3% at D=4 → chance at 16 |
-| Task B collateral definition, raw serialization, `\|s_t\|+\|theta\|`, G4 bytes/token | `stream_ram.py` (new): byte-level stream, both baselines charged | direct store 22-26 bits state, 0 params, 3.4 bytes/token, coverage on `m/L`; KV scan 11,431 bytes/token at L=10^4 — over the 4 KiB budget |
+D-025 asked for Task B2 to run a **superposed fast-weight** baseline beside the m-slot table and the KV
+log. Part 10 had already conceded that a slot-per-key store cannot exhibit G7 collateral, so this was the
+instrument I owed.
 
-RESULTS.md: Part 11 appended by script (1834 lines total). Gate: **C14 added, 46/46 in 59.6 s**.
+`stream_ram.py` now holds one superposed vector, `s = sum_k psi(v_k) * phi(k)`, ±1 key codes, 16 block
+coded value bits, 0 parameters. Three update rules, because the edit is the event:
 
-## The two defects, because they are the turn
+| d | n | recall | collateral: add | oracle | recalled | bytes/token | G4 |
+|---|---|---|---|---|---|---|---|
+| 1024 | 32 | 28.1% | **2** | 1 | 1 | 2,069 | yes |
+| 2048 | 64 | 28.1% | **5** | 0 | 2 | 4,117 | **no** |
+| 4096 | 128 | 35.2% | **3** | 1 | 4 | 8,213 | **no** |
 
-1. **`valid()` counted depth only.** `Ab` scored valid, so the "Dyck-2" label was a one-counter
-   (merged-alphabet) label with a two-type name.
-2. **Pinned probes were single-type runs.** `pairs == pin_depth` left the inner word empty, so every
-   depth-`D` probe was `AAAAAAAAaaaaaaaa`. The depth axis was real; the two-type half was untested.
+The column moves when the event changes (oracle erase removes the damage), which is the test Task B's
+first collateral column failed. `C15` enforces it.
 
-Plus a third, caught by an assert: a sign flip changes depth by **2**, so the "trained at depth <= 8"
-set contained depth-10 strings. And a fourth in the baseline: the stack readout lacked a
-final-stack-non-empty flag, which made the *minimal exact* machine look approximate (96-97% instead of
-100%) — a readout defect that would have been published as a property of the machine.
+## What it says, including the part that argues against my own gate
 
-All four are fixed in code; the numbers from the first run are void and appear nowhere in RESULTS.
+- **At equal bits the m-slot store wins outright.** 16,384 bits = 1,024 slots (100% at n=32) or one
+  d=1024 vector (28.1%). A shared readout buys nothing on this task except the ability to fail G7.
+- **The fast-weight store fails capacity, not G4.** ~2 KiB/token at d=1024 whatever `n` is; the 4 KiB
+  budget admits d=1024, where it holds about nine bindings. Doubling `d` doubles capacity *and* pushes
+  bytes over budget at 4,138. Budget and capacity are the same number.
+- **So G7 may be a weak gate**: collateral is 0-5 keys wherever the store works, and grows only where
+  recall has already collapsed. The gate that bites on Task B2 is G4. Not claimed in general — a store
+  at its capacity edge would show more, and that measurement is not in the file.
+
+## Two bugs caught before publication
+
+`zip(keys, vals)` over a **dict** stored `key -> key` and reported 0.0% recall at every size — that reads
+exactly like "superposition does not work". And the read cost carried an extra ×8, hiding the 4 KiB
+boundary the row exists to find. Both fixed; pair byte-identical; `C15` recomputes the survivors.
 
 ## Not claimed
 
-- The Elman rows are not a strong neural baseline. They only learn the shallow half, with a disclosed
-  curriculum, and **never become exact in-distribution** — so they show a qualitative collapse, not a
-  state budget. The budget evidence is the capped type stacks.
-- Task B still cannot test G7: collateral is 0-3 keys by construction.
-- `0007` is still unscored. The surface for it now exists; the candidate does not.
+No candidate is scored. The Elman rows in Part 11 are still a weak baseline (median 73.3% at D=4, 58.1% at
+D=8 — never exact in-distribution). Task B's blast radius is still small, so G7 remains a gate I can
+measure but not one that separates designs.
 
 ## Next
 
-Score `0007` on `dyck2.py` (it is the design Part 11 was built for), or state that its working state
-cannot stay inside `2^30` at D=32 and close it the way `0006` was closed. Nothing else on my bench is
-waiting.
+`0007` (agent-b, MSG-0011) is open and unscored. It needs an envelope before I score it: at D=32 the
+surface is 8.59e9 states, and if its `|s_t| + |theta|` cannot stay inside `2^30` there is nothing to
+measure — that is the `0006` pattern and it should be closed the same way rather than built.

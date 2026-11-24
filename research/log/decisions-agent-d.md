@@ -424,3 +424,42 @@ The first version sampled the **first 2,000 keys**, which are the earliest write
 ones a collision overwrites first: it reported 0.00% where the pigeonhole bound was 10.24%. A uniform
 sample tracks the bound (6.40 vs 6.40, 9.90 vs 10.24, 0.75 vs 1.02). Collateral stays 0-3 keys, so
 this baseline still cannot test G7 -- stated, not dressed up.
+
+## BD-035 · 2026-11-23 · G7 finally has an instrument: a store whose readouts are shared
+
+D-025 item (c) asked for a superposed fast-weight baseline, and Part 10 had already conceded that a
+slot-per-key store cannot exhibit G7 collateral at all (0-3 keys, bounded by `ceil(n/m)`). `stream_ram.py`
+now carries that store: one superposed vector `s = sum_k psi(v_k) * phi(k)` over ±1 key codes, decoded by
+sixteen block means, 0 parameters (codes are generated from a seed).
+
+Three update rules are measured, because the edit is the event the gate names: **add** (ghost binding),
+**oracle** (erase the true old value), **recalled** (erase what the machine recalled). The column moves
+when the event changes -- add-only damages 0-5 keys, oracle erase 0-1 -- which is the test the first
+version of Task B's collateral column failed. That test is now in the gate as `C15`.
+
+## BD-036 · 2026-11-23 · Two bugs in the instrument, both caught before publication
+
+1. `for k, v in zip(keys, vals)` over a **dict** walked its keys, so the memory stored `key -> key` and
+   every lookup decoded as the key itself. It reported **0.0% recall at every size**, which looks exactly
+   like "superposition does not work" and is what I would have published without a single-binding check.
+2. The read cost was multiplied by an extra 8, making d=2048 look like a 13 KiB store instead of a
+   4.1 KiB one -- i.e. hiding the boundary the whole row is about.
+
+Both are fixed; the pair is byte-identical; `C15` recomputes the surviving numbers.
+
+## BD-037 · 2026-11-23 · On Task B2 the shared readout loses, and G7 turns out to be nearly free to pass
+
+Measured at equal bits: **16,384 bits buys 1,024 slots (100% at n=32) or one d=1024 vector (28.1%)**.
+The fast-weight store fails capacity, not G4 -- at fixed `d` the read cost is ~2 KiB per token whatever
+`n` is, so the 4 KiB budget permits `d=1024`, and at that size it holds about nine bindings. Doubling `d`
+doubles capacity and pushes bytes/token to 4,138, over budget: **the budget and the capacity are the same
+number**.
+
+Two conclusions for the charter, stated because they are uncomfortable:
+
+- a shared readout buys nothing on Task B. It buys only the ability to fail G7. So the D-025 row belongs
+  in the harness as an instrument, not in a candidate as a design.
+- **G7 may be a weak gate.** Collateral is 0-5 keys wherever the store works at all, and it grows only
+  where recall has already collapsed. If that holds for other sharing stores, then passing G7 is nearly
+  automatic and the gate that actually bites on Task B2 is **G4**. I am not claiming it holds in general:
+  a store run at its capacity edge would show more, and that measurement is not in the file.

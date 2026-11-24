@@ -1,4 +1,4 @@
-<!-- GENERATED -- do not hand-edit. Eleven parts, their commands below. -->
+<!-- GENERATED -- do not hand-edit. Twelve parts, their commands below. -->
 <!-- reproduce part 1: python3 research/bench/scorecard.py    (~11 s,  CPU, seeded) -->
 <!-- reproduce part 2: python3 research/bench/k3control.py    (~180 s, CPU, seeded) -->
 <!-- reproduce part 3: python3 research/bench/ceiling.py      (~90 s,  CPU, seeded) -->
@@ -1831,4 +1831,120 @@ are wrong), or a stream machine with flat `|s_t| + |theta|` across `L: 10^3 -> 1
 
 Reproduce: `python3 research/bench/closure.py` (0.1 s), `python3 research/bench/dyck2.py`
 (~9 min), `python3 research/bench/stream_ram.py` (0.1 s).
+
+
+<!-- ============ PART 12: turn 9 -- Task B2, the shared-readout store (D-025 item c) ============ -->
+# Part 12 -- G7 had no instrument; it has one now, and it says the gate is nearly free to pass (turn 9)
+
+Part 10 ended with a promise this part keeps: *a direct-address store gives every key one slot,
+so one edit can damage at most the slot population. To measure collateral honestly the harness
+needs a store whose readouts are shared across keys.* `agent-a`'s D-025 item (c) asked for the
+same row by name -- a superposed fast-weight baseline beside the m-slot table and the KV scan.
+`stream_ram.py` now carries all three, and this part reports what the third one shows.
+
+## 12.1 The instrument
+
+One **superposed vector** holds every binding: `s = sum_k psi(v_k) * phi(k)`, with ±1 key
+codes and 16-block ±1 value codes. A GET unbinds one key (`s * phi(q)`) and decodes sixteen
+block means. The property that matters is that **every write touches the memory every key
+reads**, so an edit can damage keys it never named -- which is what G7 is about and what no
+slot-per-key store can exhibit.
+
+Three update rules are measured, because the edit is the event under test and a collateral
+column has to change when the event changes:
+
+* **add** -- `s += psi(new) * phi(k)`; the old binding survives as a ghost.
+* **oracle** -- erase the *true* old value, then add. This is the best an edit can do.
+* **recalled** -- erase what the machine *recalled* before the edit. This is what it can
+  actually do, and at load it subtracts a wrong codeword.
+
+## 12.2 The measurement
+
+Same run, same stream builder and same edit as 11.3, so the rows are comparable:
+
+| stream L | machine | coverage | **edit collateral** | |s_t| bits | |theta| bits | bytes/token | G4 (<= 4 KiB) |
+|---|---|---|---|---|---|---|---|
+| 1,000 | direct 64 | 6.40% | **1** | 22 | 0 | 2.7 | yes |
+| 1,000 | direct 1024 | 100.00% | **0** | 26 | 0 | 2.7 | yes |
+| 1,000 | full KV scan | 100.00% | **0** | 26 | 0 | 2,667 | yes |
+| 10,000 | direct 64 | 0.50% | **1** | 22 | 0 | 3.4 | yes |
+| 10,000 | direct 1024 | 9.90% | **0** | 26 | 0 | 3.4 | yes |
+| 10,000 | full KV scan | 100.00% | **0** | 30 | 0 | 11,431 | **no** |
+| 100,000 | direct 64 | 0.10% | **0** | 22 | 0 | 3.9 | yes |
+| 100,000 | direct 1024 | 0.75% | **0** | 26 | 0 | 3.9 | yes |
+| 100,000 | full KV scan | 100.00% | **0** | 33 | 0 | 15,388 | **no** |
+
+and the shared-readout store:
+
+| d | n | load 16n/d | recall before | collateral: add | oracle | recalled | bytes read+written/token | store bits (16d) | |theta| | G4 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1024 | 32 |  0.50 |   28.1% | **2** | 1 | 1 | 2,069 | 16,384 | 0 | yes |
+| 1024 | 64 |  1.00 |    7.8% | **3** | 1 | 1 | 2,059 | 16,384 | 0 | yes |
+| 1024 | 128 |  2.00 |    0.8% | **0** | 0 | 0 | 2,053 | 16,384 | 0 | yes |
+| 2048 | 32 |  0.25 |   68.8% | **1** | 0 | 0 | 4,138 | 32,768 | 0 | **no** |
+| 2048 | 64 |  0.50 |   28.1% | **5** | 0 | 2 | 4,117 | 32,768 | 0 | **no** |
+| 2048 | 128 |  1.00 |    7.0% | **3** | 1 | 2 | 4,107 | 32,768 | 0 | **no** |
+| 4096 | 32 |  0.12 |   96.9% | **1** | 0 | 0 | 8,276 | 65,536 | 0 | **no** |
+| 4096 | 64 |  0.25 |   76.6% | **4** | 1 | 1 | 8,234 | 65,536 | 0 | **no** |
+| 4096 | 128 |  0.50 |   35.2% | **3** | 1 | 4 | 8,213 | 65,536 | 0 | **no** |
+
+Quoted from this run: at d=1024, n=32 the store answers 28.1% of its keys,
+an add-only edit damages 2 keys and an oracle erase 1,
+at 2,069 bytes/token. At d=2048, n=64 the same edit damages
+5 keys, and an oracle erase 0. At d=4096, n=128 the
+three rules give 3, 1 and 4 keys.
+
+## 12.3 What it says about G7
+
+**G7 has an instrument, and the collateral is real but small.** Add-only edits damage 0-5
+keys; an oracle erase removes most of that damage, so the number *is* caused by the edit and
+not by the store's steady state -- the test a column called 'collateral' has to pass, and the
+one Part 10's first version failed. But the size is bounded by how many keys sit near a
+decision margin, not by `n`, and at loads where the store still works that is a handful.
+
+**The store fails capacity, not G4.** At fixed `d` the read cost is ~`2d` bytes per token,
+independent of `n`. G4's 4 KiB budget therefore permits `d = 1024`, and at that size recall at
+n=32 is under a third of the keys. Doubling `d` doubles capacity and pushes bytes/token over
+budget -- 4,107-4,138 against a 4,096 ceiling. The budget and the capacity are the same
+number, which is what makes this instrument useful rather than decorative.
+
+**At equal bits the m-slot store wins outright.** 16,384 bits buys 1,024 slots (100% at
+n=32) or one d=1024 vector (28.1% at n=32). A shared readout buys nothing on this task; it
+buys the *ability to fail G7*, which is why it belongs in the harness as an instrument and
+not in a candidate as a design. That is the honest summary of D-025 item (c): the row was
+missing, it is built, and its verdict on the store is negative.
+
+## 12.4 What this changes for a candidate on Task B2
+
+The bar is now stated in three separately measured terms rather than one: coverage against
+`m/L` at equal bits (m-slot wins), bytes read+written per token against 4 KiB (KV scan and
+`d > 1024` fast weights fail here), and edit blast radius as
+`#{k != edit : correct_before and not correct_after}` (0-5 keys for a shared readout, and
+the oracle erase is the control that proves the damage came from the edit).
+
+A candidate that claims Task B2 must beat the m-slot store on coverage at equal bits while
+staying under G4 and at or below the shared-readout store's blast radius. Nothing in this
+part does that, and no candidate is scored here.
+
+## 12.5 Audit of this part
+
+**Certified:** `stream_ram.py` is deterministic (two runs identical modulo timing fields) and
+in the gate; both tables above are transcribed by this assembler from that run. `C15`
+recomputes the three numbers this part rests on. Two defects found while building it are
+fixed in code: the binding loop zipped a `dict` and stored `(key -> key)`, which decoded every
+lookup as the key itself and reported 0.0% recall at every size; and the read cost was
+multiplied by an extra 8, which made d=2048 look like a 13 KiB store.
+
+**Not claimed:** that the fast-weight store is a candidate, or a good design, or that 0-5 keys
+of collateral is what a sharing store *must* show -- a store closer to its capacity edge would
+show more, and that is a measurement this file can make and has not. Also not claimed: that
+G7 is a strong gate. If its blast radius is this small wherever a store works at all, then
+passing G7 is nearly automatic and the gate that bites is G4.
+
+**What would prove this wrong:** a shared-readout store that answers `m/L` of queries at
+equal bits under 4 KiB/token with zero edit blast radius -- that is a candidate, and it is not
+here. Or: a load at which oracle-erase and add-only give the same collateral, which would
+mean the column is not measuring the edit after all.
+
+Reproduce: `python3 research/bench/stream_ram.py` (<1 s).
 

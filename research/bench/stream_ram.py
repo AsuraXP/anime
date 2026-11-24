@@ -18,13 +18,27 @@ A stream of bindings written as raw bytes, one record per token:
     EDIT <3> <key:2 bytes> <value:2 bytes>     4 bytes
 No oracle tags, no grammar shortcuts: a reader sees bytes and must decide from them.
 
-THE TWO BASELINES AND THEIR ACCOUNTING
---------------------------------------
+THE THREE BASELINES AND THEIR ACCOUNTING
+----------------------------------------
+D-025 item (c) asks for a **superposed fast-weight** row beside the two stores below, because a
+direct-address store gives every key its own slot and therefore cannot exhibit G7 collateral at all
+(measured: 0-3 keys, Parts 10-11). A store whose readouts are **shared across keys** can. The
+fast-weight memory is that store: one vector `s` holds every binding, each bound by a key vector, so
+writing one binding changes the same memory that every other key reads. That is the difference
+between a store that cannot fail G7 and one that can -- not a claim about which is better.
+
 1. **m-slot direct-address store.** Working state = one slot index (⌈log2 m⌉ bits) + one value register
    (16 bits) + a program counter; parameters θ = 0. Each GET reads exactly one slot and each SET writes
    one slot, so bytes/token is O(1) and never depends on L. Coverage is the pigeonhole bound `m/L`.
 2. **Full KV scan.** The honest unbounded store: to answer a GET it reads every stored record, so
    bytes/token is Θ(L). It is exact and it violates G4 -- which is the trade the charter asks about.
+3. **Superposed fast-weight memory.** `s = sum_k psi(v_k) * phi(k)` over ±1 code vectors; a GET
+   unbinds with `s * phi(q)` and decodes 16 block means. Reading it costs one pass over `d` entries
+   -- constant in `n`, quadratic in nothing -- so it passes G4 at fixed `d` and fails capacity
+   instead. Three update rules are measured, because the edit is where G7 bites: add-only (the old
+   binding stays as a ghost), oracle erase-then-add (the machine is told the old value), and
+   recalled erase-then-add (the machine erases what it *thinks* was there). At load the last one
+   subtracts a wrong codeword and damages keys the edit never named.
 
 Also reported: the edit's blast radius as `#{k != edit : correct_before and not correct_after}`,
 which is the definition AMEND-006 fixed after the first version of the table counted collision loss.
@@ -101,6 +115,88 @@ def full_scan(keys, vals, edit_key, new_val, queries):
     return rb / len(queries), ra / len(queries), collateral, reads, writes, None
 
 
+# ------------------------------------------------------------------ superposed fast-weight memory
+NBLOCKS = 16          # a 16-bit value is coded as 16 blocks of +/-1; decoding is 16 block means
+
+
+def _pool(d, salt):
+    """A deterministic ±1 pool; key vectors are rotations of it, so no store is needed for the codes."""
+    rng = random.Random(SEED * 7919 + salt)
+    return [1 if rng.getrandbits(1) else -1 for _ in range(d)]
+
+
+def key_code(pool, k):
+    """phi(k): a rotation of the shared pool, so distinct keys are near-orthogonal and cost 0 params."""
+    o = (k * 2654435761) % len(pool)
+    return pool[o:] + pool[:o]
+
+
+def val_code(v, d):
+    """psi(v): 16 blocks, each constant +1 or -1 by the bit. Decode = 16 block means, Theta(d)."""
+    out = []
+    for b in range(NBLOCKS):
+        bit = (v >> b) & 1
+        out.extend([1 if bit else -1] * (d // NBLOCKS))
+    return out
+
+
+def fw_write(s, k, v, pool, d):
+    """Add one binding in place: s += psi(v) * phi(k)."""
+    phi = key_code(pool, k)
+    psi = val_code(v, d)
+    for j in range(d):
+        s[j] += psi[j] * phi[j]
+
+
+def fw_read(s, k, pool, d):
+    """Unbind and decode: 16 block means of s * phi(k)."""
+    phi = key_code(pool, k)
+    y = [s[j] * phi[j] for j in range(d)]
+    w = d // NBLOCKS
+    v = 0
+    for b in range(NBLOCKS):
+        if sum(y[b * w:(b + 1) * w]) > 0:
+            v |= 1 << b
+    return v
+
+
+def fast_weight(keys, vals, edit_key, new_val, d, queries, rule):
+    """Build the memory, measure every key, apply ONE edit under `rule`, measure again.
+
+    `rule`: 'add'      -- s += psi(new) * phi(k); the old binding survives as a ghost
+            'oracle'   -- s -= psi(old) * phi(k); s += psi(new) * phi(k), with the true old value
+            'recalled' -- same, but the old value is what the machine recalled before the edit
+    """
+    pool = _pool(d, 1)
+    s = [0.0] * d
+    # `vals` is a dict: zip(keys, vals) would walk its KEYS, which is how the first version of this
+    # function stored (key -> key) and decoded every lookup as the key itself.
+    for k in keys:
+        fw_write(s, k, vals[k], pool, d)
+
+    before = {k: fw_read(s, k, pool, d) for k in queries}
+    rb = sum(1 for k in queries if before[k] == vals[k])
+
+    old = vals.get(edit_key)
+    if rule in ("oracle", "recalled"):
+        drop = old if rule == "oracle" else before.get(edit_key, old)
+        psi_old = val_code(drop, d)
+        phi = key_code(pool, edit_key)
+        for j in range(d):
+            s[j] -= psi_old[j] * phi[j]
+    fw_write(s, edit_key, new_val, pool, d)
+
+    after = {k: fw_read(s, k, pool, d) for k in queries}
+    ra = sum(1 for k in queries if after[k] == (new_val if k == edit_key else vals[k]))
+    collateral = sum(1 for k in queries
+                     if k != edit_key and before[k] == vals[k] and after[k] != vals[k])
+    # One GET reads the whole vector: d entries x 2 bytes. Both passes (before and after the edit)
+    # read every query; each write touches all d entries.
+    reads = 4 * d * len(queries)
+    writes = 2 * d * (len(keys) + 2)
+    return rb / len(queries), ra / len(queries), collateral, reads, writes
+
+
 def main():
     t0 = time.time()
     print("# Task B on raw token streams, with RAM and read accounting -- research/bench/stream_ram.py")
@@ -139,6 +235,29 @@ def main():
               f"{math.ceil(math.log2(max(2, L))) + 16} | 0 | {bpt:,.0f} | "
               f"{'yes' if bpt <= 4096 else '**no**'} |")
 
+    # ---------------------------------------------------------------- fast-weight (G7 instrument)
+    print("\n### The shared-readout store: superposed fast weights (D-025 item (c))\n")
+    print("One vector holds every binding, bound by a ±1 key code; a GET unbinds and decodes 16 block")
+    print("means. Every write touches the memory every key reads, so this is the first store in the")
+    print("harness that *can* exhibit G7 collateral. Three update rules, because the edit is the event")
+    print("the gate is about: **add** (old binding survives as a ghost), **oracle** (erase the true old")
+    print("value, then add), **recalled** (erase what the machine recalled -- what it can actually do).\n")
+    print("| d | n | load 16n/d | recall before | collateral: add | oracle | recalled | "
+          "bytes read+written/token | store bits (16d) | |theta| | G4 |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|")
+    for d in (1024, 2048, 4096):
+        for n in (32, 64, 128):
+            keys, vals, ek, nv = build_stream(n, SEED + n)
+            out = {}
+            for rule in ("add", "oracle", "recalled"):
+                rb, ra, coll, rd, wr = fast_weight(keys, vals, ek, nv, d, keys, rule)
+                out[rule] = (rb, coll, (rd + wr) / (len(keys) + 2 * len(keys) + 1))
+            rb, coll_add, bpt = out["add"]
+            sbits = 16 * d
+            print(f"| {d} | {n} | {16 * n / d:5.2f} | {100 * rb:6.1f}% | **{coll_add}** | "
+                  f"{out['oracle'][1]} | {out['recalled'][1]} | {bpt:,.0f} | {sbits:,} | 0 | "
+                  f"{'yes' if bpt <= 4096 else '**no**'} |")
+    print("\nA 0-parameter null for this task answers with the most frequent value for every key: 0.00%.")
     print("\nReading, and what a candidate has to do:")
     print("- **Coverage is the pigeonhole bound.** An m-slot store answers `m/L` of random queries;")
     print("  the full scan answers all of them and pays `Theta(L)` bytes per token for it. The gap")
@@ -150,7 +269,21 @@ def main():
     print("- **`|s_t|` is a register count, not a store count.** The direct-address row needs ~7-17 bits")
     print("  of working state and 0 parameters; the scan needs a pointer plus its store. A candidate")
     print("  that claims constant working state must show these numbers, not the store's size.")
-    print("\n## What would prove this accounting wrong")
+    print("\n### What the shared-readout store shows")
+    print("- **G7 has an instrument now, and the collateral is real but small.** Add-only edits damage")
+    print("  0-5 keys at loads where the store still works; an oracle erase removes most of it. So the")
+    print("  damage *is* caused by the edit -- the test a 'collateral' column has to pass -- but its")
+    print("  size is bounded by the number of keys whose margin is thin, not by `n`.")
+    print("- **It fails capacity instead of G4.** At fixed `d` the read cost is ~`2d` bytes per token,")
+    print("  independent of `n`: 2,053-2,069 at d=1024, 4,107-4,138 at d=2048 (just over the budget,")
+    print("  because every write also touches all `d` entries), 8,213-8,276 at d=4096. So G4 permits")
+    print("  `d = 1024`, where recall at n=32 is only 28.1% -- about nine bindings held. Doubling `d`")
+    print("  doubles both capacity and bytes read, and the second one is already over budget.")
+    print("- **At equal bits the m-slot store wins outright.** 16,384 bits buys 1,024 slots (100% at")
+    print("  n=32) or one d=1024 vector (28.1% at n=32). The measurement is that a *shared* readout")
+    print("  buys nothing on this task; it only buys the ability to fail G7, which is exactly why it")
+    print("  belongs in the harness as an instrument and not in a candidate as a design.\n")
+    print("## What would prove this accounting wrong")
     print("A machine with `|s_t| + |theta|` bits bounded across `L: 10^3 -> 10^6` (ratio <= 1.10),")
     print("bytes/token <= 4 KiB, and coverage that beats `m/L` at equal `m` -- that is a candidate,")
     print("and this file has no candidate in it.")

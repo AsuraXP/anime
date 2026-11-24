@@ -12,7 +12,7 @@ next to the numbers is actually supported by them.
 What is checked
   D1 determinism      every script is run twice; stdout must match after timing fields are masked.
   D2 freshness        the block of RESULTS.md tagged as scorecard output must equal a fresh run.
-  C1..C14 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
+  C1..C15 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
                       otherwise have to take on faith. Each returns the measurement behind it.
 
 Exit code is 0 only if every check passes. A failing check is a result, not a nuisance: it means a
@@ -394,6 +394,46 @@ def check_claims():
     out.append(check("C14 the recurrent baseline is reported as a distribution over restarts",
                      "median / best of" in part11 and "Control from the same run" in part11,
                      "median/best over 4 restarts, with the no-curriculum control quoted beside it"))
+
+    # ---------------------------------------------------------------- C15 (D-025 item (c) / turn 9)
+    m = re.search(r"PART 12:.*?(?=\n<!-- =|\Z)", md0, re.S)
+    part12 = m.group(0) if m else ""
+    out.append(check("C15 Part 12 (Task B2, shared-readout store) published",
+                     bool(part12) and "superposed" in part12 and "oracle" in part12,
+                     f"{len(part12.splitlines())} lines"))
+
+    sw = load_module("stream_ram")
+    keys, vals, ek, nv = sw.build_stream(32, sw.SEED + 32)
+    rb, ra, coll_add, rd, wr = sw.fast_weight(keys, vals, ek, nv, 1024, keys, "add")
+    _, _, coll_orc, _, _ = sw.fast_weight(keys, vals, ek, nv, 1024, keys, "oracle")
+    out.append(check("C15 a shared readout exhibits edit collateral; an oracle erase removes it",
+                     coll_add >= 1 and coll_orc <= coll_add and rb > 0.15,
+                     f"d=1024, n=32: recall {100 * rb:.1f}%, add-only blast radius {coll_add} keys, "
+                     f"oracle erase {coll_orc} -- the column changes when the event changes"))
+
+    r32 = sw.fast_weight(keys, vals, ek, nv, 1024, keys, "add")[0]
+    k64, v64, e64, n64 = sw.build_stream(64, sw.SEED + 64)
+    r64 = sw.fast_weight(k64, v64, e64, n64, 1024, k64, "add")[0]
+    out.append(check("C15 recall falls with load at fixed d (the capacity wall is real)",
+                     r32 > r64,
+                     f"d=1024: {100 * r32:.1f}% at n=32, {100 * r64:.1f}% at n=64"))
+
+    def bpt(d, n):
+        kk, vv, ee, nn = sw.build_stream(n, sw.SEED + n)
+        _, _, _, r, w = sw.fast_weight(kk, vv, ee, nn, d, kk, "add")
+        return (r + w) / (len(kk) + 2 * len(kk) + 1)
+
+    b_small, b_mid, b_big = bpt(1024, 32), bpt(2048, 32), bpt(4096, 32)
+    out.append(check("C15 G4 budget admits d <= 1024 for a fast-weight store, not d = 2048",
+                     b_small <= 4096 < b_mid < b_big,
+                     f"bytes/token: d=1024 {b_small:,.0f} (pass), d=2048 {b_mid:,.0f} (fail), "
+                     f"d=4096 {b_big:,.0f} (fail); budget 4,096"))
+
+    dr_b, dr_a, dr_c, _, _, sbits = sw.direct_address(keys, vals, ek, nv, 1024, keys)
+    out.append(check("C15 at equal bits the m-slot store still wins on coverage",
+                     dr_b == 1.0 and r32 < dr_b and sbits <= 16 * 1024,
+                     f"16,384 bits: 1,024 slots answer {100 * dr_b:.0f}% at n=32, one d=1024 "
+                     f"vector answers {100 * r32:.1f}%"))
 
     return out
 
