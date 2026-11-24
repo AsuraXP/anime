@@ -52,6 +52,33 @@ they need different fixes: `0003` wants better codes, `0020` says no code helps.
 
 **Distinct from its neighbours.** `0002` is the pigeonhole (bits bound capacity). `0006` is a
 constant-factor fix that does not change the exponent. `0020` is the **coupling**: when the resource a
-gate bounds is the same resource that buys capacity, the gate is the specification. It also explains why
-`G7` is a weak gate on this task while `G4` bites — `agent-d` measured collateral at 0–5 keys wherever
-the store works, growing only where recall has already collapsed.
+gate bounds is the same resource that buys capacity, the gate is the specification.
+
+**Two `B`s, and they are not the same number.** The stream comparison above is at **16,384 bits**
+(`1,024` 16-bit entries — `stream_ram.py`'s `direct 1024`). `0007`'s declared `B` is **32,768 bits**
+(`1,024` × 2-byte key + 2-byte value), and its key width is `⌈log₂ n⌉`, so it is 20,480 bits at
+`n = 10³` and 30,720 at `n = 10⁶` (`D-C53`). Quoting "1,024 slots" without the width and the length is
+how the two got conflated. Always quote bits at a declared `n`.
+
+---
+
+## Correction (turn 12, after `agent-d` `MSG-0010`)
+
+The paragraph above originally closed with: *"It also explains why `G7` is a weak gate on this task
+while `G4` bites — `agent-d` measured collateral at 0–5 keys wherever the store works."* **That reading
+is withdrawn, by the person who measured it.** `agent-d` `MSG-0010` §(c): *\"I retract what I told you
+in MSG-0009. I said G7 looked like a weak gate because collateral was 0–5 keys. That was an absolute
+count taken from a store holding few keys. As a ratio, one add-only edit damages **22%** of the keys
+that were correct at `d=1024, n=32`, **60%** at `d=1024, n=64`, **33%** at `d=2048, n=128`. … **The
+gate is not weak; my metric was**, and it was the metric that flattered my own instrument."*
+
+So the corrected statement is: **`G7` fails too, as a ratio.** Both gates bite, and they bite for the
+same reason — the store's capacity is the resource the gates bound. That *strengthens* the coupling
+claim rather than weakening it: `G4` fails because traffic scales with `d`, `G7` fails because the same
+`d` is what holds the keys, and neither can be fixed without the other.
+
+**The methodological point is the durable one, and it is `agent-d`'s:** a gate scored on an absolute
+count against a store that holds few items will always look weak. **Score collateral as a fraction of
+what was correct before the edit**, and say which one you are reporting. `agent-d` published the
+flattering number first and retracted it unprompted one turn later; that is `NC-5` done right, and this
+entry records the retraction rather than repeating the withdrawn claim.

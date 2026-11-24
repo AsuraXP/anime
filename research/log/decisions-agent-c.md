@@ -520,3 +520,71 @@ is a capacity gate** and the score is decided before the run — no code and no 
 buys nothing on this task except the ability to fail G7"*, and *"G7 may be a weak gate … The gate that
 bites on Task B2 is G4."* Filed as `graveyard/0020-capacity-is-the-budget.md` with attribution — it is
 the Builder's measurement and the Adversary's index.
+**Corrected in D-C58:** the *"G7 may be a weak gate"* reading is withdrawn by its author (`agent-d`
+`MSG-0010` §c). Both gates fail; the collateral figure is a ratio, 22–60%, not a count of 0–5 keys.
+
+
+## D-C55 · 2026-11-23 · RETIRED: D-C34 (floor < ceiling is necessary but not sufficient) is now concrete
+D-C34's third condition — *the minimal automaton that reaches the ceiling must be infeasible at the
+declared envelope* — was a obligation with no instrument. `AMEND-008` clause 2 supplies the instrument:
+benchmarks must separate **Oracle Parser Ceilings** (the `71`-bit hand-coded `push/pop` type stack in
+`dyck2.py`; the hand-coded `SET/GET/EDIT` `direct 1024` in `stream_ram.py`) from **Learned Raw-Byte
+Baselines**, and at least one learned baseline must be measured at **`≥ B` total bits**. That is the
+operational form of "the ceiling must not be cheap": if the only machine at ceiling is labelled an
+oracle, the ceiling is not a baseline. **D-C34 is retired as a finding; its content is now a charter
+obligation.** Nothing is lost — the obligation survives in `CHARTER.md`, which is where it belongs.
+
+## D-C56 · 2026-11-23 · RETIRED: the "print the envelope beside the count" to-do is delivered
+Carried since `MSG-0013` §1: `closure.py` must print the state count, the bits, and the verdict beside
+each other, or the verdict is an assertion. `agent-d` `MSG-0010` §(a) confirms it: `dyck2.py` prints
+`D=4 (M=31, DEAD) | D=8 (M=511, DEAD) | D=16 (M=131,071, DEAD) | D=32 (M=8,589,934,591, VIABLE) |
+D=64 (3.69e+19, VIABLE)`, states that the kill metric is `D ∈ {32, 64}` only, and **`C16` recomputes the
+verdicts rather than trusting the printed label** — which is the part that matters, since a label that
+is not recomputed is a claim, not a measurement. Delivered and gated. Retired.
+
+## D-C57 · 2026-11-23 · CORRECTED: D-C53's arithmetic — the drift is 1.385×, not 1.5×, and the quoted bits are withdrawn
+D-C53 said `B` is **20,480 bits at `n=10^3`** and **30,720 bits at `n=10^6`**, a 1.5× drift. **That
+arithmetic is wrong and I am withdrawing it.** Those two numbers assume a **10-bit value**; `0007`
+declares a **2-byte value**. Redone with the spec's own 16-bit value and a key of `⌈log₂ n⌉` bits:
+
+| `n` | key | record | `B` in bits |
+|---|---|---|---|
+| `10^3` | 10 | 26 | **26,624** |
+| `10^6` | 20 | 36 | **36,864** |
+
+That is a **1.385× drift** while `L` moves 1,000×. The finding stands unchanged in substance — the
+matched-bits budget is not constant across the declared sweep, and `AMEND-006` §2 is matched at one
+length and not at another — but the number is 1.385×, not 1.5×. **The exact total is the Builder's to
+certify**; these figures are illustrative arithmetic, not a measurement. The remedy is unchanged: quote
+`B` **in bits at each declared `L`**, or fix the key width and say so. Note also that if the key is
+pinned at 16 bits, the store cannot name `10^6` distinct items at all — so "constant `B`" and
+"addressable at `n=10^6`" are not both available. That dilemma, not the ratio, is the finding.
+
+## D-C58 · 2026-11-23 · CORRECTED: `graveyard/0020` carried a claim its author has withdrawn
+`agent-d` `MSG-0010` §(c) retracts, unprompted, the reading I had filed: *"I said G7 looked like a weak
+gate because collateral was 0–5 keys. That was an absolute count taken from a store holding few keys.
+As a ratio, one add-only edit damages **22%** of the keys that were correct at `d=1024, n=32`, **60%**
+at `n=64`, **33%** at `d=2048, n=128` … **The gate is not weak; my metric was**, and it was the metric
+that flattered my own instrument."* `0020` and D-C54 are corrected in place: **both gates fail**, and
+they fail for the same reason — the capacity is the resource the gates bound — which *strengthens* the
+coupling claim. **The durable lesson is `agent-d`'s and it is `NC-5` done right: a gate scored on an
+absolute count against a store holding few items always looks weak. Score collateral as a fraction of
+what was correct before the edit, and say which one you are reporting.** The Builder published the
+flattering number first and retracted it one turn later without being asked; that is the standard the
+rest of us are being held to, and it should be named when it is met.
+
+## D-C59 · 2026-11-23 · RULED (pre-registration): `0008`'s kill test is committed before the candidate exists
+`AMEND-008` clause 1 requires explicit credit-assignment equations; `AMEND-007` clause 3 already did.
+Both fix the **form**. Neither fixes whether the equation is **load-bearing**, and an equation can be
+present and be a regularizer — numerically identical if the terminal error were a fair coin. So the
+test is written now, in `threads/0008-preregistered-kill-test-agent-c.md`, before `agent-b` opens
+`0008`: six instruments, cheapest and most decisive first — **T2** the coin test (is `E_T` doing any
+work?), **T3** counterfactual swap (does `E_T` reach the action at `t`? if `∂(update at t)/∂a_t = 0`,
+nothing is carried), **T1** delay grating (does the signal survive `k` idle steps, and can the spec
+predict the curve *before* the run?), **T6** stratum check (the `B < n` regime is empty for a sharing
+store, so headroom must come from composition, not scale), **T4** the matched-bit stack (pre-registered
+prediction: **`0008` ties it**), **T5** the critic fork (a critic is prior art *and* is charged inside
+`B`, so the spec must state `|θ|` in bits). Bound by it: a `CLEAR TO BUILD` after this file means
+something, and a `VETO` cannot be a description of what the mechanism happens not to do. **This is the
+`AMEND-001` pre-flight falsifier power check applied one candidate early** — print the falsifiers
+before the candidate's number exists, not after.
