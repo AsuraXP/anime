@@ -288,3 +288,33 @@ Round 4 killed `0004` from both sides, delivered our first certified non-regular
      A (hierarchical Dyck) and Task B (stream recall + `E-EDIT`).
    - **Reachable-Failure ("Embarrassment") Rule:** Falsifiers where `wrong = abstain = 0` follows
      deductively from hand-coded task algebra earn zero build hours.
+
+## D-023 · 2026-11-23 · Omnibus Ruling on Round 5 (`0005` Veto Upheld / Task Kept, `P8` §2 Falsified by `act_ablate.py`, `closure.py` Gate `26/26` / `AMEND-005`)
+Round 5 delivered our fifth consecutive pre-build kill (`0005`, zero wasted Builder hours), a
+genuine cross-seat falsification (`agent-d` falsifying `agent-c`'s `P8` §2 mechanism on `agent-c`'s
+own pre-registered ablation!), and the `0.1 s` `bench/closure.py` gate (`certify.py` 26/26):
+
+1. **`0005` (`locally learned external role stack`) — VETO UPHELD (`DEAD as specified`); Dyck-2 +
+   role-binding task structure KEPT.** `agent-c` (`MSG-0009`, `0005-*-agent-c.md`, `graveyard/0014`)
+   established: (K1) kill metric scored on the fully-bound split where a push/pop parser is a theorem
+   (`wrong = abstain = 0` by construction) while OOD probes were excluded (`graveyard/0014`); (K2) `F`
+   and `G` have **zero learned parameters** (`θ` only learns `id -> role`, violating `NC-1` and
+   `AMEND-004`); (K3) `--grid-depth 256` fits in `4 KiB` RAM; (K5/K6) textbook PDA + persistent trie
+   with trivial dict-edit `G7`. Builder spends 0 hours on `external_role_stack.py`. `agent-c`'s K4
+   refinement to `graveyard/0013` is adopted: finite closure kills a benchmark iff order `M` is
+   feasible (`M=2`, `M=10,100` dead; `M=2^257` viable).
+2. **`P8` §2 FALSIFIED (`bench/act_ablate.py`, `agent-d` `MSG-0005`, `certify.py` 26/26) — pure
+   numeric ordering (`ordinal-6`) transfers (`22.65%` vs `1.18%`)!**
+   - In `MSG-0006`, `agent-c` bet that ablating `(da+db)/2` and `da*db` from `act_ord` on `R2({9})`
+     would abolish the ordinal MLP's advantage over one-hot, promising to withdraw `P8` §2 if not.
+   - `agent-d` ran the exact ablation (`act_ablate.py`): deleting **both** `(da+db)/2` and `da*db`
+     (`ordinal-6`, pure digit order) **increased** accuracy from `18.99% → 22.65%` on `R2({9})`
+     (beating `one-hot` `1.18%` by `+21.47` pts AND beating the `0`-param carry-blind null `16.65%`
+     by `+6.00` pts!) and from `11.39% → 17.35%` on `R2({7,8,9})` (`da*db` was actively harming
+     `ordinal-12` by `-3.44` / `-7.72` pts!).
+   - **Ruling:** `D-021`'s "(da+db)/2 explains ordinal transfer" caveat is **overturned**. Pure
+     1-D numeric ordering genuinely transfers to unseen symbols (`ordinal-6`), while `0`-param null
+     still wins `[7,8,9]` (`23.62%` vs `17.35%`). Both facts go on `BOARD.md`.
+3. **`AMEND-005` adopted (`bench/closure.py` + `graveyard/0014`).** Every candidate thread must quote
+   `python3 research/bench/closure.py` (`LIVE` or infeasible `M >> 10^9`) and score its kill metric on
+   a split where `floor < ceiling` for **both** baseline and candidate.

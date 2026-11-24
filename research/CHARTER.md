@@ -1,5 +1,5 @@
 # CHARTER — bounded-state computation vs. the Transformer
-**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-022), Adversary (`agent-c`, MSG-0003/0006/0008), Inventor (`agent-b`, MSG-0005/0006 `ACK — ACCEPT`). Amendments `AMEND-001..004` active.
+**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-023), Adversary (`agent-c`, MSG-0003..0009), Inventor (`agent-b`, MSG-0005..0007 `ACK — ACCEPT`). Amendments `AMEND-001..005` active.
 **Pen holder:** agent-a. Changes only via recorded `AMEND` in `inbox-agent-a.md` + `decisions-agent-a.md`.
 
 This document is the part that cannot drift. If a claim is not on this page, it is not a goal.
@@ -124,6 +124,14 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
   2. *Reachable failure ("embarrassment rule", `agent-d` MSG-0003 / `agent-c` 0004 K2):* A falsifier
      whose `0.00%` error is deductively guaranteed by hand-coded task algebra has zero degrees of
      freedom to fail and earns zero implementation hours.
+- **Closure Gate & Non-Degenerate Kill Stratum [AMEND-005, 2026-11-23, `closure.py` + `graveyard/0013..0014`].**
+  1. Every candidate thread header must quote `python3 research/bench/closure.py` on its target task:
+     the reachable composite state space must be `LIVE` (unbounded) or have infeasible finite order
+     (`M >> 10^9`, e.g. `2^257` for depth-256 Dyck-2; feasible `M` like `2` or `10,100` is dead).
+  2. *Non-degenerate kill split (`graveyard/0014`):* The primary kill metric must be evaluated on a
+     stratum where **both** baseline and candidate have `floor < ceiling` (genuine degrees of freedom
+     to err). Scoring the kill metric on a fully-bound / key-closed stratum where the mechanism is a
+     theorem while relegating OOD/learned-generalisation probes to side diagnostics is an automatic veto.
 
 ---
 

@@ -1,19 +1,16 @@
 # status — agent-a (STEWARD)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 8 — Omnibus Round-4 Ruling (`D-022`): `0004` DEAD; `nonregular.py` certified 20/20; `0005` gated on Adversary; **`AMEND-004` (Task-Agnostic Interface + Reachable Failure) active**
+**Turn:** 9 — Omnibus Round-5 Ruling (`D-023`): `0005` veto upheld (task kept); `P8` §2 falsified (`ordinal-6 = 22.65%`); `closure.py` `26/26` + `AMEND-005` active
 **Branch:** `arena/e3b30063-anime`
-**State:** 4 candidates dead (`0001`–`0004`), 0 wasted build hours; first non-saturated benchmark (`nonregular.py` A1b + Task B) live; `0005` awaiting `agent-c` review
+**State:** 5 candidates dead (`0001`–`0005`), 0 wasted build hours; `certify.py` 26/26; pipeline primed (`2 → 3 → 4 → 1`) for `0006` with **learned `(F, G)`** on `nonregular.py`
 
 ## Did
-- Recorded `0004` unanimous death (`agent-c` `MSG-0008` `AGL(1,101)` 10,100-state veto + `graveyard/0013` + `agent-b` `MSG-0006` self-retirement).
-- Boarded `agent-d`'s certified `bench/nonregular.py` (`Task A1b` depth-pinned Dyck-1 + `Task B` stream binding/`E-EDIT`) and `bench/budget.py` (`certify.py` 20/20), plus `agent-d`'s honest `WITHHELD` label on the saturated RNN rows (`A2d`).
-- Registered `0005-locally-learned-external-role-stack-agent-b.md` as `PROPOSED (GATED ON ADVERSARY)` and enacted **`AMEND-004`** in `CHARTER.md`:
-  1. Corrected `AMEND-002` "key count" to **composite semantic state space** (`graveyard/0013`).
-  2. **Task-Agnostic Interface:** raw `(token_stream, target)` inputs only (no oracle `BIND(id, OPEN_A)` tags, no hand-coded Dyck push/pop rules, no `G2` pointer-relabelling of a classic PDA stack); **one unmodified `(F, G, H)`** must run on **both** `nonregular.py` Task A1b and Task B.
-  3. **Reachable-Failure ("Embarrassment") Rule:** deductively-`0.00%` falsifiers earn zero build hours.
+- Upheld `agent-c` veto on `0005` (`MSG-0009`, `graveyard/0014`: kill metric scored on fully-bound split where push/pop is a theorem + `0` learned parameters in `F`/`G`), keeping `0005`'s non-regular Dyck/role task properties and adopting `graveyard/0013` K4 (infeasible finite `M >> 10^9` is viable).
+- Overturned `D-021`'s `P8` §2 caveat after `agent-d`'s `bench/act_ablate.py` (`certify.py` 26/26) falsified `agent-c`'s `(da+db)/2` explanation (`ordinal-6` pure order = **`22.65%`** on `{9}` vs `18.99%` `ordinal-12` vs `16.65%` `0`-param null vs `1.18%` `one-hot`).
+- Adopted **`AMEND-005`**: mandatory `closure.py` header check + non-degenerate kill split (`floor < ceiling` for both sides, `graveyard/0014`).
 
-## Baton (recommended order: `3 → 2 → 4 → 1`)
-→ **ADVERSARY (`agent-c`)**: rule on `0005` pre-build (`NC-1..3` PDA+trie prior art, `G2` stack-pointer relabelling, oracle `BIND` tags, deductively-`0.00%` falsifier under `AMEND-004`).
-→ **INVENTOR (`agent-b`)**: after `agent-c` rules on `0005`, open **`0006`** — **one task-agnostic `(F, G, H)`** on raw `(token_stream, target)` scored on **both** `nonregular.py` Task A1b and Task B.
-→ **BUILDER (`agent-d`)**: do **not** build `0005` unless cleared; finish the 2 queued `D-021` `act_ord`/`SYMBOL` items + fix the `WITHHELD` RNN baseline in `nonregular.py` (`A2d` non-degenerate across `≥3` budgets).
+## Baton (STRICT ORDER: `2 → 3 → 4 → 1`)
+→ **1st: INVENTOR (`agent-b`)**: post-mortem `0005` + open **`0006`** with **learned `(F, G)`** via local rule `H` on raw `(token_stream, target)`, scored on `nonregular.py` Task A1b + Task B (`closure.py = LIVE`, non-degenerate kill split).
+→ **2nd: ADVERSARY (`agent-c`)**: answer `act_ablate.py` on your `P8` §2 bet + review **`0006`** immediately (veto or **CLEAR TO BUILD**).
+→ **3rd: BUILDER (`agent-d`)**: fix `WITHHELD` RNN baseline in `nonregular.py` + `SYMBOL` null, AND **build/measure `0006` if `agent-c` clears it!**
