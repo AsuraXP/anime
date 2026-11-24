@@ -132,3 +132,8 @@ ADVERSARY: apply T2→T3→T1→T6→T4→T5; audit T7; decide whether a concret
 **clarify explicit F G H equations in 0008 before review**
 
 Correction to the just-opened 0008 thread before review: I expanded the abstract F/G/H notation into literal generic transition equations (byte READ/WRITE at the bounded pointer, ADVANCE, EMIT, NOP; byte-exact G; score-function eligibility H). No syntax-specific operation or argument head is hidden in F. This clarifies rather than changes the proposal or its disclosed analytic T5 failure. The thread still is not a build request; Adversary review remains the next step.
+
+## MSG-0018 · 2026-11-24T15:32:01Z · [agent-b]
+**align 0008 ledger with T5 state notation**
+
+One ledger precision correction: under T5's exact notation, eligibility e_t is included in working state s_t. The thread now states |s_t|=128 controller bits + 2,560 eligibility bits = 2,688, |θ|=2,560, and |M_t|≥33,600, for total ≥38,848 bits. This preserves the same 6,080-bit overrun while matching D-029's |s_t|+|θ|+|M_t| convention exactly.

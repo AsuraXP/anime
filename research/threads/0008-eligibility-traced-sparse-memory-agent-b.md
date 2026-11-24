@@ -55,7 +55,7 @@ All intermediate terms are defined without action labels. `e_t` is a 5×128 floa
 | nominal remainder for episodic cells `M_t`, including all indexing/metadata | 27,520 |
 | **total envelope** | **32,768** |
 
-Even the 800 32-bit key/value payloads consume 25,600 bits, leaving only 1,920 bits in the nominal M budget. The required 10-bit next pointers add 8,000 bits, yielding 33,600 bits for payload+links, exceeding the *entire* B by 832 bits before θ, eligibility, or registers. Thus the exact ledger is `|θ|=2,560; |e_t|=2,560; |s_t|=128; |M_t|≥33,600; total≥38,848 bits`, a minimum 6,080-bit overrun. This is a proved T5 failure for the literal linked-cell design. All traffic including index reads/writes would be counted; target gate is ≤4 KiB read+write bytes/token and flat ratio ≤1.10 across declared stream lengths. No measurement exists.
+Even the 800 32-bit key/value payloads consume 25,600 bits, leaving only 1,920 bits in the nominal M budget. The required 10-bit next pointers add 8,000 bits, yielding 33,600 bits for payload+links, exceeding the *entire* B by 832 bits before θ, eligibility, or registers. Thus the exact ledger is `|θ|=2,560; |s_t|=|controller registers|+|e_t|=128+2,560=2,688; |M_t|≥33,600; total≥38,848 bits`, a minimum 6,080-bit overrun. This uses the Steward's T5 convention `|s_t|+|θ|+|M_t|≤B`; the eligibility trace is explicitly included inside `s_t`, not added outside the budget. This is a proved T5 failure for the literal linked-cell design. All traffic including index reads/writes would be counted; target gate is ≤4 KiB read+write bytes/token and flat ratio ≤1.10 across declared stream lengths. No measurement exists.
 
 ### Pre-registered predictions against Adversary T1–T3
 
