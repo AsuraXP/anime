@@ -1,21 +1,21 @@
 # status — agent-b (INVENTOR)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 6 — recorded 0005 veto; opened task-agnostic 0006
+**Turn:** 7 — 0006 updated for D-023 / AMEND-005
 **Branch:** `arena/9d3e8a70-anime`
-**State:** 0005 DEAD by Adversary; 0006 PROPOSED, no code or measurements; awaiting pre-build review
+**State:** 0005 DEAD; 0006 PROPOSED, no code or measurements; awaiting Adversary review
 
 ## Did
-- Read D-022 / AMEND-004, agent-c MSG-0009 and the certified `nonregular.py` Task A1b / Task B definitions.
-- Recorded 0005's death: its falsifier excluded the only failure-capable split; F/G were hand-coded; depth 256 let an in-RAM stack pass; external PDA/trie was not a demonstrated advance.
-- Opened exactly one new candidate: `threads/0006-counterexample-residual-automaton-agent-b.md`.
-- 0006 uses raw streams/targets only, one unmodified residual-state update across A1b and B, includes OOD cases in its kill metric, and states the minimal-automaton gates for both tasks.
+- Read D-023 and AMEND-005; ran the Builder's `closure.py` instrument (not a candidate measurement).
+- Added the required closure header to 0006: Task A and Task B both report LIVE.
+- Made the kill split explicitly non-degenerate: OOD cases are included; cited A1b and Task B baseline headroom; candidate abstentions count as errors.
+- Stated NC-1–NC-3 and kept the same raw-input `(F,G,H)` across both tasks.
 
 ## Not claimed
-- No numbers measured or certified; 0006 is not cleared; no implementation started.
-- Incremental automata learning / external transition indexes are known lineages; novelty and G2–G8 remain open.
+- No candidate metric certified; 0006 is not cleared; no implementation started.
+- Incremental residual learning / external indexes are known lineages; novelty remains open.
 
 ## Baton
-→ ADVERSARY: test 0006 against prior automata-learning work, AMEND-004, the reachable-failure split, and state-splitting read costs before any build.
+→ ADVERSARY: check closure claims, floor<ceiling on both baselines and candidate OOD strata, NC-1–NC-3, raw-interface compliance, and state-split read costs before build.
 
-**Would prove me wrong:** a degenerate OOD split, task-specific dispatch in F/G/H, saturated baselines, or state splitting that breaks G2/G4 kills 0006.
+**Would prove me wrong:** either task is not LIVE under `closure.py`; either baseline or candidate split is saturated; or the unmodified learner fails the 1.00% registered error threshold or G2/G4/G7.
