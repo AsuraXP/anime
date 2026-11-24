@@ -1,4 +1,4 @@
-<!-- GENERATED -- do not hand-edit. Twelve parts, their commands below. -->
+<!-- GENERATED -- do not hand-edit. Thirteen parts, their commands below. -->
 <!-- reproduce part 1: python3 research/bench/scorecard.py    (~11 s,  CPU, seeded) -->
 <!-- reproduce part 2: python3 research/bench/k3control.py    (~180 s, CPU, seeded) -->
 <!-- reproduce part 3: python3 research/bench/ceiling.py      (~90 s,  CPU, seeded) -->
@@ -1947,4 +1947,114 @@ here. Or: a load at which oracle-erase and add-only give the same collateral, wh
 mean the column is not measuring the edit after all.
 
 Reproduce: `python3 research/bench/stream_ram.py` (<1 s).
+
+
+<!-- ============ PART 13: turn 10 -- AMEND-007 compliance and a retraction ============ -->
+# Part 13 -- AMEND-007: envelope-labelled columns, and the G7 metric that made me retract a claim (turn 10)
+
+Two things `D-026` / `AMEND-007` asked of this seat, and one it did not ask for: while
+producing the equal-`B` floor that `agent-b`'s blocker needs, the metric I had used for G7
+turned out to mislead, in my favour. That correction is 13.3.
+
+## 13.1 Every depth column now carries `M(D)` and its verdict (`graveyard/0018`)
+
+The old header said `D=32` and left the reader to remember that depth 32 is above the gate
+while depth 16 is not. Averaging a DEAD cell with a VIABLE one would hide exactly the
+collapse the table exists to show, so the columns now carry the closure size and the verdict,
+and the table says which columns are allowed to count toward a kill:
+
+AMEND-007 / `graveyard/0018`: each depth column carries M(D) = 2^(D+1)-1 and its verdict at
+the 2^30 gate. **The kill metric is D in (32, 64) only** -- the DEAD columns are sub-threshold
+diagnostics and must not be averaged with the VIABLE ones.
+
+| system | params | D=4 (M=31, DEAD) | D=8 (M=511, DEAD) | D=16 (M=131,071, DEAD) | D=32 (M=8,589,934,591, VIABLE) | D=64 (M=3.69e+19, VIABLE) | exact through | wall |
+|---|---|---|---|---|---|---|---|---|
+| 0-param: always valid | **0** | 52.12% | 45.88% | 49.88% | 48.38% | 52.62% | -- | -- |
+| 0-param: ends with a closer | **0** | 54.00% | 47.75% | 50.25% | 48.50% | 52.75% | -- | -- |
+| type-blind depth counter, 32 states -- cannot pass by construction | 32 states | 72.62% | 69.88% | 72.62% | 51.62% | 47.38% | -- | -- |
+| capped type stack, cap 2 | 7 states | 61.88% | 49.62% | 51.00% | 49.12% | 52.88% | exact <= D=2 | 0.0s |
+| capped type stack, cap 3 | 15 states | 71.25% | 49.62% | 51.00% | 49.12% | 52.88% | exact <= D=3 | 0.0s |
+| capped type stack, cap 4 | 31 states | 100.00% | 50.12% | 50.88% | 49.12% | 52.88% | exact <= D=4 | 0.0s |
+| capped type stack, cap 9 | 1023 states | 100.00% | 100.00% | 50.12% | 51.62% | 47.38% | exact <= D=9 | 0.0s |
+| Elman h=4 (median / best of 4) | 46 | 58.38 / 58.63% | 52.88 / 54.50% | 51.25 / 53.87% | 50.38 / 51.25% | 50.88 / 52.75% | -- | 44s |
+| Elman h=8 (median / best of 4) | 122 | 58.25 / 75.00% | 54.50 / 61.12% | 50.75 / 51.38% | 49.00 / 51.25% | 51.62 / 52.88% | -- | 93s |
+| Elman h=16 (median / best of 4) | 370 | 73.25 / 83.75% | 58.13 / 68.38% | 50.88 / 52.25% | 50.38 / 52.62% | 49.38 / 52.75% | -- | 249s |
+
+Control from the same run, quoted as printed: training-set accuracy 51.2-52.9%, so the row above is not a tuning artifact
+
+The kill columns are `D=32` (`M = 8,589,934,591`, VIABLE) and `D=64` (`3.69e19`, VIABLE). The
+other three are sub-threshold diagnostics: at `D=16` an exact machine needs 131,071 states, so
+a collapse there is a property of the state budget, not of the surface. The measured rows are
+unchanged from Part 11 -- the header is a labelling fix, and the numbers were re-run rather
+than reused so the archived pair matches the committed code.
+
+## 13.2 Equal-`B`: the ceiling, and which family reaches it
+
+`agent-b` (`MSG-0012`) is right that `0007` needs a certified floor and ceiling at a fixed
+memory budget before it can be scored on Task B2, and `AMEND-007` requires the pigeonhole
+ceiling `min(1, B/n)` beside it. At `B = 1,024` 16-bit entries (16,384 bits):
+
+| n | ceiling min(1,B/n) | m-slot (B=1024) | KV scan | fast-weight d=1024 | G4: m-slot / scan / fw |
+|---|---|---|---|---|---|
+| 1,000 | 1.000 | 100.00% | 100.00% | 0.20% | yes / yes / yes |
+| 1,024 | 1.000 | 100.00% | 100.00% | 0.10% | yes / yes / yes |
+| 10,000 | 0.102 | 9.90% | 100.00% | 0.00% | yes / **no** / yes |
+| 100,000 | 0.010 | 0.75% | 100.00% | not run (build is 10^8 ops) | yes / **no** / -- |
+
+At `n = 10,000` the ceiling is 0.102, the m-slot store reaches 9.90% of it, the KV
+scan reaches 100.00% at the cost of G4, and the shared-readout store reaches 0.00%.
+
+**The `B < n` regime is empty for a superposed store, and that is a measurement, not an
+omission.** At `d=1024`, it answers 0.10% of 1,024 keys and 0.00% beyond; its capacity is
+`~d/(2 ln |V|)` bindings and `|V| = 2^16`, so it cannot hold one binding per entry, let alone
+more. The only family that reaches the ceiling is the m-slot store, and it does so by storing
+every key exactly -- 16 bits per binding, no sharing. So the `B < n` blocker resolves as: the
+regime exists for the m-slot store (coverage `m/n`, already certified in 11.3) and does not
+exist for a sharing store, which cannot be scored there by construction.
+
+## 13.3 The correction: G7 is not weakly passed, it is weakly *measured*
+
+`MSG-0009` said G7 looked like a weak gate because collateral was 0-5 keys. That was an
+absolute count taken from a store holding few keys, and the ratio says the opposite. One
+add-only edit, against the keys that were correct before it:
+
+| d | n | load 16n/d | recall before | correct before | collateral: add | **coll / correct** | oracle | recalled | bytes read+written/token | |theta| | G4 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1024 | 32 |  0.50 |   28.1% | 9 | **2** | **22%** | 1 | 1 | 2,069 | 0 | yes |
+| 1024 | 64 |  1.00 |    7.8% | 5 | **3** | **60%** | 1 | 1 | 2,059 | 0 | yes |
+| 1024 | 128 |  2.00 |    0.8% | 1 | **0** | **0%** | 0 | 0 | 2,053 | 0 | yes |
+| 2048 | 32 |  0.25 |   68.8% | 22 | **1** | **5%** | 0 | 0 | 4,138 | 0 | **no** |
+| 2048 | 64 |  0.50 |   28.1% | 18 | **5** | **28%** | 0 | 2 | 4,117 | 0 | **no** |
+| 2048 | 128 |  1.00 |    7.0% | 9 | **3** | **33%** | 1 | 2 | 4,107 | 0 | **no** |
+| 4096 | 32 |  0.12 |   96.9% | 31 | **1** | **3%** | 0 | 0 | 8,276 | 0 | **no** |
+| 4096 | 64 |  0.25 |   76.6% | 49 | **4** | **8%** | 1 | 1 | 8,234 | 0 | **no** |
+| 4096 | 128 |  0.50 |   35.2% | 45 | **3** | **7%** | 1 | 4 | 8,213 | 0 | **no** |
+
+At `d=1024, n=32` an edit damages **22%** of the keys that worked; at `d=1024,
+n=64`, **60%**; at `d=2048, n=128`, **33%**. The count stays small only
+because the store holds few keys. `G7` says *zero collateral damage on unrelated keys*, which
+is an absolute statement, so both numbers fail it -- but a candidate scored on counts alone
+would look far better than one scored on ratios, and I published the count first. The
+correction is mine to make: the gate is not weak, my metric was.
+
+## 13.4 Audit of this part
+
+**Certified:** `stream_ram.py` is deterministic and in the gate; `dyck2.py` was re-run twice
+with the new header and the pair is identical modulo timings; both tables above are
+transcribed by this assembler from those runs. `C16` recomputes the four numbers this part
+rests on (the header's verdicts, the ceiling at `B=1024`, the emptiness at `B<n`, and the
+relative collateral).
+
+**Not claimed:** that the relative metric is the one the charter means -- `G7` is written as
+an absolute zero and I have kept it that way. Not claimed: that another sharing store must
+behave like this one. A store with a different code (sparse, or with overflow handling) could
+sit at the same load with a different ratio, and that is one table away and not in the file.
+
+**What would prove this wrong:** a shared-readout store at `B < n` that answers a non-trivial
+fraction of keys under 4 KiB/token -- it would have to beat `~d/(2 ln |V|)` and the pigeonhole
+argument, so it would mean the encoding, not the bound, was the limit. Or a load at which
+add-only and oracle-erase give the same ratio, which would mean the ratio is not measuring the
+edit.
+
+Reproduce: `python3 research/bench/stream_ram.py` (2 s), `python3 research/bench/dyck2.py` (~9 min).
 

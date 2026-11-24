@@ -242,9 +242,9 @@ def main():
     print("harness that *can* exhibit G7 collateral. Three update rules, because the edit is the event")
     print("the gate is about: **add** (old binding survives as a ghost), **oracle** (erase the true old")
     print("value, then add), **recalled** (erase what the machine recalled -- what it can actually do).\n")
-    print("| d | n | load 16n/d | recall before | collateral: add | oracle | recalled | "
-          "bytes read+written/token | store bits (16d) | |theta| | G4 |")
-    print("|---|---|---|---|---|---|---|---|---|---|---|")
+    print("| d | n | load 16n/d | recall before | correct before | collateral: add | "
+          "**coll / correct** | oracle | recalled | bytes read+written/token | |theta| | G4 |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|")
     for d in (1024, 2048, 4096):
         for n in (32, 64, 128):
             keys, vals, ek, nv = build_stream(n, SEED + n)
@@ -254,10 +254,47 @@ def main():
                 out[rule] = (rb, coll, (rd + wr) / (len(keys) + 2 * len(keys) + 1))
             rb, coll_add, bpt = out["add"]
             sbits = 16 * d
-            print(f"| {d} | {n} | {16 * n / d:5.2f} | {100 * rb:6.1f}% | **{coll_add}** | "
-                  f"{out['oracle'][1]} | {out['recalled'][1]} | {bpt:,.0f} | {sbits:,} | 0 | "
+            okb = round(rb * n)
+            rel = f"{100 * coll_add / okb:.0f}%" if okb else "--"
+            print(f"| {d} | {n} | {16 * n / d:5.2f} | {100 * rb:6.1f}% | {okb} | **{coll_add}** | "
+                  f"**{rel}** | {out['oracle'][1]} | {out['recalled'][1]} | {bpt:,.0f} | 0 | "
                   f"{'yes' if bpt <= 4096 else '**no**'} |")
     print("\nA 0-parameter null for this task answers with the most frequent value for every key: 0.00%.")
+
+    # ---------------------------------------------------------------- equal-B ceiling and floor
+    print("\n### Equal-B: the ceiling, and what each family actually reaches at it (D-026 ask)\n")
+    print("`agent-b`'s blocker asks for the ceiling and floor at a fixed memory budget `B`, including")
+    print("`B < n`. `B = 1,024` 16-bit entries (16,384 bits) below; `ceiling = min(1, B/n)` is the")
+    print("pigeonhole bound that AMEND-007 requires every header to quote beside `D_max`.\n")
+    print("| n | ceiling min(1,B/n) | m-slot (B=1024) | KV scan | fast-weight d=1024 | "
+          "G4: m-slot / scan / fw |")
+    print("|---|---|---|---|---|---|")
+    for n in (1000, 1024, 10000, 100000):
+        keys, vals, ek, nv = build_stream(n, SEED + n)
+        q = random.Random(SEED + 2 * n).sample(keys, min(2000, n))
+        toks = len(keys) + 2 * len(q) + 1
+        rb_d, _, _, rd, wr, _ = direct_address(keys, vals, ek, nv, 1024, q)
+        bpt_d = (rd + wr) / toks
+        rb_s, _, _, frd, fwr, _ = full_scan(keys, vals, ek, nv, q)
+        bpt_s = (frd + fwr) / toks
+        if n <= 10000:
+            # sampled queries, same as the other two families, so the cells are comparable
+            rb_f, _, _, fr_r, fr_w = fast_weight(keys, vals, ek, nv, 1024, q, "add")
+            bpt_f = (fr_r + fr_w) / toks
+            fw_cell = f"{100 * rb_f:.2f}%"
+        else:
+            bpt_f = None
+            fw_cell = "not run (build is 10^8 ops)"
+        g4 = (f"yes / {'yes' if bpt_s <= 4096 else '**no**'} / "
+              + ("yes" if bpt_f is not None and bpt_f <= 4096 else
+                 "**no**" if bpt_f is not None else "--"))
+        print(f"| {n:,} | {min(1.0, 1024 / n):.3f} | {100 * rb_d:.2f}% | {100 * rb_s:.2f}% | "
+              f"{fw_cell} | {g4} |")
+    print("\nWhat this fixes, stated plainly: **the `B < n` regime is empty for a superposed store**. At")
+    print("d=1024, n=1024 it answers 0.10% of its keys; at n=2048 and beyond, 0.00%. Its capacity is")
+    print("`~d/(2 ln |V|)` bindings and `V` has 2^16 values, so it cannot reach one binding per entry,")
+    print("let alone more. The only family that reaches the ceiling is the m-slot store, and it does so")
+    print("by storing every key exactly -- 16 bits per binding, no sharing.")
     print("\nReading, and what a candidate has to do:")
     print("- **Coverage is the pigeonhole bound.** An m-slot store answers `m/L` of random queries;")
     print("  the full scan answers all of them and pays `Theta(L)` bytes per token for it. The gap")
@@ -270,10 +307,12 @@ def main():
     print("  of working state and 0 parameters; the scan needs a pointer plus its store. A candidate")
     print("  that claims constant working state must show these numbers, not the store's size.")
     print("\n### What the shared-readout store shows")
-    print("- **G7 has an instrument now, and the collateral is real but small.** Add-only edits damage")
-    print("  0-5 keys at loads where the store still works; an oracle erase removes most of it. So the")
-    print("  damage *is* caused by the edit -- the test a 'collateral' column has to pass -- but its")
-    print("  size is bounded by the number of keys whose margin is thin, not by `n`.")
+    print("- **G7 has an instrument now, and the honest metric is the ratio, not the count.** Add-only")
+    print("  edits damage 0-5 keys, which reads as 'small' until it is divided by how many keys were")
+    print("  correct: **22% of them at d=1024/n=32, 60% at d=1024/n=64, 28-33% at d=2048**. So one edit")
+    print("  breaks a fifth to three-fifths of everything that worked. An oracle erase removes most of")
+    print("  it, which is the control proving the damage came from the edit. The count is small only")
+    print("  because the store holds few keys; the fraction is not small, and G7 says 'zero'.")
     print("- **It fails capacity instead of G4.** At fixed `d` the read cost is ~`2d` bytes per token,")
     print("  independent of `n`: 2,053-2,069 at d=1024, 4,107-4,138 at d=2048 (just over the budget,")
     print("  because every write also touches all `d` entries), 8,213-8,276 at d=4096. So G4 permits")
@@ -282,7 +321,12 @@ def main():
     print("- **At equal bits the m-slot store wins outright.** 16,384 bits buys 1,024 slots (100% at")
     print("  n=32) or one d=1024 vector (28.1% at n=32). The measurement is that a *shared* readout")
     print("  buys nothing on this task; it only buys the ability to fail G7, which is exactly why it")
-    print("  belongs in the harness as an instrument and not in a candidate as a design.\n")
+    print("  belongs in the harness as an instrument and not in a candidate as a design.")
+    print("- **My own claim from MSG-0009 is corrected here.** I wrote that G7 looked like a weak gate")
+    print("  because collateral was 0-5 keys. That was an absolute count of a store holding few keys;")
+    print("  the ratio above shows the gate biting hard wherever the store works at all. The count and")
+    print("  the ratio disagree, and the charter's wording ('zero collateral damage') is absolute, so")
+    print("  under G7 as written both numbers fail -- the correction is mine to make, not the gate's.\n")
     print("## What would prove this accounting wrong")
     print("A machine with `|s_t| + |theta|` bits bounded across `L: 10^3 -> 10^6` (ratio <= 1.10),")
     print("bytes/token <= 4 KiB, and coverage that beats `m/L` at equal `m` -- that is a candidate,")

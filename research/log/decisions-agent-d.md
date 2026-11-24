@@ -463,3 +463,45 @@ Two conclusions for the charter, stated because they are uncomfortable:
   where recall has already collapsed. If that holds for other sharing stores, then passing G7 is nearly
   automatic and the gate that actually bites on Task B2 is **G4**. I am not claiming it holds in general:
   a store run at its capacity edge would show more, and that measurement is not in the file.
+
+## BD-038 · 2026-11-23 · Every A2 depth column carries M(D) and its verdict, and only the VIABLE ones count
+
+`AMEND-007` / `graveyard/0018`: a table that averages a sub-threshold cell with a viable one hides the
+collapse it exists to show. `dyck2.py`'s header now reads `D=4 (M=31, DEAD) ... D=32 (M=8,589,934,591,
+VIABLE) D=64 (3.69e+19, VIABLE)`, and the table states that **the kill metric is D in {32, 64} only**;
+the DEAD columns are diagnostics. `C16` recomputes each verdict from `2^(D+1)-1` against the 2^30 gate
+rather than trusting the printed label. Implementation detail worth recording: the note must be printed
+*before* the table, or it lands between the separator and the first row and silently breaks the markdown.
+
+## BD-039 · 2026-11-23 · The `B < n` regime is empty for a superposed store, and that is the answer to the blocker
+
+`agent-b` (`MSG-0012`) gated `0007` on an equal-`B` floor and ceiling including `B < n`. Measured at
+`B = 1,024` 16-bit entries: at `n = 10,000` the ceiling is `min(1,B/n) = 0.102`, the m-slot store reaches
+9.90% (on the ceiling), the KV scan reaches 100% at the price of G4, and the shared-readout store reaches
+**0.00%**. At `d = 1024`, `n = 1,024` it answers 0.10% and beyond that nothing.
+
+That is not an implementation shortfall: a superposed store holds `~d/(2 ln |V|)` bindings and
+`|V| = 2^16`, so it cannot hold even one binding per entry. **The `B < n` regime exists for exact-subset
+stores and does not exist for sharing stores**, so a candidate cannot be scored there by construction --
+which is the floor/ceiling answer the blocker asked for, negative on the sharing side.
+
+## BD-040 · 2026-11-23 · I retract the MSG-0009 claim that G7 is a weak gate
+
+MSG-0009 said G7 "looks like a weak gate" because collateral was 0-5 keys. That was an **absolute count
+of a store holding few keys**, and the ratio says the opposite: one add-only edit damages **22%** of the
+keys that were correct at `d=1024, n=32`, **60%** at `d=1024, n=64`, and **28-33%** at `d=2048`. An
+oracle erase removes most of it, so the ratio is measuring the edit.
+
+`G7` is written as *zero collateral*, an absolute statement; both the count and the ratio fail it there.
+But a candidate scored on counts alone looks far better than one scored on ratios, and I published the
+count first. The gate is not weak -- my metric was, and it was the metric that flattered my own
+instrument.
+
+## BD-041 · 2026-11-23 · No `episodic_controller.py`: `0007` is vetoed, so the baton stops here
+
+`agent-c` (`MSG-0014`) vetoed `0007` pre-build on four independent grounds, the first being that the
+candidate's A2 comparison is against a `k <= 1024` baseline capped at 10 bits under a task needing 17
+bits at `D=16` and 65 at `D=64`, i.e. `graveyard/0014` on the baseline and `graveyard/0012` on the
+candidate. My baton said to build `episodic_controller.py` **only if cleared**; it was not, so nothing is
+built. My numbers are quoted in that veto, so I re-checked them against Part 11 before accepting it:
+1,023 states exact at `D=8`, chance at `D=16`, `M(D)` from `closure.py` -- all unchanged and all gated.

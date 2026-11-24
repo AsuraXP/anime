@@ -1,53 +1,46 @@
 # status — agent-d (BUILDER)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 9 — Round 8 continued: Task B2 built, and the G7 instrument says G7 is nearly free to pass
+**Turn:** 10 — AMEND-007 compliance, and a retraction of my own G7 claim
 **Branch:** `arena/154facdf-anime`
-**State:** D-025 item (c) delivered. Gate **51/51 in 59.2 s** (`C15` new). No candidate built, none scored.
+**State:** D-026 item (a) and the Task B2 floor/ceiling done. Gate **56/56 in 58.4 s** (`C16` new).
+`0007` is vetoed (agent-c MSG-0014), so **no `episodic_controller.py` was built**.
 
 ## Did
 
-D-025 asked for Task B2 to run a **superposed fast-weight** baseline beside the m-slot table and the KV
-log. Part 10 had already conceded that a slot-per-key store cannot exhibit G7 collateral, so this was the
-instrument I owed.
+1. **`dyck2.py` headers carry the envelope** (`graveyard/0018`): `D=4 (M=31, DEAD) … D=32
+   (M=8,589,934,591, VIABLE) D=64 (3.69e+19, VIABLE)`, plus the sentence that fixes the kill metric to
+   `D ∈ {32, 64}`. Numbers re-run as a pair (identical), not reused from Part 11.
+2. **Equal-`B` ceiling** for `agent-b`'s blocker, `B = 1,024` entries: `n=10,000` → ceiling `0.102`,
+   m-slot **9.90%**, KV scan 100% but G4-**no**, shared readout **0.00%**.
+3. **`B < n` is empty for a superposed store** — `d=1024`: 0.10% at `n=1,024`, 0.00% beyond. Capacity is
+   `~d/(2 ln |V|)` bindings with `|V| = 2^16`, so it cannot hold one binding per entry.
+4. **Retracted my MSG-0009 claim** that G7 was a weak gate (see below).
 
-`stream_ram.py` now holds one superposed vector, `s = sum_k psi(v_k) * phi(k)`, ±1 key codes, 16 block
-coded value bits, 0 parameters. Three update rules, because the edit is the event:
+## The retraction, because it is the turn
 
-| d | n | recall | collateral: add | oracle | recalled | bytes/token | G4 |
-|---|---|---|---|---|---|---|---|
-| 1024 | 32 | 28.1% | **2** | 1 | 1 | 2,069 | yes |
-| 2048 | 64 | 28.1% | **5** | 0 | 2 | 4,117 | **no** |
-| 4096 | 128 | 35.2% | **3** | 1 | 4 | 8,213 | **no** |
+MSG-0009 said G7 "looks like a weak gate": collateral was 0–5 keys. That was an **absolute count of a
+store holding few keys**. As a ratio, one add-only edit damages:
 
-The column moves when the event changes (oracle erase removes the damage), which is the test Task B's
-first collateral column failed. `C15` enforces it.
+| d | n | correct before | damaged | **ratio** |
+|---|---|---|---|---|
+| 1024 | 32 | 9 | 2 | **22%** |
+| 1024 | 64 | 5 | 3 | **60%** |
+| 2048 | 128 | 9 | 3 | **33%** |
 
-## What it says, including the part that argues against my own gate
-
-- **At equal bits the m-slot store wins outright.** 16,384 bits = 1,024 slots (100% at n=32) or one
-  d=1024 vector (28.1%). A shared readout buys nothing on this task except the ability to fail G7.
-- **The fast-weight store fails capacity, not G4.** ~2 KiB/token at d=1024 whatever `n` is; the 4 KiB
-  budget admits d=1024, where it holds about nine bindings. Doubling `d` doubles capacity *and* pushes
-  bytes over budget at 4,138. Budget and capacity are the same number.
-- **So G7 may be a weak gate**: collateral is 0-5 keys wherever the store works, and grows only where
-  recall has already collapsed. The gate that bites on Task B2 is G4. Not claimed in general — a store
-  at its capacity edge would show more, and that measurement is not in the file.
-
-## Two bugs caught before publication
-
-`zip(keys, vals)` over a **dict** stored `key -> key` and reported 0.0% recall at every size — that reads
-exactly like "superposition does not work". And the read cost carried an extra ×8, hiding the 4 KiB
-boundary the row exists to find. Both fixed; pair byte-identical; `C15` recomputes the survivors.
+An oracle erase removes most of it, so the ratio measures the edit and not the store. G7 is written as
+*zero* collateral, so both forms fail it there — but a candidate scored on counts looks far better than
+one scored on ratios, and I published the count first. The gate is not weak; my metric was.
 
 ## Not claimed
 
-No candidate is scored. The Elman rows in Part 11 are still a weak baseline (median 73.3% at D=4, 58.1% at
-D=8 — never exact in-distribution). Task B's blast radius is still small, so G7 remains a gate I can
-measure but not one that separates designs.
+No candidate scored. The Elman rows are still a weak baseline. `G7` remains `WITHHELD`-looking in one
+sense: I can now measure it, but only one sharing store has been measured, so "0–5 keys" is not a law --
+a different code at the same load could give a different ratio, and that table is not in the file.
 
 ## Next
 
-`0007` (agent-b, MSG-0011) is open and unscored. It needs an envelope before I score it: at D=32 the
-surface is 8.59e9 states, and if its `|s_t| + |theta|` cannot stay inside `2^30` there is nothing to
-measure — that is the `0006` pattern and it should be closed the same way rather than built.
+Nothing on my bench is owed. If Steward wants the G7 picture settled beyond one store, the next
+measurement is a second code family (sparse or with overflow handling) at matched `d` and `n`, which is
+one table and about 2 minutes of compute. Otherwise I stand on Part 13 and wait for a candidate that
+clears the Adversary.

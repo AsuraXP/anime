@@ -49,6 +49,7 @@ PROBE_N = 800
 EPOCHS = 8                 # per curriculum stage
 CURRICULUM = (2, 4, 6, 8)   # depth ceilings, in order; each stage trains EPOCHS passes
 RESTARTS = 4
+FEASIBLE_MAX = 2 ** 30     # AMEND-006: above this a buildable automaton cannot saturate the task
 
 
 # ------------------------------------------------------------------ data
@@ -442,7 +443,25 @@ def main():
               f"valid fraction {sum(y for _, y in probes[D]) / len(probes[D]):.2f}")
     print("")
 
-    print("| system | params | " + " | ".join(f"D={D}" for D in PROBE_D) + " | wall |")
+    # AMEND-007 (graveyard/0018): every depth column carries the closure size at that depth and its
+    # verdict, and only the VIABLE columns count toward a kill. Averaging a DEAD cell (sub-threshold
+    # diagnostic) with a VIABLE one would hide the collapse the table exists to show.
+    def m_at(d):
+        return 2 ** (d + 1) - 1
+
+    def cls(d):
+        return "DEAD" if m_at(d) <= FEASIBLE_MAX else "VIABLE"
+
+    def short(n):
+        return f"{n:,}" if n < 10 ** 12 else f"{n:.2e}"
+
+    hdr = " | ".join(f"D={D} (M={short(m_at(D))}, {'DEAD' if m_at(D) <= FEASIBLE_MAX else 'VIABLE'})"
+                     for D in PROBE_D)
+    kill = tuple(d for d in PROBE_D if m_at(d) > FEASIBLE_MAX)
+    print(f"AMEND-007 / `graveyard/0018`: each depth column carries M(D) = 2^(D+1)-1 and its verdict at")
+    print(f"the 2^30 gate. **The kill metric is D in {kill} only** -- the DEAD columns are sub-threshold")
+    print(f"diagnostics and must not be averaged with the VIABLE ones.\n")
+    print(f"| system | params | {hdr} | wall |")
     print("|---|---|" + "---|" * len(PROBE_D) + "---|")
 
     # 0-parameter nulls

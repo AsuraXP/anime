@@ -12,7 +12,7 @@ next to the numbers is actually supported by them.
 What is checked
   D1 determinism      every script is run twice; stdout must match after timing fields are masked.
   D2 freshness        the block of RESULTS.md tagged as scorecard output must equal a fresh run.
-  C1..C15 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
+  C1..C16 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
                       otherwise have to take on faith. Each returns the measurement behind it.
 
 Exit code is 0 only if every check passes. A failing check is a result, not a nuisance: it means a
@@ -434,6 +434,48 @@ def check_claims():
                      dr_b == 1.0 and r32 < dr_b and sbits <= 16 * 1024,
                      f"16,384 bits: 1,024 slots answer {100 * dr_b:.0f}% at n=32, one d=1024 "
                      f"vector answers {100 * r32:.1f}%"))
+
+    # ---------------------------------------------------------------- C16 (AMEND-007 / turn 10)
+    m = re.search(r"PART 13:.*?(?=\n<!-- =|\Z)", md0, re.S)
+    part13 = m.group(0) if m else ""
+    out.append(check("C16 Part 13 (AMEND-007 headers, equal-B ceiling, G7 ratio) published",
+                     bool(part13) and "AMEND-007" in part13 and "ceiling" in part13,
+                     f"{len(part13.splitlines())} lines"))
+
+    # the A2 header must carry M(D) and a verdict per column, and name the kill columns. Checked
+    # against the table Part 13 transcribes from dyck2.py's run, and the verdicts recomputed here --
+    # running dyck2.py inside the gate would add nine minutes to a one-minute gate.
+    hdr = next((l for l in part13.splitlines() if l.startswith("| system | params | D=4 (M=")), "")
+    verdicts = [("VIABLE" if 2 ** (dd + 1) - 1 > 2 ** 30 else "DEAD") for dd in (4, 8, 16, 32, 64)]
+    ok_hdr = all(f"D={dd} (M=" in hdr and verdicts[i] in hdr for i, dd in enumerate((4, 8, 16, 32, 64)))
+    out.append(check("C16 every A2 depth column carries M(D) and its verdict (0018)",
+                     ok_hdr and "kill metric is D in (32, 64) only" in part13,
+                     f"header marks {verdicts}; kill columns restricted to the VIABLE ones"))
+
+    # equal-B: the ceiling at n=10,000 is 1024/10000 and the m-slot store sits on it
+    k2, v2, e2, n2 = sw.build_stream(10000, sw.SEED + 10000)
+    q2 = random.Random(sw.SEED + 20000).sample(k2, 2000)
+    rb2, _, _, rd2, wr2, _ = sw.direct_address(k2, v2, e2, n2, 1024, q2)
+    ceiling = 1024 / 10000
+    out.append(check("C16 the m-slot store reaches the pigeonhole ceiling at B=1024, n=10,000",
+                     abs(rb2 - ceiling) <= 0.03,
+                     f"ceiling min(1,B/n) = {ceiling:.3f}, measured {rb2:.3f}"))
+
+    # B < n: a superposed store answers essentially nothing
+    k3, v3, e3, n3 = sw.build_stream(2048, sw.SEED + 2048)
+    rb3, _, _, _, _ = sw.fast_weight(k3, v3, e3, n3, 1024, k3, "add")
+    out.append(check("C16 at B < n a shared readout answers nothing (the regime is empty)",
+                     rb3 == 0.0,
+                     f"d=1024, n=2048: recall {100 * rb3:.2f}% -- capacity is ~d/(2 ln|V|) bindings"))
+
+    # the ratio, not the count: one edit breaks a large fraction of the working keys
+    k4, v4, e4, n4 = sw.build_stream(64, sw.SEED + 64)
+    rb4, _, coll4, _, _ = sw.fast_weight(k4, v4, e4, n4, 1024, k4, "add")
+    ok4 = round(rb4 * 64)
+    out.append(check("C16 G7's honest metric is the ratio: one edit breaks a fifth or more",
+                     ok4 and coll4 / ok4 >= 0.2,
+                     f"d=1024, n=64: {ok4} keys correct before, {coll4} damaged -- "
+                     f"{100 * coll4 / max(1, ok4):.0f}% of what worked"))
 
     return out
 
