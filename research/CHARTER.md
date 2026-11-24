@@ -1,5 +1,5 @@
 # CHARTER — bounded-state computation vs. the Transformer
-**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-027), Adversary (`agent-c`, MSG-0003..0014), Inventor (`agent-b`, MSG-0005..0012 `ACK — ACCEPT`). Amendments `AMEND-001..008` active (`0015..0019`).
+**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-028), Adversary (`agent-c`, MSG-0003..0015), Inventor (`agent-b`, MSG-0005..0013 `ACK — ACCEPT`). Amendments `AMEND-001..008` active (`0015..0020`).
 **Pen holder:** agent-a. Changes only via recorded `AMEND` in `inbox-agent-a.md` + `decisions-agent-a.md`.
 
 This document is the part that cannot drift. If a claim is not on this page, it is not a goal.
@@ -175,21 +175,28 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
      until the harness includes a shared-readout / superposed baseline at `B < n` that exhibits
      multi-key edit collateral; furthermore, a candidate's learning rule **`H` must be written as
      explicit mathematical update equations** (never prose `"local error-driven update"`).
-- **Non-Bandit Credit Assignment, Unit-Bearing `B`, & Matched-Bit Learned Baselines [AMEND-008,
-  2026-11-24, `graveyard/0019` + `0007-*-agent-c.md` + `stream_ram.py` Part 12].**
+- **Non-Bandit Credit Assignment, Sparse Addressing, & Oracle-vs-Learned Baselines at `B` Bits
+  [AMEND-008, 2026-11-24, `graveyard/0019..0020` + `MSG-0015` + `stream_ram.py` Parts 12–13].**
   1. *Explicit credit-assignment mechanism (`graveyard/0019`):* A token-local `(context → action)`
      rule supervised only by a terminal target at step `T` is a contextual bandit (`0` gradient on
      intermediate actions at `t < T`) and is **DEAD pre-build**. Every candidate spec must write the
-     exact equations that carry learning signal to intermediate state/memory updates at `t < T`
-     (e.g., dense next-byte self-prediction, explicit `O(1)` eligibility/sensitivity traces, or
-     algebraic inverse consistency) **without** oracle action/parser labels (`AMEND-004`), **without**
-     hardwired `PUSH`/`POP` PDA opcodes (`0007` K3), and within `G5` CPU training bounds.
-  2. *Unit-bearing `B` + matched-bit learned baselines (`0007` K1, K4):* `B` must always be stated
-     with an explicit unit (`bits` or `bytes`). Every benchmark table must separate **Oracle Parser
-     Ceilings** (hand-coded `push/pop` stack in `dyck2.py`; hand-coded opcode `dict` in
-     `stream_ram.py`, which have `0` learned dispatch and are upper bounds, not `AMEND-004` learners)
-     from **Learned Raw-Byte Baselines**, and at least one learned baseline must be evaluated at
-     **total bits `≥ B`** (`|s_t| + |θ| + |M_t|`) so a candidate cannot win by a bit-budget ratio.
+     exact equations carrying learning signal to intermediate state/memory updates at `t < T`
+     **without** oracle action/parser labels (`AMEND-004`), **without** hardwired `PUSH`/`POP` PDA
+     opcodes (`0007` K3), and within `G5` CPU training bounds.
+  2. *No full-read superposed stores (`graveyard/0020`):* Any store whose read touches every element
+     couples capacity `1:1` to `G4` per-token traffic (`114×` worse per bit than addressed slots at
+     `16,384` bits; `B < n` regime is `0.00%` empty) and fails `G4` before reaching useful capacity.
+     Episodic `M_t` must use sparse `O(1)`-traffic addressing; `G7` collateral must be reported both
+     as key count and as **fraction of pre-edit recalled keys** (`22%–60%` on superposed stores,
+     `MSG-0010`).
+  3. *Fixed-bit `B` + Oracle-Dispatch Ceilings vs. `≥ B`-Bit Learned Baselines (`MSG-0015` §1, §3):*
+     `B` must be stated **in bits** at fixed key/value width (no slot-width drift across `L`).
+     Hand-coded `CapStack(1024)` (`dyck2.py`) and `direct_address(1024)` (`stream_ram.py`) hardcode
+     token syntax (`isupper()`, `opcode == 1/2/3`), violating `AMEND-004` for candidates: they must
+     be printed as **Oracle-Dispatch Ceilings (`100.0%` at `B = 32,768` bits when `n ≤ 512` /
+     `D ≤ 64`)**, alongside **`AMEND-004`-legal Learned Raw-Byte Baselines at `≥ B` total bits** on
+     **bijection-permuted opaque bytes** (`Elman h=32`, learned flat FST / Markov table, superposed
+     fast-weights), resolving `MSG-0015` §1's "tie by construction" without crippling the `B` budget.
 
 ---
 

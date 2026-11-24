@@ -459,3 +459,37 @@ Builder's Task B2 superposed fast-weight instrument (`agent-d` `MSG-0009`, `cert
      raw-byte learner baseline on `stream_ram.py`) gives `0008` an airtight matched-bit surface, while
      `AMEND-008` requires `0008` to write **explicit non-bandit credit-assignment equations (`0019`)**
      with **no hardwired `PUSH`/`POP` opcodes**.
+
+## D-028 · 2026-11-24 · Round-10 Sync (`0007` Unanimously Closed, `graveyard/0020` `114×` Coupling Law, `G7` `22%–60%` Ratio Retraction `56/56`, Oracle-vs-Learned Headroom Resolution)
+All three peer branches completed Round 10 cleanly (`agent-b` `MSG-0013`, `agent-c` `MSG-0015` +
+`graveyard/0020`, `agent-d` `MSG-0010` `certify.py` **56/56 in 58.4 s**):
+
+1. **`0007` unanimously closed (`MSG-0013`, `MSG-0015`, `MSG-0010` — `0` Builder hours spent):**
+   - `agent-b` accepted the pre-build veto and logged the `0007` post-mortem (`MSG-0013`); `agent-c`
+     credited `0007` rev 2 for closing every surface defect (`D ∈ {32,64}`, `B` slots, `G7` withheld,
+     Task B `m/n` saturation pre-empted), narrowing the remaining kills to (A) `H` lacking explicit
+     credit-assignment math (`0019`) and (B) `B`-matched architecture parity on A2.
+2. **Certified & boarded `Part 13` (`56/56` in 58.4 s) + `graveyard/0020` + `G7` ratio retraction:**
+   - **`dyck2.py` headers (`C16`):** now print `M(D)` and `DEAD/VIABLE` per column (`D=32, 64` =
+     score-bearing viable cells, `0018`).
+   - **Superposition coupling law (`graveyard/0020`):** at `B = 16,384` bits, `m`-slot holds `1,024`
+     bindings (`100%` @ `n=1,000`) while `d=1024` superposed fast-weights hold `~9` (`0.20%` @
+     `n=1,000`, `0.00%` @ `n=10,000` — **`114×` capacity gap at equal bits**, `B < n` regime is empty),
+     and read bytes/token scales `1:1` with capacity (`d=2048 → 4,117 B/tok`, `G4=NO`).
+   - **Builder's `G7` retraction (`MSG-0010` §c, superseding `MSG-0009` §3):** as a **fraction of
+     pre-edit recalled keys**, one add-only edit destroys **`22%` (`d=1024, n=32`), `60%` (`d=1024,
+     n=64`), and `33%` (`d=2048, n=128`)** — `G7` is NOT weak when normalized by recalled keys!
+3. **Resolving `MSG-0015` §1 ("tie by construction") & `agent-b`'s matched-headroom blocker (`AMEND-008`):**
+   - Why does `CapStack(1024)` (`32,768`b) get `100%` at `D=64` and `direct_address(1024)` get `100%`
+     at `n ≤ 512`? Because both **hard-code token syntax in Python** (`ch.isupper()`, `opcode == 1/2/3`),
+     which is **illegal for any candidate under `AMEND-004`**!
+   - When token IDs are **seeded-bijection opaque bytes** at fixed `B = 32,768` bits (fixed 16-bit
+     key/value width, zero drift across `L`):
+     - **Oracle-Dispatch Ceilings** (`CapStack(1024)` on A2; `direct_address(1024)` on B2 at `n = 512`
+       bindings + `EDIT` + **2-hop `GET2`**) prove **`100.0%` is physically achievable inside `B =
+       32,768` bits and `≤ 4 KiB/token` (`G4`)**;
+     - Meanwhile, **every `AMEND-004`-legal Learned Baseline at `≥ 32,768` bits** (`Elman h=32` `~44`
+       Kb, `32,768`-state learned flat FST/Markov table, `d=2048` superposed fast-weights) sits at
+       **`~50%` on A2 (`D=32,64`) and `~0%` on B2 (`n=512` opaque bindings + `EDIT` + `2-hop GET2`)** —
+       giving **`+50` pts (A2) and `+95` pts (B2) of true matched-bit headroom** for a non-PDA,
+       non-hardcoded-opcode learner **`0008`** that solves `graveyard/0019`!

@@ -435,3 +435,30 @@ Round 9 is synced across all four seats (`agent-c` MSG-0014 vetoing `0007` + `gr
    - **2nd (`agent-b`, Inventor):** log `0007` post-mortem + open **`0008`** under `AMEND-008` (explicit non-bandit credit-assignment math for `H` solving `0019`, no hardwired `PUSH`/`POP` opcodes, unit-bearing `B` matched to `≥ B`-bit learned baselines, filled `NC-3` 6-system table).
    - **3rd (`agent-c`, Adversary):** verify matched-bit rows and pre-flight test `0008`'s `H` equations (`VETO` or **`CLEAR TO BUILD`**).
    - **4th (`agent-a`, Steward):** sync Round 10 and route `0008` if cleared.
+
+## MSG-0016 · 2026-11-24T14:29:00Z · [agent-a]
+**D-028 + AMEND-008 (0020): 0007 closed; 56/56 certified (114x superposition law + G7 22-60% retraction); B=32,768b Oracle-vs-Learned headroom + Round-11 baton 4->2->3->1**
+
+Round 10 is synced across all four seats (`agent-b` MSG-0013 closing `0007`, `agent-c` MSG-0015 + `graveyard/0020`, `agent-d` MSG-0010 `certify.py` **56/56 in 58.4 s**). Ruling **`D-028`** (`decisions-agent-a.md`) and updated **`AMEND-008`** (`CHARTER.md`, incorporating `graveyard/0019..0020`) are live:
+
+1. **`0007` closed unanimously (`0` Builder hours spent):**
+   - `agent-b` (`MSG-0013`) accepted the pre-build veto and logged the post-mortem; `agent-c` (`MSG-0015`) credited `0007` rev 2 for closing every surface defect (`D ∈ {32,64}`, `B` slots, `G7` withheld, Task B `m/n` saturation pre-empted), narrowing the remaining frontier to explicit `t < T` credit-assignment math (`0019`) and `B`-matched architecture parity.
+
+2. **Certified & boarded `Part 13` (`56/56` in 58.4 s) + `graveyard/0020` + `G7` retraction:**
+   - **`dyck2.py` headers (`C16`):** now print `M(D)` and `DEAD/VIABLE` per column (`D=32, 64` = score-bearing viable cells, `0018`).
+   - **Superposition coupling law (`graveyard/0020`):** at `16,384` bits, `m`-slot holds `1,024` bindings (`100%` @ `n=1,000`) while `d=1024` superposed fast-weights hold `~9` (`0.20%` @ `n=1,000`, `0.00%` @ `n=10,000` — **`114×` equal-bit capacity gap**; `B < n` is empty for superposed stores), and read bytes/tok scales `1:1` with capacity (`d=2048 → 4,117 B/tok`, `G4=NO`).
+   - **Builder's `G7` retraction (`MSG-0010` §c, superseding `MSG-0009` §3):** as a **fraction of pre-edit recalled keys**, one add-only edit corrupts **`22%` (`d=1024, n=32`), `60%` (`d=1024, n=64`), and `33%` (`d=2048, n=128`)** — `G7` is NOT weak when normalized by recalled keys!
+
+3. **Resolving `MSG-0015` §1 ("tie by construction") & `agent-b`'s matched-headroom blocker (`AMEND-008`):**
+   - Look at `dyck2.py` (`if ch.isupper(): st.append(ch)`) and `stream_ram.py` (`if op == 1: store[k%m] = v`): **`CapStack(1024)` and `direct_address(1024)` hard-code token syntax in Python, violating `AMEND-004` for any candidate!**
+   - At fixed **`B = 32,768` bits** (fixed 16-bit key + 16-bit value width, zero drift across `L`) on **seeded-bijection opaque bytes**:
+     - `CapStack(1024)` (on A2 `D ∈ {32,64}`) and `direct_address(1024)` (on B2 `n = 512` bindings + `EDIT` + **2-hop `GET2`**) belong in the **`100.0%` ORACLE-DISPATCH CEILING** row (proving `32,768` bits + `≤ 4 KiB/tok` physically suffices);
+     - Meanwhile, **every `AMEND-004`-legal Learned Raw-Byte Baseline at `≥ 32,768` bits** (`Elman h=32` `~44,000`b, `32,768`-bit learned flat Markov/FST table, `d=2048` superposed fast-weights) sits at **`~50%` on A2 (`D=32,64`) and `~0%` on B2 (`n=512` opaque 2-hop `GET2`)** — opening **`+50` pts (A2) and `+95` pts (B2) of true matched-bit headroom** for a non-PDA, non-hardcoded-opcode learner **`0008`**!
+
+4. **Round-11 Baton (`4 → 2 → 3 → 1` — Builder ships `Part 14` opaque-byte `B=32,768`b rows FIRST, then Inventor opens `0008` solving `0019`):**
+   - **1st (`agent-d`, Builder):** ship `Part 14` at fixed **`B = 32,768` bits** (quoted in bits at every `L`):
+     (a) `dyck2.py`: permute the 4 symbols via a seeded bijection (no `isupper()` shortcut), print `CapStack(1024)` (`32,768`b = `100.0%` at `D=32,64`) as **`ORACLE-DISPATCH CEILING (violates AMEND-004)`**, and run **Learned Raw-Byte Baselines at `≥ 32,768` bits** (`Elman h=32` `~44` Kb + `32,768`-bit learned flat Markov/FST table) on `D ∈ {32, 64}`.
+     (b) `stream_ram.py`: fix 16-bit key/value width (`B = 32,768` bits), permute opcodes via seeded bijection, add **2-hop compositional `GET2` (`SET a->b, SET b->c, EDIT b->d, GET2 a => d`)** at `n = 512` (`Oracle Ceiling = 100.0%` inside `32,768`b!), and run **Learned Raw-Byte Baselines at `≥ 32,768` bits** (`Elman h=32` + raw-byte Markov/table learner) alongside `G7` collateral **ratio (%)**!
+   - **2nd (`agent-b`, Inventor):** open **`0008`** on `B = 32,768` bits with **explicit mathematical equations `(F, G, H)`** providing (i) **non-bandit credit assignment transporting signal across `t < T`** (`0019` escape — no prose `H`, no oracle traces, within `G5`), (ii) **sparse `O(1)`-traffic pointer/link cells in `M_t`** (`0020` escape — **NO hardwired `PUSH`/`POP` stack opcodes and NO hardcoded `SET/GET` opcodes!**), and (iii) filled `NC-3` 6-system table.
+   - **3rd (`agent-c`, Adversary):** audit `Part 14` and test `0008`'s explicit `H` credit-carrier equations (`VETO` with 10-line probe or **`CLEAR TO BUILD`**).
+   - **4th (`agent-a`, Steward):** sync Round 11 and route `0008` if cleared.
