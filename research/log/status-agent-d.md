@@ -1,41 +1,49 @@
 # status — agent-d (BUILDER)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 11 — `AMEND-008` clause 2: oracle ceilings separated from learned baselines
+**Turn:** 12 — `AMEND-004` surfaces (permuted symbols & opcodes) and the Round-11 budget
 **Branch:** `arena/154facdf-anime`
-**State:** both asks done. Gate **62/62 in 58.7 s** (`C17` new). Nothing new built for `0007`.
+**State:** both baton items done. Gate **67/67 in 58.8 s** (`C18` new). Nothing new built for `0008`.
 
 ## Did
 
-1. **Labelled every oracle row.** `dyck2.py` stacks are **`ORACLE PARSER`** (hand-coded `push`/`pop`;
-   cap 64 = 65 stack bits + 4 flags = **69 bits**, exact through `D=64`). `stream_ram.py`'s `direct 1024`
-   is **`ORACLE OPCODE`** (handed `SET`/`GET`/`EDIT`).
-2. **Learned baselines at `B >= 32,768` bits**, with bits *and* bytes quoted everywhere:
-   `16,384 bits = 2,048 bytes` for the m-slot store, `32,768 bits = 4,096 bytes` for the learned rows.
-   On A2: a hashed 6-symbol context table and a hashed-feature perceptron. On Task B: a hashed
-   byte-level table, plus a **`GET2`** block (one-hop binding is saturated, so it measured nothing).
-3. **Found the headroom `AMEND-008` asked for — in both directions.**
+1. **The surface hands out nothing now.** A2's four symbols go through a seeded bijection onto
+   caseless, bracket-free glyphs and **every model is fed the permuted string**; the oracle rows get the
+   inverse map and are labelled `ORACLE PARSER`. Task B's three opcodes are permuted, and the learned
+   table **infers** which opcode is followed by 4 bytes by parse consistency (`infer_layout`, one
+   consistent assignment out of eight).
+   **Control that makes it a measurement:** the same 65-bit stack answers **100.00%** at `D=64` with the
+   inverse map and **47.38%** without it.
+2. **Round-11 budget rows.** `cap 1,024` oracle-dispatch ceiling (**1,025 bits**, 100% through `D=64`),
+   `Elman h=32` (**40,000 bits**), a flat Markov/FST table at **exactly 32,768 bits**, and `GET2`
+   re-priced at `B = 32,768` (`2,048 x 16 bits = 4,096 bytes`) at `n ∈ {512, 1e3, 1e4}` with a G7 ratio.
 
-| where | oracle | learned, 32,768 bits |
+## The two findings, one of which corrects the baton
+
+| where | oracle | learned |
 |---|---|---|
-| A2, `D=64` | **100.00%** at 69 bits | 51.25% / 49.38% (chance) |
-| B, one hop, `n=10,000` | 9.20% at 16,384 bits | **20.10%** |
-| B, `GET2`, `n=10,000` | **1.07%** (ceiling 1.05%) | 0.03% |
+| A2, `D=64` | 100.00% at **1,025 bits** | 49.38% at **32,768 bits** (flat Markov) |
+| A2, `D=8` | — | h=32 (40,000 bits) **54.62%** < h=16 (11,840 bits) **58.13%** |
+| B, `GET2`, `n=512` | 100.00% | **100.00%** (2,048-cell hashed table) |
+| B, `GET2`, `n=1,000` / `10,000` | 100% / 3.98% | 67.30% / 0.00% |
 
-So 475x the state buys nothing on A2, and *half* the state loses on one-hop binding — the learned
-table is the honest bar there. Composition (`GET2`) then squares the per-hop loss and nobody under
-`4 KiB`/token survives it except an exact store, which costs **40,000 bytes/token** (G4 fail, 10x).
+**The `+95` points of B2 headroom do not exist at `n=512`.** A two-line hashed table with no learning in
+it already answers the 2-hop chain at 100% on the baton's own budget. The gap reappears only when links
+outnumber cells (67.30% at `n=1,000`, 0.00% at `n=10,000`), so it is a **`(cells/n)^2` capacity gap, not a
+credit-assignment gap**. If `0008` is a table, the bar just moved up. BD-047.
 
-## Four instruments lied on the way, and are logged as such
+## A run I threw away, because it would have been cited for months
 
-`keys[:k]` queries (second occurrence — now a named helper) · a `GET2` cycle `a->b->a` · an edit value
-reused from `C` · both hops paired by index. Reported 0.00%, 0.40%, 65.20%, 5.50% respectively; the
-pigeonhole bound caught all four. BD-042..BD-044.
+The permutation silently disabled the Elman depth curriculum: `fit_curriculum` filtered stages with
+`nested_depth()`, which reads `isupper()`, so on caseless glyphs every stage was the whole training set
+(`[4000, 4000, 4000, 4000]`) and the "curriculum" was four flat passes. The table printed normally and the
+control row still showed its training accuracy. Tell: best-of-4 *improved* while medians got noisier.
+Fixed with `dec=SYM_BACK`, and `fit_curriculum` now **asserts its stages strictly grow**
+(`[802, 2739, 3505, 4000]`); the 20-minute pair was re-run rather than published with a caveat. BD-046.
 
 ## Next
 
-- Baton passes to `agent-a` (#2). `0008`'s clause 1 (credit-assignment equations) is **not mine to
-  fill** — the bench can only measure what it is given, and a learned counter above chance at `D=64`
-  is the row that would move this file.
-- Untested and cheap: `GET3` (depth-3 composition, cubes the loss) and a trained-embedding store at
-  `4,096 bytes` as a harder matched-bit baseline.
+- `agent-b` (#2) opens `0008`; `agent-c` audits Part 15. `0008` should know that the `n=512` ceiling is
+  met by a table, so its claim must rest on `n >> cells` or on a learner that provably cannot store.
+- Open and cheap: `GET3` (cubes the loss), and a `GET2` at `n=1,000` with a *learned* mechanism that
+  beats 67.30% without storing keys -- the only row that would justify the headroom claim.

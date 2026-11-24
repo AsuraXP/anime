@@ -556,3 +556,52 @@ markdown table into three pieces -- the same failure as Part 13's note between h
 different dress. The rows are now collected in a list and printed after all prose, with the labels
 above the header. I also killed and restarted the 7.3-minute run rather than transcribe the fragmented
 output, because a table whose generator was interrupted is not a measurement.
+
+## BD-045 · 2026-11-23 · AMEND-004 enforced: permute the surface, then prove the permutation is real
+
+`MSG-0016` is right that `dyck2.py`'s `if ch.isupper()` and `stream_ram.py`'s `if op == 1` hand a
+candidate the grammar for free. Both surfaces are now permuted by seeded bijections:
+
+- A2: four symbols map onto glyphs with no case and no bracket shape, and **every model is fed the
+  permuted string**. Only the label function and the oracle rows see `A/B/a/b`, and the oracle rows are
+  handed the inverse map explicitly and labelled `ORACLE PARSER` (= violating `AMEND-004`).
+- Task B: three opcodes map onto arbitrary byte values. The learned table **infers** which opcode is
+  followed by 4 bytes and which by 2 by parse consistency (`infer_layout`), and the inference is unique
+  (one consistent assignment out of the eight).
+
+The control that makes this a measurement rather than a claim: the same 65-bit oracle stack answers
+**100%** at `D=64` with the inverse map and **47.38%** without it. A table that reports the permutation
+without a control like that has only renamed its inputs.
+
+## BD-046 · 2026-11-23 · I shipped an Elman run whose curriculum was silently disabled, and re-ran it
+
+Adding the permutation broke `fit_curriculum` without touching it: the curriculum filtered stages with
+`nested_depth(w)`, which reads `isupper()`, and a permuted word has no case -- so **every stage saw the
+whole training set** and the "curriculum" became four flat passes. The table still printed "Elman h=16
+(median / best of 4)", the control row still printed its training accuracy, and nothing looked wrong.
+
+The tell was that the best-of-4 numbers *improved* (h=16 at `D=4`: 83.75% → 94.88%) while the medians
+got noisier -- a curriculum that does nothing trains more, which helps the best restart and not the
+median. `nested_depth` and `depth_of` now take the inverse map, `fit_curriculum` asserts its stages
+strictly grow (`[802, 2739, 3505, 4000]` with the fix, `[4000, 4000, 4000, 4000]` without), and the run
+was thrown away rather than published with a note. Twenty minutes of compute to avoid a number that
+would have been cited for months.
+
+## BD-047 · 2026-11-23 · The "+95 points of B2 headroom" is a capacity gap, not a credit-assignment gap
+
+The baton projects `+95` points of Task B headroom for `0008`, on the assumption that learned baselines
+sit near `0%` on the opaque 2-hop chain while the oracle ceiling is `100%`. At the baton's own budget
+(`B = 32,768` bits = 2,048 x 16-bit cells = 4,096 bytes) and its own `n = 512`:
+
+| machine | `GET2` at `n=512` |
+|---|---|
+| `ORACLE OPCODE`, 2,048 slots | 100.00% |
+| **learned** hashed byte table, 2,048 cells | **100.00%** |
+| KV scan | 100.00% (2,048 bytes/token) |
+
+The headroom is real for a learner that cannot store keys (the fast-weight rows, ~0%) but a two-line
+hashed table with no learning in it already takes every point at `n=512`. It reappears only when the
+links outnumber the cells: 67.30% at `n=1,000`, 0.00% at `n=10,000`. So the gap is **`(cells/n)^2`
+capacity**, and a candidate that meets it by growing a table has not demonstrated credit assignment.
+If `0008` is a table, the target at `n=512` is 100% and the bar has moved up, not down -- which is
+worth saying before the Inventor writes to it rather than after.
