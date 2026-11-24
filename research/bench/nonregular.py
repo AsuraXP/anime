@@ -325,8 +325,9 @@ def task_a():
     print("  Gate it fails: **G2**, because the stack is working state that grows O(D) with depth,")
     print("  which breaks the bounded-RAM envelope; on a bounded machine the same automaton becomes")
     print("  the k-state counter measured below.")
-    print("  A candidate must beat the k-state machine at k < D+1 *without growing working state*,")
-    print("  and must not lose accuracy at k >= D+1.\n")
+    print("  A candidate must beat the k-state machine below its requirement -- measured as `D+3`")
+    print("  states in `audit_harness.py`, not `D+1` -- without growing working state, and must not")
+    print("  lose accuracy above it.\n")
     rng = random.Random(SEED)
 
     # fixed-state baselines on a (state budget) x (max depth) grid
@@ -359,11 +360,16 @@ def task_a():
             data = make_depth_set(random.Random(SEED + 1000 * D + k), 400, D)
             cells.append(f"{100 * score_binary(CappedCounter(k).fit(data).predict, data):.1f}%")
         print(f"| {k} | " + " | ".join(cells) + " |")
-    print("\nReading: accuracy is exact exactly when `k >= D+1` for the depth the strings actually")
-    print("reach, and collapses below it -- 4 states cannot decide depth-8 brackets however long it")
-    print("trains, because the information is gone by then. This is the property positional addition")
-    print("could never show: the state budget, not the trainer, is what the task charges for, and the")
-    print("**baseline sits strictly below its ceiling**, so a candidate has somewhere to be wrong.")
+    print("\nReading: accuracy is exact once `k >= D+3` for the depth the strings actually reach, and")
+    print("collapses below it -- 4 states cannot decide depth-8 brackets however long it trains,")
+    print("because the information is gone by then.")
+    print("\n**Correction, turn 7.** This text said `k >= D+1` for three parts. That is wrong at the")
+    print("boundary: the grid below only samples k in {2,4,8,16}, so it never tested k = D+1 or D+2.")
+    print("`audit_a1b.py` scans the boundary and measures the requirement as exactly **D+3** (5, 7,")
+    print("11, 19 at D = 2, 4, 8, 16) -- the extra two states are what the single-bracket corruption")
+    print("costs, not what the brackets cost. The property that survives is the one that matters: the")
+    print("**baseline sits strictly below its ceiling** and the state budget, not the trainer, is what")
+    print("the task charges for.")
     print("\nOne caveat, visible in the table: k=4 at D=2 is 97.0%, not 100%, even though 4 >= 2+1.")
     print("That cell is transition-key coverage -- the machine only learns the (state, character) pairs")
     print("its 400 strings visited -- not a state limit. Coverage is the same artefact `ceiling.py`")
@@ -508,13 +514,14 @@ def task_b():
     print("  Gate it fails: **G4**, because reads scale O(n) with the store, and its bounded")
     print("  approximation fails **G7**: capping RAM at m slots collides keys and one edit then")
     print("  clobbers unrelated ones.")
-    print("  A candidate must beat recall m/n at equal m *without* collateral, and must not lose")
-    print("  exactness on the keys it does hold.\n")
+    print("  A candidate must reach coverage m/n at fixed m -- the pigeonhole ceiling, not")
+    print("  headroom -- with a blast radius no larger than this baseline's (<= the slot")
+    print("  population), and must not lose exactness on the keys it does hold.\n")
     print("n key->value bindings, then queries, then ONE edit, then the same queries again.")
     print("Working RAM capped at m slots. G7 requires zero collateral damage on unrelated keys.\n")
-    print("| stream n | RAM m | recall before edit | recall after edit | COLLATERAL "
-          "(unrelated keys changed) |")
-    print("|---|---|---|---|---|")
+    print("| stream n | RAM m | recall before | recall after | **edit collateral** "
+          "(right -> wrong) | keys wrong after | slot population |")
+    print("|---|---|---|---|---|---|---|")
 
     for n in (1000, 10000, 100000):
         rng = random.Random(SEED + n)
@@ -528,8 +535,8 @@ def task_b():
             if m is None:
                 store, label = dict(vals), "full store"
             else:
-                # direct-address store: slot = key mod m. Collisions overwrite, which is exactly
-                # how a bounded lookup table produces collateral damage after an edit.
+                # direct-address store: slot = key mod m. Collisions overwrite, which is how a
+                # bounded lookup table loses coverage -- and how ONE edit can damage unrelated keys.
                 store = {}
                 for k in keys:
                     store[k % m] = vals[k]
@@ -537,29 +544,41 @@ def task_b():
             slot = (lambda k: k if m is None else k % m)
 
             def read(k, store=store, slot=slot):
-                s = slot(k)
-                return store.get(s)
+                return store.get(slot(k))
 
-            recall_before = sum(1 for k in keys if read(k) == vals[k]) / n
-            # the edit
+            before = {k: read(k) for k in keys}
+            recall_before = sum(1 for k in keys if before[k] == vals[k]) / n
             store[slot(edit_key)] = new_val
+            after = {k: read(k) for k in keys}
             recall_after = sum(1 for k in keys
-                               if read(k) == (new_val if k == edit_key else vals[k])) / n
-            collateral = sum(1 for k in keys if k != edit_key and vals[k] != vals[k] and
-                             read(k) == new_val and read(k) != vals[k])
-            collateral = sum(1 for k in keys
-                             if k != edit_key and read(k) != vals[k])
+                               if after[k] == (new_val if k == edit_key else vals[k])) / n
+            # COLLATERAL = keys that were CORRECT before the edit and are WRONG after it. The first
+            # version of this table counted every key that was wrong after the edit, which is almost
+            # entirely the write-time collision loss (934 of 999 at m=64) -- a number that does not
+            # depend on the edit at all. Measured properly the blast radius is 0-3 keys.
+            broke = sum(1 for k in keys if k != edit_key and before[k] == vals[k] and after[k] != vals[k])
+            wrong_after = sum(1 for k in keys if after[k] != (new_val if k == edit_key else vals[k]))
+            pop = (n if m is None else sum(1 for k in keys if slot(k) == slot(edit_key)))
             print(f"| {n:,} | {label} | {100 * recall_before:.2f}% | {100 * recall_after:.2f}% | "
-                  f"{collateral:,} of {n - 1:,} |")
+                  f"**{broke}** | {wrong_after:,} of {n - 1:,} | {pop} keys |")
 
-    print("\n| 0-param null (answer the single most frequent value, 0) | -- | "
-          f"| {100 * (sum(1 for k in range(1000) if k == 0) / 1000):.2f}% (1/1000 by construction) "
-          f"| -- | -- |")
-    print("\nReading: a bounded store answers a *fraction* m/n of queries, exactly, with zero")
-    print("collateral for the keys it holds. The failure mode is coverage, not correctness --")
-    print("which is the same trade `ceiling.py` found in D4, now with a stream length to vary.")
-    print("A candidate must beat recall m/n at equal m **without** collateral, and that is a")
-    print("measurable bar rather than an adjective.")
+    print("\n| 0-param null (answer the single most frequent value, 0) | -- | 0.10% | -- | -- | -- | -- |")
+    print("\nReading, corrected in turn 7: a bounded store answers a *fraction* of queries, and the")
+    print("failure is **coverage**, not correctness -- the same trade `ceiling.py` found in D4, with a")
+    print("stream length to vary. The edit's own damage is small and bounded by the slot population")
+    print("(`ceil(n/m)` keys at most), because a direct-address store gives each key one slot.")
+    print("")
+    print("Two corrections to the turn-4 version of this table, both from `audit_harness.py`:")
+    print("  1. the old `COLLATERAL` column counted every key wrong *after* the edit, which is almost")
+    print("     entirely write-time collision loss (934 of 999 at m=64, n=1000) and does not depend on")
+    print("     the edit at all. The measured blast radius of the edit is **0-3 keys**.")
+    print("  2. recall is not exactly m/n: it is m/n plus chance agreement from a 1,000-value space.")
+    print("")
+    print("Consequence for G7: a **direct-address** store cannot exhibit interesting collateral, so it")
+    print("cannot test the gate. A candidate must beat coverage m/n at equal m **with a blast radius")
+    print("no larger than the baseline's**, and an instrument that wants to see real collateral needs a")
+    print("store whose readouts are shared across keys (superposition, fingerprints), not one slot per")
+    print("key. This file measures the baseline; it does not build the sharing store.")
 
 
 def main():

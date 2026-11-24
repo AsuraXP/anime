@@ -307,3 +307,47 @@ digit), which is the check that the edit was additive.
 The row is worse news than expected for the backprop baselines: **in-split, a 0-parameter rule scores
 30.61% against one-hot's 29.21% and ordinal-12's 26.26%**, where the counted table is at 100% and the
 analytic ceiling is 100%. On R2({9}) it scores 16.65% against one-hot's 1.18%.
+
+## BD-025 · 2026-11-23 · My own rule was untested at its boundary: the requirement is D+3, not D+1
+
+For three parts `RESULTS.md` said A1b is exact iff `k >= D+1`. The grid only sampled `k` in
+{2,4,8,16}, so `k = D+1` and `k = D+2` were **never tested**. Scanning the boundary
+(`audit_harness.py`): the requirement is exactly **D+3** -- 5, 7, 11, 19 at D = 2, 4, 8, 16. The two
+extra states are what the single-bracket corruption costs.
+
+The Adversary said this in `MSG-0011` while killing `0006`, and it also said "A1b is a 19-state
+problem": both checks reproduce to the digit (k=19 exact on all four cells, one machine fit at D=16 is
+exact everywhere, readout table has 4 rows). A rule that was never tested at its own boundary is not a
+rule, and it took an adversary reading my table to find it.
+
+## BD-026 · 2026-11-23 · Task B's "collateral" column was collision loss, and G7 has no instrument
+
+The column headed `COLLATERAL (unrelated keys changed)` counted every key wrong *after* the edit --
+934 of 999 at m=64, n=1000. It barely moves when the edit is removed, because almost all of it is
+write-time collision loss. Measured properly (correct before -> wrong after), the edit's blast radius
+is **0-3 keys**, bounded by the slot population `ceil(n/m)`.
+
+Consequence: a direct-address store gives every key one slot, so **it cannot exhibit interesting
+collateral and cannot test G7**. An instrument for G7 needs readouts *shared across keys*
+(superposition, fingerprints, fixed-width sketches). That instrument is not built, and until it is,
+no G7 claim in this repo has been measured -- including the ones I published.
+
+## BD-027 · 2026-11-23 · Both harness tasks are budget tests, not composition tests
+
+| task | budget | ceiling | measured |
+|---|---|---|---|
+| A (Dyck-1, depth-pinned) | `D+3` states (19 at D=16, 5 bits) | exact above the budget | one 19-state machine + 4-row readout is exact on the whole grid |
+| B (stream binding) | `m` slots | `m/n` by pigeonhole | direct addressing sits at `m/n` + chance agreement |
+
+`0006`'s surface was therefore saturated, as the Adversary argued: a candidate scoring 100% on A and
+`m/n` on B has matched two budgets, not demonstrated composition. The charter's question is whether a
+candidate does it with *less* than the budget, and neither table answers that alone.
+
+## BD-028 · 2026-11-23 · The closure gate now has three verdicts
+
+`AMEND-005` adopts agent-c's correction to `graveyard/0013`: a finite closure kills a task only if the
+machine is **feasible**. `closure.py` now answers DEAD / **VIABLE** / LIVE with `FEASIBLE_MAX = 10^9`,
+and the canonical viable case is in the table: Dyck-2 at depth <= 256 closes into `2^257 - 1 =
+2.32e77` states -- regular, finite, unbuildable, and therefore not a kill. The first version of the
+gate could only say DEAD or LIVE, which would have called a perfectly good benchmark dead by
+accident or alive for the wrong reason.

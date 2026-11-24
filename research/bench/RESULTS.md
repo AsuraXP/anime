@@ -756,6 +756,10 @@ measurement whose structure guarantees its conclusion.
 
 > **Superseded for the recurrent baseline (turn 6, Part 9).** The A2/A2b/A2c/A3 rows below
 > are the turn-4 run that was withheld as degenerate; they are kept as the record of that
+> **Also corrected in Part 10 (turn 7):** A1b's state requirement is `D+3`, not
+> `D+1`, and the `COLLATERAL` column in Task B measured collision loss, not the
+> edit's blast radius. Both tables below are as published in turn 4.
+
 > finding. Part 9 replaces them with a baseline that learns, and says what the fix changed.
 
 
@@ -1270,33 +1274,33 @@ digit sum is deleted, at a budget where the CI is tight enough to see it. That i
 runnable experiment, and it is the one I would run if agent-c disputes this table.
 
 <!-- ================= PART 9: turn 6 -- the withheld neural baseline, fixed ============ -->
-# Part 9 -- the baseline that was withheld now measures the task (turn 6)
+# Part 9 -- the baseline that was withheld now measures the task (turn 6, text corrected turn 7)
 
 D-022 §2.3 gave this seat one job: fix the recurrent baseline that turn 4 withheld, so the
-harness has a certified neural curve ready to score `0006`. It is fixed, and the fix changes
-what Task A is evidence *for*. Both halves of that sentence matter.
+harness has a certified neural curve ready to score a candidate. It is fixed, and the fix
+changes what Task A is evidence *for*.
 
-## 9.1 What was actually wrong
+> **Corrected in Part 10 (turn 7).** Two statements in this part were wrong: A1b's state
+> requirement is `D+3`, not `D+1` (the grid never sampled the boundary), and Task B's
+> `COLLATERAL` column counted write-time collision loss rather than the edit's damage. The
+> tables below are regenerated with both corrections; Part 10 has the measurements.
 
-Turn 4 found three real bugs and then blamed the task for the residual. It was not the task.
-Four things, in the order they were found:
+## 9.1 What was actually wrong with the baseline
 
 | # | defect | symptom | fix |
 |---|---|---|---|
 | 1 | BPTT updated only the final steps and never touched `Wx` | accuracy identical to a constant classifier | full backprop through time |
 | 2 | recurrent gradient used the transpose (`Wh[j][k]*d[k]`) | every state budget scored the same | `dL/dh_{t-1}[k] = sum_j Wh[j][k]*d[j]` |
 | 3 | `Wh` mutated in place, then used to compute its own gradient | unstable, order-dependent learning | compute the recurrence gradient first |
-| 4 | 0/1 inputs, `U(-0.5,0.5)` init, plain SGD, one restart | tanh saturated on step one, `|h| -> 1`, gradient dead; whichever pattern froze in won | centered `+/-1` inputs, init scaled by `1/sqrt(h)`, global-norm clipping, Adam, and **restarts** |
+| 4 | 0/1 inputs, `U(-0.5,0.5)` init, plain SGD, one restart | tanh saturated on step one, `|h| -> 1`, gradient dead | centered `+/-1` inputs, init `1/sqrt(h)`, global-norm clipping, Adam, **restarts** |
 
-Defect 4 is the one that matters methodologically: with a saturated tanh the model is exact or
-at chance depending on the seed, so a **single run is not a measurement**. The baseline is
-therefore reported as median, best and **success rate** over restarts, and the learning-rate
-sweep that turn 4 performed could never have separated the two modes.
+Defect 4 is the methodological one: with a saturated tanh the model is exact or at chance
+depending on the seed, so a **single run is not a measurement**. Rows are median, best and
+**success rate** over restarts.
 
-One more defect, in the *control*: the control task's invalid class included `w + "("`, which
-created a 75% shortcut -- "does the string end in `)`". Every budget found it and scored exactly
-73.50%, three times, which is the tell that the control was measuring the last character. It is
-now `"(" + w` only, so the running count is the sole cue.
+The worse defect was in the *control*: its invalid class included `w + "("`, creating a 75%
+shortcut -- "does the string end in `)`". Every budget found it and scored exactly 73.50%,
+three times. Rebuilt as `"(" + w` only, so the running count is the sole cue.
 
 ## 9.2 The harness, re-run in full
 
@@ -1313,8 +1317,9 @@ AMEND-003 opening line, Task A:
   Gate it fails: **G2**, because the stack is working state that grows O(D) with depth,
   which breaks the bounded-RAM envelope; on a bounded machine the same automaton becomes
   the k-state counter measured below.
-  A candidate must beat the k-state machine at k < D+1 *without growing working state*,
-  and must not lose accuracy at k >= D+1.
+  A candidate must beat the k-state machine below its requirement -- measured as `D+3`
+  states in `audit_harness.py`, not `D+1` -- without growing working state, and must not
+  lose accuracy above it.
 
 ### A1. Fixed-state machine vs required depth (0-param null included)
 
@@ -1340,11 +1345,17 @@ construction, so the state requirement is actually exercised.
 | 8 | 100.0% | 100.0% | 74.8% | 51.2% |
 | 16 | 100.0% | 100.0% | 100.0% | 70.8% |
 
-Reading: accuracy is exact exactly when `k >= D+1` for the depth the strings actually
-reach, and collapses below it -- 4 states cannot decide depth-8 brackets however long it
-trains, because the information is gone by then. This is the property positional addition
-could never show: the state budget, not the trainer, is what the task charges for, and the
-**baseline sits strictly below its ceiling**, so a candidate has somewhere to be wrong.
+Reading: accuracy is exact once `k >= D+3` for the depth the strings actually reach, and
+collapses below it -- 4 states cannot decide depth-8 brackets however long it trains,
+because the information is gone by then.
+
+**Correction, turn 7.** This text said `k >= D+1` for three parts. That is wrong at the
+boundary: the grid below only samples k in {2,4,8,16}, so it never tested k = D+1 or D+2.
+`audit_a1b.py` scans the boundary and measures the requirement as exactly **D+3** (5, 7,
+11, 19 at D = 2, 4, 8, 16) -- the extra two states are what the single-bracket corruption
+costs, not what the brackets cost. The property that survives is the one that matters: the
+**baseline sits strictly below its ceiling** and the state budget, not the trainer, is what
+the task charges for.
 
 One caveat, visible in the table: k=4 at D=2 is 97.0%, not 100%, even though 4 >= 2+1.
 That cell is transition-key coverage -- the machine only learns the (state, character) pairs
@@ -1361,11 +1372,11 @@ on this task is bimodal, exact or chance.
 |---|---|---|---|---|---|---|---|---|
 | 0-param: always valid | **0** | 48.38% | 29.00% | 57.69% | 29.84% | 48.12% | -- | -- |
 | 0-param: ends with ')' | **0** | 51.50% | 30.48% | 61.70% | 31.01% | 51.00% | -- | -- |
-| h=2 (median of 4) | 16 | 51.50% | 30.48% | 61.70% | 77.91% | 59.88% | 0% | 17s |
+| h=2 (median of 4) | 16 | 51.50% | 30.48% | 61.70% | 77.91% | 59.88% | 0% | 18s |
 | _h=2, best of 4_ | | _83.94%_ | _99.63%_ | _80.15%_ | _83.33%_ | _68.00%_ | | |
-| h=4 (median of 4) | 38 | 100.00% | 100.00% | 100.00% | 100.00% | 51.88% | 75% | 33s |
+| h=4 (median of 4) | 38 | 100.00% | 100.00% | 100.00% | 100.00% | 51.88% | 75% | 34s |
 | _h=4, best of 4_ | | _100.00%_ | _100.00%_ | _100.00%_ | _100.00%_ | _60.00%_ | | |
-| h=8 (median of 4) | 106 | 99.94% | 100.00% | 100.00% | 99.61% | 51.00% | 50% | 83s |
+| h=8 (median of 4) | 106 | 99.94% | 100.00% | 100.00% | 99.61% | 51.00% | 50% | 87s |
 | _h=8, best of 4_ | | _100.00%_ | _100.00%_ | _100.00%_ | _100.00%_ | _51.00%_ | | |
 
 Reading: the neural baseline **solves** the task it was blamed for failing. With Adam,
@@ -1381,8 +1392,8 @@ shortcut produced a 73.50% control score three budgets in a row in turn 4.
 | train strings | params | median | best | success | wall |
 |---|---|---|---|---|---|
 | 2,000 | 38 | 51.62% | 64.44% | 0% | 4s |
-| 10,000 | 38 | 85.81% | 100.00% | 50% | 20s |
-| 40,000 | 38 | 55.56% | 100.00% | 50% | 82s |
+| 10,000 | 38 | 85.81% | 100.00% | 50% | 21s |
+| 40,000 | 38 | 55.56% | 100.00% | 50% | 85s |
 
 ### A2c. Control witness -- same code path, shortcut-free task (end at depth 0)
 
@@ -1428,31 +1439,43 @@ AMEND-003 opening line, Task B:
   Gate it fails: **G4**, because reads scale O(n) with the store, and its bounded
   approximation fails **G7**: capping RAM at m slots collides keys and one edit then
   clobbers unrelated ones.
-  A candidate must beat recall m/n at equal m *without* collateral, and must not lose
-  exactness on the keys it does hold.
+  A candidate must reach coverage m/n at fixed m -- the pigeonhole ceiling, not
+  headroom -- with a blast radius no larger than this baseline's (<= the slot
+  population), and must not lose exactness on the keys it does hold.
 
 n key->value bindings, then queries, then ONE edit, then the same queries again.
 Working RAM capped at m slots. G7 requires zero collateral damage on unrelated keys.
 
-| stream n | RAM m | recall before edit | recall after edit | COLLATERAL (unrelated keys changed) |
-|---|---|---|---|---|
-| 1,000 | 64 (direct-address) | 6.60% | 6.60% | 934 of 999 |
-| 1,000 | 1024 (direct-address) | 100.00% | 100.00% | 0 of 999 |
-| 1,000 | full store | 100.00% | 100.00% | 0 of 999 |
-| 10,000 | 64 (direct-address) | 0.74% | 0.74% | 9,926 of 9,999 |
-| 10,000 | 1024 (direct-address) | 10.32% | 10.32% | 8,968 of 9,999 |
-| 10,000 | full store | 100.00% | 100.00% | 0 of 9,999 |
-| 100,000 | 64 (direct-address) | 0.17% | 0.17% | 99,831 of 99,999 |
-| 100,000 | 1024 (direct-address) | 1.12% | 1.12% | 98,877 of 99,999 |
-| 100,000 | full store | 100.00% | 100.00% | 0 of 99,999 |
+| stream n | RAM m | recall before | recall after | **edit collateral** (right -> wrong) | keys wrong after | slot population |
+|---|---|---|---|---|---|---|
+| 1,000 | 64 (direct-address) | 6.60% | 6.60% | **1** | 934 of 999 | 15 keys |
+| 1,000 | 1024 (direct-address) | 100.00% | 100.00% | **0** | 0 of 999 | 1 keys |
+| 1,000 | full store | 100.00% | 100.00% | **0** | 0 of 999 | 1000 keys |
+| 10,000 | 64 (direct-address) | 0.74% | 0.74% | **1** | 9,926 of 9,999 | 156 keys |
+| 10,000 | 1024 (direct-address) | 10.32% | 10.32% | **1** | 8,968 of 9,999 | 10 keys |
+| 10,000 | full store | 100.00% | 100.00% | **0** | 0 of 9,999 | 10000 keys |
+| 100,000 | 64 (direct-address) | 0.17% | 0.17% | **3** | 99,831 of 99,999 | 1562 keys |
+| 100,000 | 1024 (direct-address) | 1.12% | 1.12% | **1** | 98,877 of 99,999 | 98 keys |
+| 100,000 | full store | 100.00% | 100.00% | **0** | 0 of 99,999 | 100000 keys |
 
-| 0-param null (answer the single most frequent value, 0) | -- | | 0.10% (1/1000 by construction) | -- | -- |
+| 0-param null (answer the single most frequent value, 0) | -- | 0.10% | -- | -- | -- | -- |
 
-Reading: a bounded store answers a *fraction* m/n of queries, exactly, with zero
-collateral for the keys it holds. The failure mode is coverage, not correctness --
-which is the same trade `ceiling.py` found in D4, now with a stream length to vary.
-A candidate must beat recall m/n at equal m **without** collateral, and that is a
-measurable bar rather than an adjective.
+Reading, corrected in turn 7: a bounded store answers a *fraction* of queries, and the
+failure is **coverage**, not correctness -- the same trade `ceiling.py` found in D4, with a
+stream length to vary. The edit's own damage is small and bounded by the slot population
+(`ceil(n/m)` keys at most), because a direct-address store gives each key one slot.
+
+Two corrections to the turn-4 version of this table, both from `audit_harness.py`:
+  1. the old `COLLATERAL` column counted every key wrong *after* the edit, which is almost
+     entirely write-time collision loss (934 of 999 at m=64, n=1000) and does not depend on
+     the edit at all. The measured blast radius of the edit is **0-3 keys**.
+  2. recall is not exactly m/n: it is m/n plus chance agreement from a 1,000-value space.
+
+Consequence for G7: a **direct-address** store cannot exhibit interesting collateral, so it
+cannot test the gate. A candidate must beat coverage m/n at equal m **with a blast radius
+no larger than the baseline's**, and an instrument that wants to see real collateral needs a
+store whose readouts are shared across keys (superposition, fingerprints), not one slot per
+key. This file measures the baseline; it does not build the sharing store.
 
 ## What this instrument makes falsifiable
 
@@ -1466,7 +1489,7 @@ measurable bar rather than an adjective.
 The digit-addition family could do none of these three things, which is why AMEND-002
 retired it.
 
----- total wall clock 330.4s on CPU ----
+---- total wall clock 343.6s on CPU ----
 
 *determinism: two independent runs are byte-identical modulo wall-clock fields.*
 
@@ -1475,34 +1498,159 @@ retired it.
 The baseline **solves** the benchmark it was blamed for failing: 4 hidden units (38
 parameters) reach the ceiling at depth <= 8, with a 75% success rate over restarts. So:
 
-1. **A1b is a state-budget gate, not evidence that composition is hard for neural models.** A
-   `k`-state machine breaks below `k >= D+1`; a 4-unit RNN does not break at all at these
-   depths. The table's teeth are in the *discrete* state budget, and `AMEND-002`'s state count
-   needs the caveat that h floats are not h states.
+1. **A1b is a state-budget gate, not evidence that composition is hard for neural models.**
+   The table's teeth are in the *discrete* budget, and `AMEND-002`'s state count needs the
+   caveat that h floats are not h states.
 2. **The depth axis is still real.** On the depth-16 holdout every budget is at chance
-   (51-60%) while a 16-state counter is exact. Capacity in floats buys depth only up to a
-   point, and that point is measurable.
-3. **A candidate must now beat a working baseline, not a broken one.** Before this turn the
-   honest comparison for `0006` was against a model at chance; now it is against 100% at
-   `D <= 8` and chance at `D = 16`.
+   (51-60%) while a 19-state counter is exact -- 19 is the measured requirement from Part 10,
+   not 17.
+3. **A candidate must beat a working baseline**, not a broken one: 100% at `D <= 8`, chance at
+   `D = 16`.
 
-## 9.4 Part 2 now carries the 0-parameter null in every table
+## 9.4 Part 2 carries the 0-parameter null in every table
 
-D-021 §2.2 asked for the carry-blind rule inside `k3control.py`'s own tables. It is now the
-first row of R1 and of every SYMBOL table, ahead of the counted table it is meant to bound:
-`(a_p + b_p) % 10`, zero parameters, no confidence. Regenerating Part 2 changed no other row,
-which is the check that the edit was additive.
+D-021 §2.2: the carry-blind rule is now the first row of R1 and of every SYMBOL table.
+Regenerating Part 2 changed no other row, which is the check that the edit was additive. The
+row is worse news than expected for the backprop baselines: in-split, a 0-parameter rule
+scores **30.61%** against one-hot's 29.21% and ordinal-12's 26.26%, where the counted table
+and the analytic ceiling are both 100%.
 
 ## 9.5 Audit
 
 **Certified:** `nonregular.py` two runs byte-identical modulo timing; `k3control.py` two runs
 identical, with every pre-existing row reproducing exactly after the null rows were added.
-
-**What this does not fix:** the recurrent baseline is still a *small* Elman net, not an LSTM or
-a Transformer. A stronger neural baseline can only raise the `D <= 8` ceiling to 100% (it is
-already there) and may or may not reach `D = 16`; if a future seat adds one, A1b's claim that
-depth 16 defeats a fixed budget gets tested rather than assumed.
+**Not fixed here:** the baseline is still a small Elman net, not an LSTM or a Transformer.
 
 **What would prove me wrong:** a 4-unit restart that solves the depth-16 holdout, or a
-success rate that varies with data budget in the wrong direction. Both are in the table above
-and neither happens here.
+success rate that varies with data budget in the wrong direction.
+
+<!-- ================= PART 10: turn 7 -- audit of the harness against the Adversary's claims ============ -->
+# Part 10 -- the Adversary audited my harness; two of its claims hold and one found my error (turn 7)
+
+`agent-c` (`MSG-0011`) made three statements about `nonregular.py` while killing candidate
+`0006`: that A1b is a 19-state problem, that its requirement is `D+3`, and that Task B is an
+`m/n` problem. An adversary auditing my numbers is the mechanism working, so each statement is
+checked against the code in `audit_harness.py` rather than accepted or argued with.
+
+## 10.1 The audit
+
+seed=20261123 python=3.11.2 CPU-only stdlib
+
+Checks the Adversary's three claims about `nonregular.py` (`MSG-0011`) against the code,
+and reports the two defects it found in my own published tables.
+
+## 1. Task A -- what state does it actually cost?
+
+`nonregular.py` never sampled k = D+1 or D+2, so its published rule (`k >= D+1`) was never
+tested at the boundary. Scanning it:
+
+| depth D | min k for 100% | requirement | D+1 | D+2 | D+3 |
+|---|---|---|---|---|---|
+| 2 | **5** | D+3 | 3 | 4 | 5 |
+| 4 | **7** | D+3 | 5 | 6 | 7 |
+| 8 | **11** | D+3 | 9 | 10 | 11 |
+| 16 | **19** | D+3 | 17 | 18 | 19 |
+
+Requirement is exactly `D+3` on every depth tested: **confirmed**.
+That is ~5 bits of state at D=16 -- small, linear,
+and cheap, which is the Adversary's point (a).
+
+Cross-cell transfer: fit ONE machine at `k = D+3` on the deepest cell only, then score it
+on every cell. If this is exact, the four cells are one problem, not four.
+
+| cell D | accuracy of the machine fitted at D=16 |
+|---|---|
+| 2 | 100.0% |
+| 4 | 100.0% |
+| 8 | 100.0% |
+| 16 | 100.0% |
+
+Readout table: **4 rows** over `(final depth, underflow seen)`, 8 entries, 5 bits of state.
+A 19-state machine with a 4-row counted readout is exact on the whole grid, so A1b cannot
+falsify a claim about *composition*; it falsifies a claim about a *state budget*. That is
+what Part 9 said, and this is the number behind it.
+
+## 2. Task B -- coverage, and what an edit actually damages
+
+The published table had a column headed `COLLATERAL (unrelated keys changed)` whose value
+was every key wrong after the edit. That number barely moves when the edit is removed, so
+it was measuring write-time collisions. Both quantities are separated here:
+
+| stream n | RAM m | recall | m/n | **edit collateral** | wrong after | slot population |
+|---|---|---|---|---|---|---|
+| 1,000 | 64 | 6.60% | 6.40% | **1** | 934 of 999 | 15 keys |
+| 1,000 | 1024 | 100.00% | 102.40% | **0** | 0 of 999 | 1 keys |
+| 10,000 | 64 | 0.74% | 0.64% | **1** | 9,926 of 9,999 | 156 keys |
+| 10,000 | 1024 | 10.32% | 10.24% | **1** | 8,968 of 9,999 | 10 keys |
+| 100,000 | 64 | 0.17% | 0.06% | **3** | 99,831 of 99,999 | 1562 keys |
+| 100,000 | 1024 | 1.12% | 1.02% | **1** | 98,877 of 99,999 | 98 keys |
+
+Reading: the edit's blast radius is 0-3 keys and is bounded by the slot population
+(`ceil(n/m)`), because a direct-address store gives every key one slot. The 934-of-999
+figure that stood in Part 7 and Part 9 was collision loss wearing the word 'collateral'.
+**A direct-address store cannot exhibit interesting collateral, so it cannot test G7.**
+Coverage is the property it does test, and recall is not exactly `m/n` either: it is `m/n`
+plus chance agreement in a 1,000-value space.
+
+## 3. The bars, corrected
+
+- **Task A:** beat the k-state machine at `k < D+3` (not `D+1`) without growing working
+  state. The ceiling is a 19-state machine at D=16 -- 5 bits.
+- **Task B:** reach coverage `m/n` at fixed m with a blast radius no larger than the
+  baseline's (measured: 3 keys at most). The pigeonhole bound `m/n` is not headroom;
+  it is the ceiling, and a candidate that exceeds it is storing more than m keys.
+- **Neither task is a composition test.** Both are budgets: states for A, slots for B. A
+  candidate that passes either has matched a budget, and the charter's question is whether
+  it does so with less than the budget.
+
+## 4. What would prove this audit wrong
+
+- A depth-pinned set on which some `k < D+3` machine is exact (the requirement is not D+3).
+- A store where one edit damages many keys while keeping `m` fixed and reads flat -- that
+  would be a real G7 instrument, and this file would have to adopt it.
+
+## 10.2 Verdict on the three claims
+
+| claim (agent-c `MSG-0011`) | checked | result |
+|---|---|---|
+| A1b is a 19-state problem; `k=19` exact on all cells; one machine fit at D=16 is exact everywhere; readout has 4 rows | recomputed | **CONFIRMED** -- 19 states, 4 readout rows, 100.0% on every cell |
+| the requirement is `D+3`, linear in depth | scanned the boundary | **CONFIRMED** -- 5, 7, 11, 19 at D = 2, 4, 8, 16 |
+| Task B is an `m/n` problem; the baseline is at the ceiling | measured recall vs m/n and the edit's blast radius | **CONFIRMED, and it exposed my defect** -- recall is `m/n` plus chance agreement, and the column I called collateral was not measuring the edit |
+
+## 10.3 The two defects this found in my own tables
+
+**1. `k >= D+1` was wrong; the requirement is `D+3`.** Parts 7 and 9 stated the rule as exact
+iff `k >= D+1`, but the grid only sampled `k` in {2,4,8,16}, so `k = D+1` and `k = D+2` were
+never tested. Scanning them, the requirement is exactly `D+3`: the two extra states are what
+the single-bracket corruption costs. The published sentence understated the task's real cost
+by two states, which is small in bits (5 at D=16) and large in what it implies -- a 19-state
+machine with a 4-row readout is exact on the whole grid.
+
+**2. Task B's `COLLATERAL` column was mislabelled.** It counted every key wrong after the
+edit: 934 of 999 at m=64, n=1000. Almost all of that is write-time collision loss and it
+barely moves when the edit is removed. The measured blast radius of the edit is **0-3 keys**,
+bounded by the slot population `ceil(n/m)`.
+
+## 10.4 What this does to the two benchmarks
+
+Both tasks are **budget** tests, not composition tests, and the audit makes the budgets
+explicit: `D+3` states for Task A (19 at D=16, 5 bits) and `m` slots for Task B. A candidate
+that passes either has matched a budget; the charter's question is whether it does so with
+*less* than the budget, and neither table can answer that on its own.
+
+It also means G7 has no instrument yet: a direct-address store gives every key one slot, so
+one edit can damage at most the slot population. To measure collateral honestly the harness
+needs a store whose readouts are **shared across keys** (superposition, fingerprints). That is
+the next instrument this seat owes, and it is not built.
+
+## 10.5 Audit of this audit
+
+**Certified:** `audit_harness.py` is deterministic (no RNG beyond seeded set construction),
+runs in 0.4 s, and both corrections propagate into Part 9 by regenerating it from the script.
+**Not claimed:** that the Adversary's kills of `0005`/`0006` are therefore right. This part
+audits claims about *my* harness, not the candidates.
+
+**What would prove this wrong:** a depth-pinned set on which some `k < D+3` machine is exact,
+or a store where one edit damages many keys at fixed `m` with flat reads -- which would be the
+G7 instrument this part says is missing.
+

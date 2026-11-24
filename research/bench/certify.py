@@ -12,7 +12,7 @@ next to the numbers is actually supported by them.
 What is checked
   D1 determinism      every script is run twice; stdout must match after timing fields are masked.
   D2 freshness        the block of RESULTS.md tagged as scorecard output must equal a fresh run.
-  C1..C12 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
+  C1..C13 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
                       otherwise have to take on faith. Each returns the measurement behind it.
 
 Exit code is 0 only if every check passes. A failing check is a result, not a nuisance: it means a
@@ -297,6 +297,33 @@ def check_claims():
                      "0-param carry-blind" in part2,
                      "D-021 §2.2 / AMEND-002: the null must be a row, not a note in another file"))
 
+    # C13 -- turn 7's audit: the harness's own claims must match the boundary scan, and the closure
+    # gate must carry the three-way verdict D-023 adopted (feasible DEAD / infeasible VIABLE / LIVE).
+    part10 = md0.split("PART 10")[-1] if "PART 10" in md0 else ""
+    out.append(check("C13 Part 10 (harness audit) published", bool(part10),
+                     "the Adversary audited A1b and Task B (MSG-0011); the audit of that audit is "
+                     "the evidence that the two corrections are real"))
+    au = load_module("audit_harness")
+    k8, _ = au.min_exact_k(8)
+    k16, _ = au.min_exact_k(16)
+    out.append(check("C13 A1b's requirement is D+3, recomputed", (k8, k16) == (11, 19),
+                     f"min exact k = {k8} at D=8 (D+3={11}), {k16} at D=16 (D+3={19}); the published "
+                     f"rule said D+1 in Parts 7 and 9"))
+    part9 = md0.split("PART 9")[-1].split("PART 10")[0]
+    out.append(check("C13 Part 9 no longer claims k >= D+1 as the rule",
+                     "D+3" in part9 and "edit collateral" in part9,
+                     "the regenerated Part 9 carries the corrected state requirement and the "
+                     "corrected Task B column header"))
+    cl2 = load_module("closure")
+    d2 = cl2.dyck2_bounded()
+    out.append(check("C13 closure gate has the feasible/infeasible split (AMEND-005)",
+                     d2["verdict"] == "VIABLE" and cl2.FEASIBLE_MAX == 10 ** 9,
+                     f"Dyck-2 depth<=256 closes into {d2['counts'][256]:.2e} states and is VIABLE, "
+                     f"not DEAD -- finiteness alone is not a kill"))
+    out.append(check("C13 the audit separates collateral from collision loss",
+                     "blast radius" in part10 and "collision loss" in part10,
+                     "934 of 999 was collision loss; the edit damages 0-3 keys"))
+
     return out
 
 
@@ -312,7 +339,7 @@ def main():
     print(f"python={sys.version.split()[0]} CPU-only · root={ROOT}")
     print("A number is certified only if D1 (two runs) and D2 (freshness) both pass.\n")
 
-    scripts = ["scorecard", "symmetry", "carry", "closure"] + \
+    scripts = ["scorecard", "symmetry", "carry", "closure", "audit_harness"] + \
         (["k3control", "ceiling", "ablate_carry", "budget", "nonregular", "act_ablate"] if full else [])
     results = check_determinism(scripts)
     results += check_freshness()

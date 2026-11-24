@@ -78,12 +78,19 @@ def bits(n):
     return 0 if n <= 1 else math.ceil(math.log2(n))
 
 
+FEASIBLE_MAX = 10 ** 9      # AMEND-005: a finite M is only a kill if a machine of that size is buildable
+
+
 def verdict_from(counts, exhausted_at):
     """DEAD when the reachable set is exhausted (a finite family closes), LIVE when the frontier is
     still growing at the probe limit. A big-but-finite group (10,100 affine maps) is exhausted and
     therefore dead; an unbounded counter or store is not, at any depth tested."""
     if exhausted_at is not None:
-        return "DEAD", exhausted_at
+        M = counts[max(counts)]
+        # agent-c's K4 correction (adopted in D-023): a finite closure kills a task only if the
+        # machine is *feasible*. Dyck-2 at depth 256 closes into 2^257 states -- regular, and no one
+        # can build it, so the task is viable. The gate therefore has three answers, not two.
+        return ("DEAD" if M <= FEASIBLE_MAX else "VIABLE"), exhausted_at
     return "LIVE", None
 
 
@@ -135,6 +142,19 @@ def dyck_counter():
                      "machine is exact for every depth, which is what makes k >= D+1 falsifiable")
 
 
+def dyck2_bounded(depth=256):
+    """Dyck-2 with nesting capped at `depth` (the `0005`/`0006` surface). Regular, not infinite: the
+    stack contents range over every string in {A,B}^{<=depth}, so M = sum_{i<=depth} 2^i = 2^(depth+1)-1.
+    Finite and infeasible -- which is exactly the case the two-answer gate got wrong."""
+    M = 2 ** (depth + 1) - 1
+    depths = (8, 32, 256)
+    counts = {d: min(M, 2 ** (d + 1) - 1) for d in depths}
+    return dict(name=f"Dyck-2, nesting <= {depth} (the 0005/0006 surface)", alphabet=4,
+                counts=counts, depths=depths, verdict="VIABLE", sat=None,
+                note=f"closes into 2^{depth + 1}-1 = {M:.3e} states: regular, finite, and impossible "
+                     f"to build -- so it kills nothing (AMEND-005 / graveyard 0013 as corrected)")
+
+
 def stream_binding():
     """State = the set of live bindings. Symbolic: composing d bindings yields one of |V|^d stores."""
     depths = (1, 2, 4, 8)
@@ -158,7 +178,10 @@ def report(t):
     print("")
     print(f"  *(states include the empty composite, the identity, so the d=1 ratio can exceed 1)*")
     print("")
-    if t["verdict"] == "DEAD":
+    if t["verdict"] == "VIABLE":
+        print(f"- **finite but infeasible**: {last:.3e} states; the closure exists and cannot be "
+              f"built, so a state-count kill does not apply")
+    elif t["verdict"] == "DEAD":
         print(f"- saturates at **{last:,} states** by depth {t['sat']}, then never grows: "
               f"{bits(last)} bit{'s' if bits(last) != 1 else ''} of state, "
               f"{last * t['alphabet']:,} closed-form transitions, 1 read/token")
@@ -175,19 +198,25 @@ def main():
     print("M, an M-state automaton saturates the task with ceil(log2 M) bits and no learning. Check")
     print("this BEFORE building a candidate.\n")
 
-    tasks = [digit_addition(), affine_action(), dyck_counter(), stream_binding()]
+    tasks = [digit_addition(), affine_action(), dyck2_bounded(), dyck_counter(), stream_binding()]
     for t in tasks:
         report(t)
 
     print("## Verdict table\n")
     print("| task | states at max depth | verdict | saturates at |")
     print("|---|---|---|---|")
+    def fmt(n):
+        return f"{n:,}" if n < 10 ** 12 else f"{n:.2e}"
+
     for t in tasks:
         last = count_at(t, t["depths"][-1])
-        print(f"| {t['name']} | {last:,} | **{t['verdict']}** | "
+        print(f"| {t['name']} | {fmt(last)} | **{t['verdict']}** | "
               f"{('depth ' + str(t['sat'])) if t['sat'] is not None else 'never (tested to depth ' + str(t['depths'][-1]) + ')'} |")
-    print("\nTwo of the four are dead benchmarks, both killed after they were built and both by this")
-    print("law. The gate costs a tenth of a second, which is the entire argument for running it first.\n")
+    print("\nTwo of the five are dead benchmarks, both killed after they were built and both by this")
+    print("law. The Dyck-2 row is the case the first version of this gate got wrong: its closure is")
+    print("finite (2^257 states) and nobody can build it, so finiteness alone is not a kill --")
+    print("feasibility is (`graveyard/0013` as corrected by agent-c, adopted in D-023). The gate")
+    print("costs a tenth of a second, which is the entire argument for running it first.\n")
     print("### What would prove this gate wrong\n")
     print("A task whose reachable composite states saturate at M, on which a candidate still beats the")
     print("M-state automaton **without losing accuracy**. Under `graveyard/0013` that is impossible for")
