@@ -2,7 +2,7 @@ this is dead if either (A) the mean exact error-or-abstention on the depth-pinne
 
 # 0007 — learned episodic memory controller
 
-**Status:** PROPOSED / PRE-FLIGHT BLOCKED — no code or candidate measurements; Task B2 harness and ceiling still required.
+**Status:** DEAD as specified — pre-build Adversary veto (MSG-0014); no implementation or candidate measurements.
 **Owner:** agent-b (INVENTOR)
 **Target:** CHARTER §4; AMEND-002/003/004/005/006. One unmodified raw-byte `(F,G,H)` across Task A2 and Builder's Task B2.
 
@@ -52,3 +52,14 @@ M_t       ← exact episodic READ/WRITE/PUSH/POP actions selected by F; cleared 
 → **BUILDER:** no candidate build. Deliver Task B2's proposed shared-readout overwrite instrument, certify exact `B` bits, viable floor/ceiling and edit collateral; keep G7 WITHHELD unless the instrument demonstrates reachable collateral. Then print A2/B2 baselines and closure in the same table.
 
 **What would prove this proposal wrong:** a 1-byte raw-context test where target-only `H` cannot infer any action policy shared across A2 and B2; positive OOD error above 1% on A2; more than 1 percentage point of Task B2 recall shortfall from its certified ceiling; any per-token memory traffic ratio above 1.10 or above 4 KiB; the matched-budget Task B2 surface remaining saturated; or an Adversary demonstration that the proposed controller is mechanically identical to a known neural-RAM/PDA system.
+
+## 5. INVENTOR post-mortem — 0007 is DEAD as specified
+
+Agent-c MSG-0014's pre-build veto is accepted. No appeal and no build. The four independent kills are:
+
+1. **No matched A2 budget.** The A2 fixed-state baseline was capped at `k≤1024` states (10 bits), while the proposed episodic controller had no matched A2 budget. In the initial draft, `--memory-budget 1048576` had no unit; at the corrected A2 envelope, the entire depth-64 Dyck-2 stack fits in roughly 71 bits (64 type bits plus a 7-bit depth counter). A budget-capable stack baseline at the same bits would already solve the task. Comparing a 10-bit baseline to an effectively unbounded episodic store was not a mechanism comparison.
+2. **No specified temporal credit assignment.** `H` receives raw training streams and one terminal validity target, but the spec gave no eligibility trace, return propagation, BPTT, value model, or other path by which an intermediate `PUSH`/`POP` choice receives learning signal. Handwritten transitions or per-token action labels would violate AMEND-004; terminal-only local error cannot train the proposed sequential memory policy as specified.
+3. **Known learned-dispatch PDA/RAM.** The stated operations (`PUSH`, `POP`, `READ`, `WRITE`) plus a learned byte selector are a conventional stack/RAM machine with learned dispatch. The proposal named this as its own veto condition and supplied no load-bearing distinction. Episodic memory's allowance under AMEND-006 does not itself establish an architectural advantage.
+4. **Task B has no headroom at matched bits.** At equal `B`, the candidate stores the same number of incompressible key/value records as direct addressing; that baseline already meets G4. The full KV scan is a deliberately slow comparator, not evidence of a new primitive. The original byte/bit ambiguity has been corrected in the later draft to `B=1,024` slots and nominal 32,768 payload bits, but exact metadata accounting and an unsaturated B2 ceiling remain requirements, not results. Builder MSG-0009's superposed store shows only 0–5 true collateral keys in tested cases; G7 remains an instrument concern, not an advantage established here.
+
+The corrected D=32/64 split, raw interface, and explicit budget line addressed the surface issues, but did not repair the missing mechanism or matched A2 baseline. Retain those protocol fixes. Do not retrofit credit assignment into 0007 after the veto; any later candidate needs its learning signal and matched-bit baselines specified before its falsifier, and must beat a same-budget stack/RAM baseline rather than a capped 10-bit table.

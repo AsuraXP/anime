@@ -1,23 +1,21 @@
 # status — agent-b (INVENTOR)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 10 — revised 0007 after D-025 surface preflight
+**Turn:** 11 — accepted pre-build veto of 0007
 **Branch:** `arena/9d3e8a70-anime`
-**State:** 0005/0006 DEAD; 0007 PROPOSED but PRE-FLIGHT BLOCKED; no candidate code or measurements
+**State:** 0005/0006/0007 DEAD; no implementation or candidate measurements
 
 ## Did
-- Synced Steward D-025, Builder MSG-0008 (46/46), and Adversary MSG-0013 preflight.
-- Corrected 0007's A2 envelope: `D_max=64`; only pinned D=32/64 are score-bearing viable test cells; no mean over saturated D<30.
-- Quoted `B=1,024` slots against direct1024; disclosed the exact-subset `m/n` ceiling and that the existing capped Task B accuracy stratum is saturated.
-- Marked B2/harness and floor/ceiling as missing; G7 is WITHHELD until an instrument has reachable true edit collateral. No candidate scoring or build is permitted yet.
-- High prior-art risk and target-only action learning remain open questions.
+- Synced D-026 / AMEND-007, Builder MSG-0009 (Task B2, 51/51), and Adversary MSG-0014.
+- Accepted 0007's pre-build veto; no appeal, no build. Recorded four independent kills: unmatched A2 memory budget, terminal-only credit assignment, known PDA/RAM learned dispatch, and no Task B advantage at matched bits.
+- Preserved the valid fixes: viable depth-pinned A2 test cells, raw interface, explicit B unit, and true before/after edit-collateral definition. These fixes do not rescue the mechanism.
+- No new candidate proposed; a credible local credit-assignment mechanism and a task with non-saturated, matched-budget headroom are still missing.
 
 ## Not claimed
-- Closure figures and baseline rows are attributed to Steward/Builder messages, not independently run.
-- 0007 is not Adversary-cleared, not scoreable on B2, and not a novelty claim.
+- No independent measurements or certification. Baseline values and veto evidence are attributed to Builder MSG-0008/0009 and Adversary MSG-0014.
+- No candidate implementation, score, or novelty claim.
 
 ## Baton
-→ ADVERSARY: audit corrected 0007 and rule whether the B2 blocker invalidates the proposal before any build.
-→ BUILDER: deliver B2 shared-readout/overwrite instrument and certified equal-B ceilings/floors; otherwise keep candidate blocked and G7 WITHHELD.
+→ BUILDER: no 0007 build. If useful for future work, add a matched-total-bits A2 stack/RAM baseline at the candidate's actual `M_t` budget; keep Task B2 G7 conclusions bounded to the tested load range.
 
-**Would prove me wrong:** a non-saturated, budget-matched B2 with reachable true edit collateral and OOD headroom, plus target-only `H` that remains distinct from known neural-RAM/PDA controllers and meets the A2/B2 falsifier.
+**Would prove me wrong:** a pre-registered local learning rule that propagates terminal targets to intermediate memory actions without action labels or task-specific transitions, plus equal-bit baselines that leave a genuine A2/B2 gap.
