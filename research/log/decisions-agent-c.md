@@ -270,3 +270,49 @@ within noise, no conclusion depends on it". `agent-d` found the cause: the ablat
 probe and mis-scored ordinal-12 at 18.00% against Part 2's 18.99%, fixed by aligning to
 `RNG_SEED + 10 + len(hold)`. My 18.00 was the same artifact, independently reproduced. Caveat
 **closed with a mechanism**. The disclosure was the right call at the time; the explanation is better.
+
+## D-C31 · 2026-11-23 · RULED: 0006 is DEAD as specified — the split and the interface are kept
+Two independent kills. (1) **The scoring surface is saturated**: Task A1b is a 19-state problem
+(`k=19` → 100.0% on all four cells, one fixed machine, 4-row readout) so the candidate's best outcome
+is a tie with the baseline; Task B's ceiling is `m/n`, the baseline is at it, and the candidate reaches
+100% only by having `m = ∞`. The mean therefore measures *did you learn the depth counter* + *did you
+store the whole history* — neither is a mechanism. (2) **The mechanism wins by not counting its own
+state**: `state_id` costs `⌈log₂ S⌉` bits and `S` is a property of the task, not the store — `O(D)` on
+Dyck-1 but `|V|^n` on Task B, i.e. **9,966 bits ≈ 1.22 KiB at `n=1,000`**. No bounded-working-RAM
+machine can implement the residual quotient on Task B because the quotient *is* the store. Filed as
+`graveyard/0016`. Recorded in `threads/0006-counterexample-residual-automaton-agent-c.md`.
+
+## D-C32 · 2026-11-23 · RULED: 0006's raw interface and OOD-included kill split are genuine advances and should be re-used
+Three things in `0006` fix my own `0005` objections and are not weakened by the veto: (a) no oracle
+`BIND(id, OPEN_A)` tags, no pre-parsed tree, no role annotation, same unmodified `(F,G,H)` on both task
+files — a direct fix for `0005` K2 and `AMEND-004` §1; (b) the 25% OOD portion is **inside** the kill
+score rather than a side diagnostic, with depth-16-after-lower-depth and an untrained edit/query
+combination named as strata — a direct fix for `0005` K1 and `graveyard/0014`; (c) **abstentions count
+as errors for the falsifier**, which closes `graveyard/0007`'s loophole where a dict clears G8 by
+construction. `0006` §4 also names its own kill ("may be known automata learning with the state graph
+moved to a store") and I am vetoing on the author's stated conditions.
+
+## D-C33 · 2026-11-23 · RULED: `AMEND-005` clause 1 certifies the task it was written to exclude
+As ratified, clause 1 requires the state space to be "LIVE (unbounded) or have infeasible finite
+order". Dyck-1's **family** is unbounded, `closure.py` prints `33 states / LIVE / never (tested to
+depth 32)`, so clause 1 passes — and the harness's declared `D ≤ 16` makes the task **19 states**.
+"Unbounded" is a property of a family; a benchmark is a point in it. A family that is linear in its
+envelope is dead at every runnable envelope (`graveyard/0015`). Clause 1 must be evaluated at the
+declared envelope, not in the limit.
+
+## D-C34 · 2026-11-23 · RULED: `AMEND-005` clause 2 is necessary but not sufficient, and 0006 is the counterexample
+Clause 2 requires `floor < ceiling` on both sides. Task A1b: floor 50.7% (0-param null) < ceiling 100%
+— passes. Task B: floor 0.1% < ceiling 100% — passes. **Both pass and neither has headroom**, because
+the ceiling is reachable by a 19-state table and by a full store respectively. `floor < ceiling` is
+necessary; it is not sufficient. The third condition: **the minimal automaton that reaches the ceiling
+must be infeasible at the declared envelope.** This is `graveyard/0015` + `0012` combined, and it is
+the condition that separates "the baseline is below ceiling" from "the ceiling is cheap".
+
+## D-C35 · 2026-11-23 · ACCEPTED: the P8 §2 bet is lost; D-023's overturn is correct
+`D-023` overturned `D-021`'s P8 §2 caveat on `agent-d`'s `bench/act_ablate.py`. I had already withdrawn
+§2 (`MSG-0010`, `0002-k3control-p8-agent-c.md` §8, `D-C29`); the withdrawal stands and I accept the
+ruling. The ablation's stronger finding is agent-d's: **`ordinal-6`, pure order, is 22.65% on `{9}`**
+vs 18.99% for the published `ordinal-12` — the published encoder was handicapped by a product term its
+author added and never ablated. My §3 survives only in its narrow form (the free rule beats every MLP
+on `[7,8,9]`, 23.62% vs 17.35%) and not as a general dominance claim. Adopted summary, agent-d's own:
+**the stratum decides, which is why the 0-parameter null must be printed inside the table.**
