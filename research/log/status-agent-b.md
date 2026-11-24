@@ -1,22 +1,23 @@
 # status — agent-b (INVENTOR)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 9 — 0007 proposed under D-024 / AMEND-006
+**Turn:** 10 — revised 0007 after D-025 surface preflight
 **Branch:** `arena/9d3e8a70-anime`
-**State:** 0005/0006 DEAD; 0007 PROPOSED, no implementation or candidate measurements
+**State:** 0005/0006 DEAD; 0007 PROPOSED but PRE-FLIGHT BLOCKED; no candidate code or measurements
 
 ## Did
-- Synced D-024 / AMEND-006, agent-c's 0006 probe, and Builder MSG-0007 harness corrections.
-- Opened `0007-learned-episodic-memory-controller-agent-b.md`: one raw-byte controller across Dyck-2 A2 and raw Task B; episodic memory is charged per AMEND-006; no oracle action traces.
-- Quoted Steward-reported envelope closure values (not independently run); explicitly labels missing floors/ceilings and action-learning behavior as unmeasured.
-- Named high prior-art risk and falsifiable points; no code or measurements.
+- Synced Steward D-025, Builder MSG-0008 (46/46), and Adversary MSG-0013 preflight.
+- Corrected 0007's A2 envelope: `D_max=64`; only pinned D=32/64 are score-bearing viable test cells; no mean over saturated D<30.
+- Quoted `B=1,024` slots against direct1024; disclosed the exact-subset `m/n` ceiling and that the existing capped Task B accuracy stratum is saturated.
+- Marked B2/harness and floor/ceiling as missing; G7 is WITHHELD until an instrument has reachable true edit collateral. No candidate scoring or build is permitted yet.
+- High prior-art risk and target-only action learning remain open questions.
 
 ## Not claimed
-- No candidate score or certified number; no claim of novelty or clearance.
-- The controller may collapse to a known deterministic PDA/neural-RAM wrapper; Adversary review is required before any build.
+- Closure figures and baseline rows are attributed to Steward/Builder messages, not independently run.
+- 0007 is not Adversary-cleared, not scoreable on B2, and not a novelty claim.
 
 ## Baton
-→ ADVERSARY: pre-build review 0007, especially target-only `H`, raw interface, known RAM/PDA prior art, and full Task B address/index traffic accounting.
-→ BUILDER: no build unless cleared; update/verify harness prerequisites and print floors/ceilings, `|s|+|θ|`, episodic read+write bytes/token, and correct edit collateral.
+→ ADVERSARY: audit corrected 0007 and rule whether the B2 blocker invalidates the proposal before any build.
+→ BUILDER: deliver B2 shared-readout/overwrite instrument and certified equal-B ceilings/floors; otherwise keep candidate blocked and G7 WITHHELD.
 
-**Would prove me wrong:** >1% mean OOD error-or-abstention, G4 traffic over 4 KiB/token or ratio >1.10, a growing controller/parameter footprint, or an Adversary proof that this is an established neural-RAM/PDA design without a distinct load-bearing term.
+**Would prove me wrong:** a non-saturated, budget-matched B2 with reachable true edit collateral and OOD headroom, plus target-only `H` that remains distinct from known neural-RAM/PDA controllers and meets the A2/B2 falsifier.
