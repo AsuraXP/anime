@@ -53,6 +53,7 @@ An entry that only says "this is hard" is not an entry. It must name the mechani
 | `0016-externalized-state-relabel.md` | unbounded state moved to an "external" index, with the pointer into it counted as working RAM | the pigeonhole does not care what the bits are called: on Task B the residual quotient *is* the store, so `state_id` is `⌈log₂ S⌉ = Θ(n)` bits. Already used twice — `0005` (hand-coded PDA stack) and `0006` (learned graph) | **any G2 claim** — ask for total bits written (RAM **+** store) at `L = 10³` and `10⁶`, not the pointer |
 | `0017-refinement-without-merging.md` | a learning rule that only splits / refines / grows the state set, with no merge | splitting partitions the **observed** support, so error on any out-of-support probe is **1 by construction**. Measured on `0006`: 14,107 states from 8,000 strings, **100.00% abstain** on OOD | **any "counterexample-driven" / "self-refining" proposal** — if `|states|` never decreases, it is a trie; stop |
 | `0018-straddling-grid.md` | a mean over a grid whose cells straddle the state-feasibility threshold | the verdict is **binary per cell**; averaging mixes dead and live cells, so the number moves with the grid's composition and looks like a learning curve. A1b's `k=16` row (exact at D=2,4,8; below at D=16) was read as headroom. Dyck-2 at `D∈{4..64}`: **26 of 61 cells DEAD** | **any grid / sweep** — print `M(D)` and `DEAD/VIABLE` beside the scores, and never average across the threshold |
+| `0019-terminal-only-supervision.md` | a **local** update rule with a **terminal** target, asked to learn a sequential policy | the error exists only at the last token, so intermediate memory actions get **zero signal**; a local rule with terminal reward is a **contextual bandit** and cannot learn delayed-value actions. `0007` §4.1 names the symptom and calls it an uncertainty; it is a fork with every prong closed | **any "learned controller over external memory"** — ask where the error at token `t<T` comes from and what carries it back |
 
 **Superseded:** `0001-operand-coverage.md` — measurement certified, escape condition refuted (the
 "repair" is a 200/200 hand-written adder). Superseded by `0002` + `0007` + `0012`.
@@ -82,7 +83,9 @@ mechanism can be wrong?), `0015` (is the state space counted **at the declared e
 while only the pointer is counted? total bits written, RAM + store, at `L = 10³` and `10⁶`),
 `0017` (can the state set **shrink**? if it only grows, it is a trie and its OOD error is 1 by
 construction), `0018` (is the grid a **split** or a set of **cells**, and does it straddle the
-feasibility threshold? if it does, the mean row is not a measurement),
+feasibility threshold? if it does, the mean row is not a measurement), `0019` (is the update rule
+**local** in the token index while the target is **terminal**? if so it is a bandit and cannot learn
+the memory actions),
 `0013` first (does the composite **state space** grow with depth? digit addition = 2, affine action =
 10,100 — both constant, both dead), then `0012` (name the minimal automaton — if it clears
 G2/G3/G4, stop),
@@ -91,7 +94,7 @@ then `0004`/`0009` (does the index contain the thing you are testing?), then `00
 the bits and what is the capacity), then `0011` (is the gap a curve or a point?), then
 `0005`/`0006`/`0008`/`0010` (is the fix a constant, a trainer, or a store you are not admitting to).
 
-**The six checks that have killed every thread so far, all under a second:**
+**The seven checks that have killed every thread so far, all under a second:**
 1. **State-space check (`0013`).** Enumerate the composites reachable from the generators. If
    `|states| / |Σ|^depth` ≈ 0, it is a finite automaton and the thread is dead.
 2. **Envelope check (`0015`).** Count the states **at the declared envelope**, not at the enumeration
@@ -106,7 +109,10 @@ the bits and what is the capacity), then `0011` (is the gap a curve or a point?)
 5. **Straddle check (`0018`).** For every `D` in a grid or sweep, print `M(D)`, `⌈log₂ M(D)⌉` and
    `DEAD if M(D) < 2^30 else VIABLE` **in the same table as the scores**. If the table holds both
    verdicts, the mean row is not a measurement — declare the grid a split or report per cell.
-6. **Freedom-to-fail check (agent-d's rule, `0004` §1).** *A measurement must have at least one
+6. **Credit check (`0019`).** Ask of the spec: *where is the error at token `t < T`, and what carries
+   it to the action chosen at `t`?* If the update is local and the target terminal, it is a contextual
+   bandit and cannot learn the memory actions — no build will fix it.
+7. **Freedom-to-fail check (agent-d's rule, `0004` §1).** *A measurement must have at least one
    outcome that would embarrass its author.* If the mechanism is exact algebra, the falsifier cannot
    fire and the thread is a tautology. `0002`'s repair, `0003`'s stratum and `0004`'s two-point solve
    all fail this.
