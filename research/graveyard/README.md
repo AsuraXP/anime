@@ -50,6 +50,7 @@ An entry that only says "this is hard" is not an entry. It must name the mechani
 | `0013-finite-closure-is-a-finite-automaton.md` | composition closing into a finite family of order M | the composite is one of M states, so an M-state automaton saturates it — **but only if M is feasible** | **the first check of all** — does the *state space* grow with depth? |
 | `0014-degenerate-stratum.md` | a kill metric scored on a split with no degrees of freedom | the split decides the number before the run; appeared with both polarities (0003 baseline-crippled, 0005 candidate-crippled) | **before scoring anything** — print the mechanism's floor and ceiling on each split |
 | `0015-declared-envelope.md` | a state space counted in the limit instead of at the declared envelope | `closure.py` enumerated Dyck-1 to depth 32 and said `33 states / LIVE`; the harness declares `D ≤ 16`, where the requirement is **19 states = 5 bits** and one fixed machine is exact on the whole grid | **before trusting any `LIVE` verdict** — print `|states|` *at the declared envelope*, with the envelope on the same line |
+| `0016-externalized-state-relabel.md` | unbounded state moved to an "external" index, with the pointer into it counted as working RAM | the pigeonhole does not care what the bits are called: on Task B the residual quotient *is* the store, so `state_id` is `⌈log₂ S⌉ = Θ(n)` bits. Already used twice — `0005` (hand-coded PDA stack) and `0006` (learned graph) | **any G2 claim** — ask for total bits written (RAM **+** store) at `L = 10³` and `10⁶`, not the pointer |
 
 **Superseded:** `0001-operand-coverage.md` — measurement certified, escape condition refuted (the
 "repair" is a 200/200 hand-written adder). Superseded by `0002` + `0007` + `0012`.
@@ -75,21 +76,27 @@ any falsifier built on it is passed by construction. Before opening a thread, na
 
 **Order of checks for a new candidate:** `0014` (is the kill metric scored on a split where the
 mechanism can be wrong?), `0015` (is the state space counted **at the declared envelope**? Dyck-1 is
-19 states at `D=16` and unbounded only in a limit nobody runs), `0013` first (does the composite
-**state space** grow with depth? digit addition = 2, affine action = 10,100 — both constant, both
-dead), then `0012` (name the minimal automaton — if it clears G2/G3/G4, stop),
+19 states at `D=16` and unbounded only in a limit nobody runs), `0016` (are the bits **in the store**
+while only the pointer is counted? total bits written, RAM + store, at `L = 10³` and `10⁶`),
+`0013` first (does the composite **state space** grow with depth? digit addition = 2, affine action =
+10,100 — both constant, both dead), then `0012` (name the minimal automaton — if it clears
+G2/G3/G4, stop),
 then `0007` (does the abstain rule need a model at all?),
 then `0004`/`0009` (does the index contain the thing you are testing?), then `0002`/`0003` (where are
 the bits and what is the capacity), then `0011` (is the gap a curve or a point?), then
 `0005`/`0006`/`0008`/`0010` (is the fix a constant, a trainer, or a store you are not admitting to).
 
-**The three checks that have killed every thread so far, all under a second:**
+**The four checks that have killed every thread so far, all under a second:**
 1. **State-space check (`0013`).** Enumerate the composites reachable from the generators. If
    `|states| / |Σ|^depth` ≈ 0, it is a finite automaton and the thread is dead.
 2. **Envelope check (`0015`).** Count the states **at the declared envelope**, not at the enumeration
    limit. If the count is feasible there, the task is dead no matter what the family does in the
    limit. Linear-in-the-envelope (`D+3` for Dyck-1) is dead at every runnable depth.
-3. **Freedom-to-fail check (agent-d's rule, `0004` §1).** *A measurement must have at least one
+3. **Bits-not-labels check (`0016`).** Ask how many bits the mechanism writes **in total** (working
+   RAM **plus** any "external" store) to answer one held-out query at stream length `L`, and how that
+   grows in `L`. If it is `Ω(L)` and the thread calls it external, the thread is dead. Bounding the
+   pointer is not bounding the state.
+4. **Freedom-to-fail check (agent-d's rule, `0004` §1).** *A measurement must have at least one
    outcome that would embarrass its author.* If the mechanism is exact algebra, the falsifier cannot
    fire and the thread is a tautology. `0002`'s repair, `0003`'s stratum and `0004`'s two-point solve
    all fail this.
