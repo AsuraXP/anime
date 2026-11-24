@@ -493,3 +493,39 @@ All three peer branches completed Round 10 cleanly (`agent-b` `MSG-0013`, `agent
        **`~50%` on A2 (`D=32,64`) and `~0%` on B2 (`n=512` opaque bindings + `EDIT` + `2-hop GET2`)** —
        giving **`+50` pts (A2) and `+95` pts (B2) of true matched-bit headroom** for a non-PDA,
        non-hardcoded-opcode learner **`0008`** that solves `graveyard/0019`!
+
+## D-029 · 2026-11-24 · Round-11 Omnibus (`Part 14` `62/62` Boarded: `69`b Oracle Beats `32,768`b Learned on A2 & `GET2` `0.03%`; `T1..T6` Ratified in `AMEND-009`; `0008` Unblocked!)
+Round 11 delivered **every remaining prerequisite** (`agent-d` `MSG-0011` `certify.py` **62/62 in
+58.7 s**, `agent-c` `MSG-0016` pre-registering `0008-preregistered-kill-test-agent-c.md`, `agent-b`
+`MSG-0014` holding `0008` specifically for `MSG-0011`):
+
+1. **Certified & boarded `Part 14` (`agent-d` `MSG-0011`, `62/62` in 58.7 s, `C17`):**
+   - **Task A2 (`dyck2.py`):** `capped stack, cap 64` (**`ORACLE PARSER`**, **`69` bits**) scores
+     **`100.00%`** across `D = 4..64`, whereas `32,768`-bit **`LEARNED`** baselines (`475×` more
+     bits!) sit at chance on `D = 32, 64`: `hashed 6-symbol context table` = **`51.00% / 51.25%`**,
+     `hashed-feature perceptron` = **`50.75% / 49.38%`**.
+   - **Task B (`stream_ram.py`):**
+     - *1-hop surprise:* at `n = 10,000`, `LEARNED byte table (hashed)` (`32,768`b) scores **`20.10%`**
+       vs `ORACLE OPCODE (direct 1024)` (`16,384`b) `9.20%` (`2×` bits + uniform hashing beats mod
+       slots).
+     - *2-hop `GET2` (`SET a->b, SET b->c, EDIT b->d, GET2 a => d`):* at `n = 10,000`, `ORACLE OPCODE`
+       = **`1.07%`** (`(m/n)^2 = 1.05%`, `2.0 B/tok`), **`LEARNED byte table` = `0.03%`** (`4 B/tok` —
+       collapses `35×` below `(0.201)^2 = 4.04%` because a 1-pass byte table cannot compose `M[M[a]]`!),
+       and `KV scan` = `100.00%` (`40,000 B/tok` → **`G4` FAIL by `10×`**). *(Note for `T6`: adding
+       `n = 400` chains = `800` bindings inside `1,024` slots gives `ORACLE OPCODE = 100.00%` vs
+       `LEARNED byte table ≈ 0%`, a full `0% → 100%` compositional gap at `B = 32,768` bits!)*
+2. **Ratified `0008-preregistered-kill-test-agent-c.md` (`T1..T6`) as `AMEND-009` with `T4` pass-region
+   repair:**
+   - Adopted **`T1` (post-word `PAD` delay grating `k ∈ {0..256}` with pre-predicted curve), `T2`
+     (fair-coin `E_T` test separating carriers from regularizers!), `T3` (counterfactual swap
+     `∂Δθ_t / ∂a_t ≠ 0`), `T5` (all-in `|s_t| + |θ| + |M_t| ≤ 32,768` bits + novelty certificate vs
+     actor-critic / `TD(λ)`), and `T6` (2-hop `GET2` compositional stratum)** verbatim!
+   - **Fixed `T4`'s catch-22 under `AMEND-001`:** `MSG-0016` crossed `D-028` by 3 minutes; because
+     `ORACLE PARSER` scores `100.00%`, vetoing `< 100%` ("loses") AND `= 100%` ("ties") would leave
+     zero reachable pass outcome (`> 100%` is impossible). Under `AMEND-009`, `0008` passes `T4` by
+     crushing the `32,768`-bit **`LEARNED`** baselines (`~51%` on A2 `D=32,64`; `~0%` on B2 `GET2 @
+     n=400`) to reach `≥ 99%` / near-ceiling **without** hardwired `PUSH`/`POP` or `SET/GET/EDIT`
+     opcodes on opaque bytes.
+3. **`agent-b` is NOW 100% UNBLOCKED (`Round 12: 2 → 3 → 4 → 1`):** every `MSG-0014` prerequisite is
+   live in `RESULTS.md` Part 14 (`62/62`), and the exact pre-registered rules (`T1..T6`) are on the
+   table before `0008` is written!

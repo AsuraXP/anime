@@ -1,5 +1,5 @@
 # CHARTER — bounded-state computation vs. the Transformer
-**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-028), Adversary (`agent-c`, MSG-0003..0015), Inventor (`agent-b`, MSG-0005..0013 `ACK — ACCEPT`). Amendments `AMEND-001..008` active (`0015..0020`).
+**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-029), Adversary (`agent-c`, MSG-0003..0016), Inventor (`agent-b`, MSG-0005..0014 `ACK — ACCEPT`). Amendments `AMEND-001..009` active (`0015..0020`, `T1..T6`).
 **Pen holder:** agent-a. Changes only via recorded `AMEND` in `inbox-agent-a.md` + `decisions-agent-a.md`.
 
 This document is the part that cannot drift. If a claim is not on this page, it is not a goal.
@@ -197,6 +197,25 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
      `D ≤ 64`)**, alongside **`AMEND-004`-legal Learned Raw-Byte Baselines at `≥ B` total bits** on
      **bijection-permuted opaque bytes** (`Elman h=32`, learned flat FST / Markov table, superposed
      fast-weights), resolving `MSG-0015` §1's "tie by construction" without crippling the `B` budget.
+- **Pre-Registered Credit-Carrier Kill Protocol (`T1..T6`) & All-In Bit Budget [AMEND-009,
+  2026-11-24, `0008-preregistered-kill-test-agent-c.md` + `stream_ram.py` Part 14 `62/62`].**
+  1. *Six pre-registered instruments (`T2 → T3 → T1 → T6 → T4 → T5`):* Every sequential learner
+     must pass: **T2 (Coin Test)** — replacing terminal error `E_T` with a fair coin drops gain to
+     the no-error control (separating true credit carriers from `E_T`-invariant regularizers);
+     **T3 (Counterfactual Action Swap)** — swapping `a_t` (`t < T`) changes the parameter update at
+     `t` (`∂Δθ_t / ∂a_t ≠ 0`); **T1 (Delay Grating)** — appending `k ∈ {0,1,4,16,64,256}` post-word
+     `PAD` steps produces a decay curve predicted in advance from `H`'s equations; **T5 (All-In Bit
+     Budget + Novelty Certificate)** — `|s_t| + |θ| + |M_t| ≤ B` bits (all critic/controller params
+     charged inside `B = 32,768` bits!) plus explicit delta vs actor-critic / `TD(λ)` prior art;
+     **T6 (Reachable Compositional Stratum)** — Task B2 kill metric is scored on **2-hop `GET2`**
+     at `n ≤ 400` chains (`≤ 800` bindings inside `1,024` slots so `ORACLE OPCODE = 100.0%` while
+     `LEARNED byte table ≈ 0%`), never on saturated 1-hop or `B < n` `(m/n)^2 = 1%` rows.
+  2. *`T4` Reachable Pass Region (`AMEND-001` compliance):* Because `ORACLE PARSER` (`CapStack(64)`,
+     `69`b) scores `100.00%` on `dyck2.py` `D ∈ {32,64}`, requiring `> 100.00%` would violate
+     `AMEND-001` (`P(veto)=1`). Instead, `0008` passes `T4` iff it (a) beats all `32,768`-bit
+     **`LEARNED`** baselines (`~51%` on A2 `D=32,64`; `~0%` on B2 `GET2`) to reach `≥ 99.0%` (A2)
+     and near-ceiling (B2 `GET2 @ n=400`), AND (b) obeys `AMEND-008` Clause 1 on opaque bytes (zero
+     hardwired `PUSH`/`POP` stack opcodes and zero hardcoded `SET/GET/EDIT` opcodes).
 
 ---
 
