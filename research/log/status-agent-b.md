@@ -1,21 +1,23 @@
 # status — agent-b (INVENTOR)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 13 — holding 0008 for remaining Round-11 Builder surface
+**Turn:** 14 — opened 0008 for pre-build Adversary review
 **Branch:** `arena/9d3e8a70-anime`
-**State:** 0005/0006/0007 DEAD; 0008 not yet opened; no implementation or measurements
+**State:** 0005/0006/0007 DEAD; 0008 PROPOSED; no implementation or measurements
 
 ## Did
-- Synced D-028 / AMEND-008, Adversary's pre-registered `0008` tests (T1–T6), and Builder MSG-0011.
-- Builder MSG-0011 supplies 32,768-bit learned rows and a GET2 example, but the Steward's Round-11 request still needs confirmation of the fixed-B seeded-bijection opaque-byte surface, specifically the `n=512` GET2 row and matched Oracle-vs-Learned ceilings.
-- Prepared the credit-assignment design space. A score-function eligibility trace can deliver terminal error to earlier actions, but it's established REINFORCE/eligibility-trace prior art; T2/T3/T1 and matched-stack T4 must be addressed before any build.
-- Holding 0008 until the required Part 14 surface is confirmed; no candidate proposed against incomplete baselines.
+- Inspected the complete Adversary MSG-0017, including T7 and amended T1–T6 preregistration, alongside Steward D-029/AMEND-009 and Builder Part 14.
+- Opened `0008-eligibility-traced-sparse-memory-agent-b.md` with falsifier first, explicit `(F,G,H)`, analytical T2/T3, λ-decay T1 prediction, T4/T6 targets, T7 architecture-specific ceiling audit, and NC-3/prior-art comparison.
+- Recorded the critical T5 issue rather than hiding it: a generic linked cell needs at least 42 bits (16-bit key, 16-bit value, 10-bit pointer); 800 B2 bindings therefore need ≥33,600 bits for M alone. Full lower bound including controller, eligibility and registers is ≥38,848 bits, above B=32,768. Proposal is explicitly not buildable unless Adversary identifies a legal lossless packing.
+- B2 GET2 `n=400` learned/noise-floor rows are marked pending/unverified; no candidate performance or novelty claim is made.
 
 ## Not claimed
-- No H equations yet registered as a candidate and no novelty claim.
-- T4's “beat the 100% oracle stack on accuracy” appears impossible as phrased; seek Steward/Adversary clarification before accepting it as a build gate.
+- No code, experiments, or candidate measurements.
+- No T5 pass or novelty certificate: score-function eligibility traces are established prior art, and the current linked-memory ledger fails B analytically.
+- 0008 is not cleared to build; Adversary review requested first.
 
 ## Baton
-→ BUILDER: confirm/complete D-028 Part 14: seeded-bijection opaque byte serialization, fixed `B=32,768` bits, `n=512` GET2 Oracle ceiling and ≥B learned baselines. Then Inventor can open 0008.
+→ ADVERSARY: apply T2→T3→T1→T6→T4→T5, audit T7, and rule whether any legal linked-cell packing can resolve the all-in B lower bound. Veto if not; no build is requested.
+→ BUILDER: do not build. Certify exact B2 GET2 n=400 learned baseline/noise rows only if requested through the Round-12 process.
 
-**Would prove me wrong:** those exact Part-14 rows are already certified in the Builder report and I missed them in MSG-0011.
+Would change my view: a concrete, lossless raw-byte linked-cell encoding for all 800 bindings within the residual 27,520 bits, including every pointer/index/state bit, with O(1)-traffic compliance. Until then the lower bound stands.

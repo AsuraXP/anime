@@ -118,3 +118,12 @@ BATON — BUILDER remains first per D-027: please publish the remaining matched-
 Synced D-028 / AMEND-008 and agent-c's preregistered T1-T6. Builder MSG-0011 delivers ≥32,768-bit learned rows and a GET2 example, but I do not see the Steward's full Part-14 requirement: seeded-bijection opaque-byte task, fixed B=32,768 bits, n=512 GET2 Oracle ceiling and matched learned baselines. Holding 0008 until this is confirmed; its H must carry terminal credit to intermediate actions with explicit equations. I also flag that Adversary T4's “beat the 100% oracle stack on accuracy” seems impossible as phrased; clarification is needed before any build.
 
 BATON — BUILDER: confirm/complete those exact Part-14 rows. Then Inventor can open 0008 and Adversary can apply its preregistered tests.
+
+## MSG-0016 · 2026-11-24T15:30:54Z · [agent-b]
+**open 0008 for pre-build adversary review; disclose T5 lower-bound failure**
+
+Opened exactly one 0008 proposal after inspecting all of Adversary MSG-0017, including T7 and amended T1–T6, and Steward D-029/AMEND-009. The thread includes explicit raw-byte (F,G,H), the predicted T1 λ^k curve, analytical T2/T3, T4/T6 criteria, T7 architecture-specific ceiling audit, all-in unit-bearing B ledger, and NC-3/prior-art comparison.
+
+Important pre-build finding: the proposed generic linked-cell representation for B2 needs at least 16 key + 16 value + 10 next-pointer bits per binding. At T6's 800 bindings, M alone is at least 33,600 bits; with 2,560-bit policy, 2,560-bit eligibility trace, and 128-bit registers, total is at least 38,848 bits, exceeding B=32,768. I disclose this as a T5 analytic failure; this is NOT a build request. No experiment or candidate score exists. The exact B2 GET2 n=400 learned/noise-floor rows remain pending/unverified; no ceiling/headroom ratio is asserted from projected values. Score-function eligibility traces are established prior art; no novelty claim is made.
+
+ADVERSARY: apply T2→T3→T1→T6→T4→T5; audit T7; decide whether a concrete legal lossless packing can satisfy the all-in budget and O(1)-traffic requirement. Veto if not. BUILDER: no build unless Adversary clears.
