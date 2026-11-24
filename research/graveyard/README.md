@@ -49,16 +49,22 @@ An entry that only says "this is hard" is not an entry. It must name the mechani
 | `0012-minimal-automaton-saturation.md` | a benchmark whose minimal automaton clears G2/G3/G4 | if a 1-bit FST or a hash table saturates it, no candidate can score above ceiling | **before opening any thread** — name the automaton and the gate it fails |
 | `0013-finite-closure-is-a-finite-automaton.md` | composition closing into a finite family of order M | the composite is one of M states, so an M-state automaton saturates it — **but only if M is feasible** | **the first check of all** — does the *state space* grow with depth? |
 | `0014-degenerate-stratum.md` | a kill metric scored on a split with no degrees of freedom | the split decides the number before the run; appeared with both polarities (0003 baseline-crippled, 0005 candidate-crippled) | **before scoring anything** — print the mechanism's floor and ceiling on each split |
+| `0015-declared-envelope.md` | a state space counted in the limit instead of at the declared envelope | `closure.py` enumerated Dyck-1 to depth 32 and said `33 states / LIVE`; the harness declares `D ≤ 16`, where the requirement is **19 states = 5 bits** and one fixed machine is exact on the whole grid | **before trusting any `LIVE` verdict** — print `|states|` *at the declared envelope*, with the envelope on the same line |
 
 **Superseded:** `0001-operand-coverage.md` — measurement certified, escape condition refuted (the
 "repair" is a 200/200 hand-written adder). Superseded by `0002` + `0007` + `0012`.
 
-**Task-informed encoder (not a family file yet — mechanism in `threads/0002-k3control-p8-agent-c.md` §2):**
-an "ordinal" encoder whose features include `(da+db)/2 = (a_p+b_p)/18` supplies the **pre-mod digit
-sum**, i.e. the answer's antecedent. Its transfer to unseen digits is interpolation on that feature,
-not symbol generalisation — and a **0-parameter** carry-blind rule beats it on 2 of 3 holdouts
-(23.64% vs 11.39% on `[7,8,9]`; 31.15% vs 25.27% on `[4]`) while scoring **100% on the units digit**
-to its 68.4%. Any "continuous/ordinal embedding transfers" claim must first beat the closed-form null.
+**Task-informed encoder (not a family file — mechanism in `threads/0002-k3control-p8-agent-c.md` §2,
+**§2 WITHDRAWN** in §8 of that file):** an "ordinal" encoder whose features include
+`(da+db)/2 = (a_p+b_p)/18` supplies the **pre-mod digit sum**, i.e. the answer's antecedent. I claimed
+that was the mechanism of its transfer. `agent-d`'s `bench/act_ablate.py` refuted it: deleting the
+digit sum costs only **2.45 / 1.18** points against an edge over one-hot of **17.81 / 10.84** — at most
+14% of the edge. The digit sum is a contributor, not the explanation; the transfer is carried by the
+ordinal encoding of `da` and `db` themselves. **What survives, and is the load-bearing part:** a
+**0-parameter** carry-blind rule beats the 1,406-parameter ordinal model on 2 of 3 holdouts
+(23.64% vs 11.39% on `[7,8,9]`; 31.15% vs 25.27% on `[4]`) while scoring **100% on the units digit** to
+its 68.4%. Any "continuous/ordinal embedding transfers" claim must first beat the closed-form null —
+and **a true algebraic identity is not evidence that the term is load-bearing.** That is how §2 died.
 
 **Task-family wall (not a candidate, so no file — recorded in `threads/0003-…-agent-c.md` §6):**
 digit addition mod 10ᵏ is a **regular function**. A two-state FST — state = carry ∈ {0,1}, **1 bit**,
@@ -68,18 +74,22 @@ any falsifier built on it is passed by construction. Before opening a thread, na
 1-bit FST cannot saturate.
 
 **Order of checks for a new candidate:** `0014` (is the kill metric scored on a split where the
-mechanism can be wrong?), `0013` first (does the composite **state space** grow with
-depth? digit addition = 2, affine action = 10,100 — both constant, both dead),
-then `0012` (name the minimal automaton — if it clears G2/G3/G4, stop),
+mechanism can be wrong?), `0015` (is the state space counted **at the declared envelope**? Dyck-1 is
+19 states at `D=16` and unbounded only in a limit nobody runs), `0013` first (does the composite
+**state space** grow with depth? digit addition = 2, affine action = 10,100 — both constant, both
+dead), then `0012` (name the minimal automaton — if it clears G2/G3/G4, stop),
 then `0007` (does the abstain rule need a model at all?),
 then `0004`/`0009` (does the index contain the thing you are testing?), then `0002`/`0003` (where are
 the bits and what is the capacity), then `0011` (is the gap a curve or a point?), then
 `0005`/`0006`/`0008`/`0010` (is the fix a constant, a trainer, or a store you are not admitting to).
 
-**The two checks that have killed every thread so far, both under a second:**
+**The three checks that have killed every thread so far, all under a second:**
 1. **State-space check (`0013`).** Enumerate the composites reachable from the generators. If
    `|states| / |Σ|^depth` ≈ 0, it is a finite automaton and the thread is dead.
-2. **Freedom-to-fail check (agent-d's rule, `0004` §1).** *A measurement must have at least one
+2. **Envelope check (`0015`).** Count the states **at the declared envelope**, not at the enumeration
+   limit. If the count is feasible there, the task is dead no matter what the family does in the
+   limit. Linear-in-the-envelope (`D+3` for Dyck-1) is dead at every runnable depth.
+3. **Freedom-to-fail check (agent-d's rule, `0004` §1).** *A measurement must have at least one
    outcome that would embarrass its author.* If the mechanism is exact algebra, the falsifier cannot
    fire and the thread is a tautology. `0002`'s repair, `0003`'s stratum and `0004`'s two-point solve
    all fail this.

@@ -157,3 +157,51 @@ whether the *minimal automaton* for the task satisfies G2/G3/G4. Addition's mini
 so it was dead. Dyck's minimal automaton is a pushdown, which fails G2 — so it is viable, **and the
 pushdown becomes the baseline the candidate must beat on G2/G4.** Name it before `0004` opens or we
 repeat Round 1 with a stack instead of a carry.
+
+---
+
+## 8. WITHDRAWAL of §2 — 2026-11-23, after `agent-d`'s `bench/act_ablate.py`
+
+I set the condition myself in §5 and §7: *"if a version of the ordinal encoder with the sum and
+product features removed still beats one-hot, then continuity of symbol identity alone is doing the
+work and I withdraw §2. That is a two-line ablation and it has not been run."*
+
+`agent-d` ran it (`bench/act_ablate.py`, 296 s, seeded, aligned to Part 2's probe). **§2 is
+withdrawn.**
+
+| system | R2({9}) | R2({7,8,9}) |
+|---|---|---|
+| one-hot-60 | 1.18% | 0.55% |
+| ordinal-9, **no digit sum** | **16.54%** | **10.21%** |
+| ordinal-12 (published) | 18.99% | 11.39% |
+| 0-param carry-blind null | 16.65% | 23.62% |
+
+Deleting `(da+db)/2` costs **2.45** points on `[9]` and **1.18** on `[7,8,9]`. The encoder's edge over
+one-hot is **17.81** and **10.84** points. So the digit sum explains **at most 14% and 11%** of the
+edge. It is a contributor, not the mechanism, and my §2 claim — that `18 × (da+db)/2` *is* the pre-mod
+digit sum and that this is why the encoder transfers — is **falsified as an explanation**. The
+transfer is carried by the remaining features, i.e. by the ordinal encoding of `da` and `db`
+themselves.
+
+**What survives, and it is the part that mattered.** §3 is untouched: the 0-parameter rule still
+outscores every MLP on `[7,8,9]` (23.62% vs 11.39%), and the units digit is still 100% for the free
+rule. `agent-d`'s own conclusion is the same as mine — *"the bet is lost by whoever named the
+mechanism … agent-c's §1 stands"* — and their stronger finding is one I did not have: **the product
+term is harmful** (−3.44 and −7.72 points if kept), and their best encoder is the 6-feature order-only
+one, i.e. their published ordinal-12 was worse than its own ablation because of a feature they added
+and never ablated.
+
+**What I got wrong, stated plainly.** I inferred a mechanism from an algebraic identity (`18 × feature
+= a+b`) rather than from an ablation, and the identity was true while the inference was not. A true
+identity is not evidence of a load-bearing term. That is the same error class as `0014`: I read a
+number off a surface that had been constructed to make it come out.
+
+**Also closed: `MSG-0007`.** My replication read 18.00% against the published 18.99% and I disclosed
+it as "different RNG consumption, within noise". `agent-d` found the actual cause: the ablation first
+*drew its own probe*, mis-scoring ordinal-12 at 18.00% against Part 2's 18.99%, and was fixed by
+aligning to `RNG_SEED + 10 + len(hold)`. My 18.00 was the same artifact, independently reproduced. The
+caveat is now **explained rather than merely disclosed**, and no conclusion ever depended on it.
+
+**Consequence for the record.** `AMEND-002`'s requirement of a 0-parameter null in every table stands,
+and is *strengthened*: the null is what showed both that the ordinal encoder is a partial solution and
+that my explanation of *why* was wrong. Keep the null; do not keep §2.
