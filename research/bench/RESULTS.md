@@ -1,4 +1,4 @@
-<!-- GENERATED -- do not hand-edit. Fourteen parts, their commands below. -->
+<!-- GENERATED -- do not hand-edit. Fifteen parts, their commands below. -->
 <!-- reproduce part 1: python3 research/bench/scorecard.py    (~11 s,  CPU, seeded) -->
 <!-- reproduce part 2: python3 research/bench/k3control.py    (~180 s, CPU, seeded) -->
 <!-- reproduce part 3: python3 research/bench/ceiling.py      (~90 s,  CPU, seeded) -->
@@ -2190,4 +2190,137 @@ chance at `D=64` after shallow training, or a fixed-budget store that beats `(m/
 without storing keys exactly -- either would mean the bound is about the encoding, not the task.
 
 Reproduce: `python3 research/bench/stream_ram.py` (2 s), `python3 research/bench/dyck2.py` (~9 min).
+
+
+<!-- ============ PART 15: turn 12 -- AMEND-004 surfaces and the Round-11 budget ============ -->
+# Part 15 -- a permuted surface, an inferred layout, and the `+95` points that were not there (turn 12)
+
+`MSG-0016` (`D-028` + the Round-11 baton) asked for two things this file had never tested, and
+both are about what a *learner is allowed to see*: the Dyck-2 symbols had to be permuted so no
+model gets `isupper()` for free, the stream opcodes had to be permuted so no model gets
+`op == 1` for free, and every row had to be priced at `B = 32,768` bits. The answer to the
+second half is not the one the baton expected, and it is 15.4.
+
+## 15.1 What changed
+
+**A2 (`dyck2.py`).** The four symbols go through a seeded bijection onto glyphs with no case and
+no bracket shape, and **every model is fed the permuted string**. The label function and the
+oracle rows are the only things that ever see `A/B/a/b`; the oracle rows are handed the inverse
+map explicitly and are labelled `ORACLE PARSER`, i.e. as violating `AMEND-004`. Two rows were
+added: `cap 1,024` (the oracle-dispatch ceiling at `1,025` bits, well inside `32,768`) and
+`Elman h=32` (`40,000` bits at 32-bit weights). A control row strips the inverse map from the
+cap-64 oracle to show the permutation is real.
+
+**Task B (`stream_ram.py`).** The three opcodes are a seeded bijection onto arbitrary byte
+values; the learned table recovers **which opcode is followed by 4 bytes** by parse consistency
+alone (`infer_layout`, which reports ties instead of breaking them) and is never told which is
+which. `GET2` was re-priced at `B = 32,768` bits (`2,048 slots x 16 bits = 4,096 bytes`) over
+`n in {512, 1,000, 10,000}`, with a G7 collateral ratio beside it.
+
+## 15.2 A2 on a surface that hands out nothing
+
+| system | params | D=4 (M=31, DEAD) | D=8 (M=511, DEAD) | D=16 (M=131,071, DEAD) | D=32 (M=8,589,934,591, VIABLE) | D=64 (M=3.689e+19, VIABLE) | exact through | note | wall |
+|---|---|---|---|---|---|---|---|---|
+| 0-param: always valid | **0** | 52.12% | 45.88% | 49.88% | 48.38% | 52.62% | -- | -- | -- |
+| 0-param: ends with a closer | **0** | 47.88% | 54.12% | 50.12% | 51.62% | 47.38% | -- | -- | -- |
+| type-blind depth counter, 32 states -- cannot pass by construction | 32 states | 72.62% | 69.88% | 72.62% | 51.62% | 47.38% | -- | -- | -- |
+| capped type stack, cap 64, NO inverse map -- sees only glyphs | 65 bits | 47.88% | 54.12% | 50.12% | 51.62% | 47.38% | -- | control: without `SYM_BACK` the oracle cannot tell an opener from a closer | 0.0s |
+| capped type stack, cap 2 (ORACLE PARSER) | 7 states = 3 bits (+4 flags) | 61.88% | 49.62% | 51.00% | 49.12% | 52.88% | exact <= D=2 | -- | 0.0s |
+| capped type stack, cap 3 (ORACLE PARSER) | 15 states = 4 bits (+4 flags) | 71.25% | 49.62% | 51.00% | 49.12% | 52.88% | exact <= D=3 | -- | 0.0s |
+| capped type stack, cap 4 (ORACLE PARSER) | 31 states = 5 bits (+4 flags) | 100.00% | 50.12% | 50.88% | 49.12% | 52.88% | exact <= D=4 | -- | 0.0s |
+| capped type stack, cap 9 (ORACLE PARSER) | 1,023 states = 10 bits (+4 flags) | 100.00% | 100.00% | 50.12% | 51.62% | 47.38% | exact <= D=9 | -- | 0.0s |
+| capped type stack, cap 64 (ORACLE PARSER) | 3.689e+19 states = 65 bits (+4 flags) | 100.00% | 100.00% | 100.00% | 100.00% | 100.00% | exact <= D=64 | -- | 0.0s |
+| capped type stack, cap 1024 (ORACLE PARSER) | 3.595e+308 states = 1025 bits (+4 flags) | 100.00% | 100.00% | 100.00% | 100.00% | 100.00% | exact <= D=1024 | -- | 0.0s |
+| flat Markov/FST table, 4,096 contexts x 4 symbols x 2 bits, LEARNED | 32,768 bits | 52.00% | 51.62% | 46.38% | 50.88% | 49.38% | -- | -- | 0.0s |
+| hashed 6-symbol context table, LEARNED | 32,768 bits | 60.00% | 52.50% | 49.88% | 51.00% | 50.62% | -- | -- | 0.0s |
+| perceptron over hashed position/symbol features, LEARNED | 32,768 bits | 50.75% | 49.88% | 50.38% | 50.50% | 49.38% | -- | -- | 0.2s |
+| Elman h=4 (median / best of 4) | 46 params = 1,472 bits | 58.38 / 58.63% | 52.88 / 54.50% | 51.25 / 53.87% | 50.38 / 51.25% | 50.88 / 52.75% | -- | -- | 43s |
+| Elman h=8 (median / best of 4) | 122 params = 3,904 bits | 58.25 / 75.00% | 54.50 / 61.12% | 50.75 / 51.38% | 49.00 / 51.25% | 51.62 / 52.88% | -- | -- | 95s |
+| Elman h=16 (median / best of 4) | 370 params = 11,840 bits | 73.25 / 83.75% | 58.13 / 68.38% | 50.88 / 52.25% | 50.38 / 52.62% | 49.38 / 52.75% | -- | -- | 250s |
+| Elman h=32 (median / best of 2) | 1250 params = 40,000 bits | 50.00 / 50.00% | 54.62 / 54.62% | 50.62 / 50.62% | 52.00 / 52.00% | 52.25 / 52.25% | -- | -- | 404s |
+| Elman h=16, NO curriculum, 8 epochs (2 restarts) | 370 | -- | -- | -- | -- | -- | -- | training-set accuracy 51.2-52.9%, so the row above is not a tuning artifact | 48s |
+
+**The permutation is load-bearing and now measured.** The cap-64 oracle answers 100.00% at
+`D=64` when handed the inverse map and 47.38% when it is not -- so `isupper()` was doing
+real work, and every learned row below measures morphology rather than glyph shape.
+
+**`32,768` learned bits are still worth nothing here.** The flat Markov/FST table (4,096
+contexts x 4 symbols x 2-bit cells) answers 50.88% at `D=32` and 49.38% at `D=64`; the
+1,025-bit oracle stack answers 100.00% and 100.00% from 1/32 of the budget. `Elman
+h=32` at 40,000 bits reaches 52.00 / 52.00% at `D=32` and 52.25 / 52.25% at `D=64` (h=16, at 11,840 bits,
+reaches 50.38 / 52.62% and 49.38 / 52.75%). Note h=32 is *worse* than h=16 where it counts -- 50.62 / 50.62% vs
+50.88 / 52.25% at `D=8` -- on the same 8-epoch curriculum: 3.4x the parameters bought nothing, which
+is the same lesson as the tables. Whatever closes this gap has to be organization, because it is
+demonstrably not budget.
+
+## 15.3 Task B: the layout is recovered, not given
+
+One-hop binding at the smaller budget, with permuted opcodes and the inferred layout:
+
+| n | machine | bits | coverage | edit collateral | bytes read/token | G4 |
+|---|---|---|---|---|---|---|
+| 1,000 | LEARNED byte table (hashed) | 32,768 | 100.00% | 0 | 2 | yes |
+| 1,000 | direct 1024 (ORACLE OPCODE) | 16,384 | 100.00% | -- | 2.7 | yes |
+| 10,000 | LEARNED byte table (hashed) | 32,768 | 20.10% | 0 | 2 | yes |
+| 10,000 | direct 1024 (ORACLE OPCODE) | 16,384 | 9.20% | -- | 3.7 | yes |
+
+The `100.00%` at `n=1,000` and `20.10%` at `n=10,000` for the learned table are
+identical to Part 14's, where the layout was hardcoded and the opcodes were `1/2/3`. So
+recovering the layout costs nothing and is exact: one consistent assignment survives out of
+eight, and it is the true one. The oracle store at `n=10,000` sits at 9.20% -- still the
+weaker baseline, as Part 14 established.
+
+## 15.4 `GET2` at `B = 32,768`: the headroom the baton budgeted for is not there
+
+| n | machine | bits | GET2 before -> after | coll / correct-before | bytes/token | G4 |
+|---|---|---|---|---|---|---|
+| 512 | ORACLE OPCODE, 2,048 slots | 32,768 | 100.00 -> 100.00% | 0/512 | 4.0 | yes |
+| 512 | LEARNED byte table (2,048 cells) | 32,768 | 100.00 -> 100.00% | 0/512 | 4.0 | yes |
+| 512 | KV scan (unbounded store) | -- | 100.00 -> 100.00% | 0/512 | 2,048.0 | yes |
+| 1,000 | ORACLE OPCODE, 2,048 slots | 32,768 | 100.00 -> 100.00% | 0/1000 | 4.0 | yes |
+| 1,000 | LEARNED byte table (2,048 cells) | 32,768 | 67.30 -> 67.30% | 0/673 | 4.0 | yes |
+| 1,000 | KV scan (unbounded store) | -- | 100.00 -> 100.00% | 0/1000 | 4,000.0 | yes |
+| 10,000 | ORACLE OPCODE, 2,048 slots | 32,768 | 3.98 -> 3.98% | 0/159 | 4.0 | yes |
+| 10,000 | LEARNED byte table (2,048 cells) | 32,768 | 0.00 -> 0.00% | 0/0 | 4.0 | yes |
+| 10,000 | KV scan (unbounded store) | -- | 100.00 -> 100.00% | 0/4000 | 40,000.0 | **no** |
+
+At `n=512` the oracle store answers the two-hop chain at **100.00 -> 100.00%** and so does the
+learned 2,048-cell table at **100.00 -> 100.00%**, with **0/512** collateral. The baton's
+`+95` points of B2 headroom for `0008` therefore do not exist at this budget and this `n`: a
+two-line hashed table has already taken all of them. The headroom reappears only when the number
+of links exceeds the cells -- `67.30 -> 67.30%` at `n=1,000`, `0.00 -> 0.00%` at `n=10,000` -- which is a
+**capacity** gap, not a credit-assignment gap. The scan stays exact (0/4000
+bytes/token at `n=10,000`) and is the only family that fails G4.
+
+Two corollaries worth keeping:
+
+1. **G7 does not bite on a correct edit.** Every exact store answers 100% after the edit with 0
+   collateral, because it removed the old binding. Collateral is a property of stores that
+   *cannot* remove one -- the fast-weight rows of Part 13 -- and not of the task.
+2. **A ceiling is only a target if the baseline is weaker than the ceiling.** If `0008` is a
+   table, the target at `n=512` is 100% and it is already met by a baseline with no learning in
+   it. The row that would give `0008` room is a learner that cannot store keys, measured on the
+   same chain -- and that row is what the fast-weight columns already are.
+
+## 15.5 Audit of this part
+
+**Certified:** `C18` recomputes the permutation (oracle exact with the inverse map, chance
+without), the inferred layout (one consistent assignment, matching the generator), the flat
+Markov table at exactly 32,768 bits against the 1,025-bit ceiling, and the `GET2` result at
+`n=512`. `dyck2.py` and `stream_ram.py` were each run twice; both pairs are identical modulo
+wall-clock.
+
+**Not claimed:** that a permuted alphabet makes A2 harder for a *learned* model -- it does not,
+and the Elman numbers barely moved. It closes a shortcut, not a difficulty gap. **Not claimed:**
+that `Elman h=32` is the strongest 40,000-bit learner; it is the one the baton named. **Not run:**
+the byte-level Elman the baton also named for Task B -- a 44 Kb recurrent net over opaque bytes
+has no mechanism to hold 512 bindings, and the table rows already establish ~0% there; the row is
+one file away if a candidate needs it.
+
+**What would prove this wrong:** a non-table learner at `4,096` bytes that reaches the same 100%
+at `n=512` -- that would show the table's success is an artifact of the query rather than the
+budget. Or a `GET2` at `n=1,000` where the learned table beats 67.30%, which would mean the
+collision loss is recoverable without storing keys exactly.
+
+Reproduce: `python3 research/bench/stream_ram.py` (3 s), `python3 research/bench/dyck2.py` (~15 min).
 

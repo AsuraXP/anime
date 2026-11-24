@@ -52,6 +52,32 @@ RESTARTS = 4
 FEASIBLE_MAX = 2 ** 30     # AMEND-006: above this a buildable automaton cannot saturate the task
 
 
+# ------------------------------------------------------------------ surface (AMEND-004)
+def _permutation(seed):
+    """Seeded bijection over the four canonical symbols.
+
+    `AMEND-004` says a candidate may not be handed the token syntax, and `isupper()` on `A/B/a/b`
+    hands it two free facts: which symbols open, and which pairs go together. So the four symbols are
+    mapped through a seeded bijection onto four arbitrary glyphs with no case and no bracket shape,
+    and **every model in this file is fed the permuted string**. Only the label function and the
+    oracle row ever see the original alphabet; the oracle row is handed the inverse map explicitly
+    and is labelled as violating `AMEND-004`.
+    """
+    glyphs = random.Random(seed).sample("0123456789", 4)
+    return dict(zip("ABab", glyphs))
+
+
+SYM_MAP = _permutation(SEED + 99)
+SYM_BACK = {v: k for k, v in SYM_MAP.items()}
+ALPHA = [SYM_MAP[c] for c in "ABab"]          # the alphabet a model actually sees
+SYM_INDEX = {c: i for i, c in enumerate(ALPHA)}
+
+
+def enc(w):
+    """Canonical word -> the permuted bytes a model sees."""
+    return "".join(SYM_MAP[c] for c in w)
+
+
 # ------------------------------------------------------------------ data
 def dyck2_word(rng, pairs):
     """A uniformly-ish random well-nested word over two bracket types, built by recursive splitting."""
@@ -68,17 +94,25 @@ def dyck2_word(rng, pairs):
     return "".join(build(pairs))
 
 
-def depth_of(w):
+def depth_of(w, dec=None):
     d = 0
-    for ch in w:
+    for raw in w:
+        ch = dec.get(raw, raw) if dec else raw
         if ch.isupper():
             d += 1
     return d
 
 
-def nested_depth(w):
+def nested_depth(w, dec=None):
+    """Max nesting. `dec` undoes the symbol permutation; without it a permuted word has depth 0.
+
+    This signature is not decoration: `fit_curriculum` filtered its stages with this function on the
+    *permuted* alphabet, so every stage saw the whole training set (all depths computed as 0) and the
+    curriculum silently became four flat passes. The Elman rows from that run were void.
+    """
     d = mx = 0
-    for ch in w:
+    for raw in w:
+        ch = dec.get(raw, raw) if dec else raw
         if ch.isupper():
             d += 1
             mx = max(mx, d)
@@ -206,12 +240,14 @@ class CapCounter:
     Transitions are fixed by the architecture; only the readout over (final state, underflow) is
     counted from data, and it is fitted on the shallow training set ONLY."""
 
-    def __init__(self, k):
+    def __init__(self, k, dec=None):
         self.k = k
+        self.dec = dec or {c: c for c in "ABab"}     # negative control, oracle syntax, labelled
 
     def trace(self, w):
         s, under = 0, 0
-        for ch in w:
+        for raw in w:
+            ch = self.dec.get(raw, raw)
             if ch.isupper():
                 s = min(s + 1, self.k - 1)
             elif s == 0:
@@ -246,8 +282,10 @@ class CapStack:
     Only the readout over (overflow, underflow, mismatch) is fitted, on the shallow set only.
     """
 
-    def __init__(self, cap):
+    def __init__(self, cap, dec=None):
         self.cap = cap
+        # the oracle row is handed the inverse permutation; a learned model never gets this
+        self.dec = dec or {c: c for c in "ABab"}
 
     @property
     def states(self):
@@ -255,7 +293,8 @@ class CapStack:
 
     def trace(self, w):
         st, over, under, mism = [], 0, 0, 0
-        for ch in w:
+        for raw in w:
+            ch = self.dec.get(raw, raw)     # undo the permutation; this is the AMEND-004 violation
             if ch.isupper():
                 if len(st) < self.cap:
                     st.append(ch)
@@ -302,7 +341,7 @@ class RNN:
 
     @staticmethod
     def _x(ch):
-        v = {"A": 0, "B": 1, "a": 2, "b": 3}[ch]
+        v = SYM_INDEX[ch]               # permuted glyphs; ALPHA order, not the canonical one
         return [-1.0 + (1.0 if i == v else 0.0) for i in range(4)]
 
     def forward(self, w):
@@ -452,6 +491,54 @@ class HashContext:
         return 1 if self.tab[self._key(w)] > 0 else 0
 
 
+class FlatMarkov:
+    """Learned flat FST/Markov table at exactly 32,768 bits, over the permuted alphabet.
+
+    An order-`k` context indexes `4**k` rows; each row holds four 2-bit cells, one per possible next
+    symbol, so `bits = 4**k * 4 * 2`, and `k = 6` gives 4,096 x 8 = **32,768 bits** exactly. The
+    validity decision is a readout over the table's own statistics: the row for the final context
+    votes for its most likely continuation, and the fit maps that continuation index to the majority
+    label seen in training. It is the weakest structure that costs the full budget -- no recurrence,
+    no counting, no stack -- so a candidate beating it has beaten a table, not a strawman.
+    """
+
+    def __init__(self, bits=32768):
+        self.k = int(round(math.log(bits / 8, 4)))     # 4**k rows x 4 symbols x 2 bits
+        self.nctx = 4 ** self.k
+
+    @property
+    def nbits(self):
+        return self.nctx * 4 * 2
+
+    def _ctx(self, w):
+        h = 0
+        for ch in w[-self.k:]:
+            h = h * 4 + SYM_INDEX[ch]
+        return h % self.nctx
+
+    def fit(self, data):
+        self.tab = [[0] * 4 for _ in range(self.nctx)]
+        for w, _ in data:
+            for i in range(len(w)):
+                self.tab[self._ctx(w[:i + 1])][SYM_INDEX[w[i]]] += 1
+        for row in self.tab:                            # 2 bits per cell, saturated
+            for j in range(4):
+                row[j] = min(row[j], 3)
+        votes = {}
+        for w, y in data:
+            row = self.tab[self._ctx(w)]
+            best = max(range(4), key=lambda j: (row[j], -j))
+            c = votes.setdefault(best, [0, 0])
+            c[y] += 1
+        self.T = {k: (0 if v[0] >= v[1] else 1) for k, v in votes.items()}
+        return self
+
+    def predict(self, w):
+        row = self.tab[self._ctx(w)]
+        best = max(range(4), key=lambda j: (row[j], -j))
+        return self.T.get(best, 0)
+
+
 class HashPerceptron:
     """Learned raw-byte baseline #2: a perceptron over hashed position/symbol features.
 
@@ -497,7 +584,7 @@ class HashPerceptron:
 
 
 # ------------------------------------------------------------------ training
-def fit_curriculum(model, data, seed, lr=0.01, epochs=EPOCHS, stages=CURRICULUM):
+def fit_curriculum(model, data, seed, lr=0.01, epochs=EPOCHS, stages=CURRICULUM, dec=None):
     """Train with a depth curriculum: pass `stages` times, each restricted to a deeper subset.
 
     Disclosed rather than hidden, because it changes the result and the no-curriculum control below
@@ -505,11 +592,16 @@ def fit_curriculum(model, data, seed, lr=0.01, epochs=EPOCHS, stages=CURRICULUM)
     either finds the rule or stalls, and on this task *all* flat runs stalled -- 5 of 5 restarts at
     16 epochs ended between 50% and 59% accuracy on the training set itself.
     """
+    sizes = []
     for i, dmax in enumerate(stages):
-        sub = [(w, y) for w, y in data if nested_depth(w) <= dmax]
+        sub = [(w, y) for w, y in data if nested_depth(w, dec) <= dmax]
+        sizes.append(len(sub))
         if len(sub) < 400:
             continue
         model.train(sub, epochs, random.Random(seed + 7 * i), lr=lr)
+    # a curriculum whose stages do not shrink is not a curriculum. This fires if the depth filter is
+    # ever again fed strings whose glyphs it cannot read.
+    assert sizes[0] < sizes[-1], f"curriculum stages did not grow: {sizes}"
     return model
 
 
@@ -525,12 +617,16 @@ def main():
     print("  states, above AMEND-006's 2^30 line, so no buildable automaton saturates this surface.")
     print("  A candidate must beat the capped type stack at depth 16+ without growing working state.\n")
 
-    train = make_train_set(random.Random(SEED), TRAIN_N, TRAIN_D)
-    probes = {D: make_set(random.Random(SEED + 7 * D), PROBE_N, D, pin_depth=D) for D in PROBE_D}
+    # AMEND-004: every model below is fed PERMUTED glyphs. Only `valid()` (the label) and the oracle
+    # rows see the canonical `A/B/a/b` alphabet, and the oracle rows are handed `SYM_BACK` explicitly.
+    train = [(enc(w), y) for w, y in make_train_set(random.Random(SEED), TRAIN_N, TRAIN_D)]
+    canonical = {D: make_set(random.Random(SEED + 7 * D), PROBE_N, D, pin_depth=D) for D in PROBE_D}
+    probes = {D: [(enc(w), y) for w, y in canonical[D]] for D in PROBE_D}
     for D in PROBE_D:
-        print(f"  probe D={D:2d}: max nesting {max(nested_depth(w) for w, _ in probes[D]):2d}, "
-              f"length {min(len(w) for w, _ in probes[D])}-{max(len(w) for w, _ in probes[D])}, "
-              f"valid fraction {sum(y for _, y in probes[D]) / len(probes[D]):.2f}")
+        cw = [w for w, _ in canonical[D]]
+        print(f"  probe D={D:2d}: max nesting {max(nested_depth(w) for w in cw):2d}, "
+              f"length {min(len(w) for w in cw)}-{max(len(w) for w in cw)}, "
+              f"valid fraction {sum(y for _, y in canonical[D]) / len(canonical[D]):.2f}")
     print("")
 
     # AMEND-007 (graveyard/0018): every depth column carries the closure size at that depth and its
@@ -543,7 +639,10 @@ def main():
         return "DEAD" if m_at(d) <= FEASIBLE_MAX else "VIABLE"
 
     def short(n):
-        return f"{n:,}" if n < 10 ** 12 else f"{n:.2e}"
+        # `f"{n:.2e}"` raises OverflowError on ints above the float range, and a cap-1,024 stack is
+        # 2^1025-1 -- format from the digit string instead.
+        d = str(n)
+        return f"{n:,}" if len(d) <= 12 else f"{d[0]}.{d[1:4]}e+{len(d) - 1}"
 
     hdr = " | ".join(f"D={D} (M={short(m_at(D))}, {'DEAD' if m_at(D) <= FEASIBLE_MAX else 'VIABLE'})"
                      for D in PROBE_D)
@@ -564,21 +663,28 @@ def main():
         add_row(label, "**0**", [f"{100 * score(fn, probes[D]):.2f}%" for D in PROBE_D], "--", "", "--")
 
     # type-blind depth counter: a negative control, it cannot decide this task
-    m = CapCounter(32).fit(train)
+    m = CapCounter(32, dec=SYM_BACK).fit(train)
     add_row("type-blind depth counter, 32 states -- cannot pass by construction", "32 states",
             [f"{100 * score(m.predict, probes[D]):.2f}%" for D in PROBE_D], "--", "", "--")
 
+    # the control that proves the permutation is real: the same oracle stack WITHOUT the inverse map
+    m = CapStack(64).fit(train)
+    add_row("capped type stack, cap 64, NO inverse map -- sees only glyphs", "65 bits",
+            [f"{100 * score(m.predict, probes[D]):.2f}%" for D in PROBE_D], "--",
+            "control: without `SYM_BACK` the oracle cannot tell an opener from a closer", "0.0s")
+
     # ORACLE PARSER CEILING: hand-coded push/pop, fitted on the shallow set only
-    for cap in (2, 3, 4, 9, 64):
+    for cap in (2, 3, 4, 9, 64, 1024):
         t1 = time.time()
-        m = CapStack(cap).fit(train)
+        m = CapStack(cap, dec=SYM_BACK).fit(train)
         add_row(f"capped type stack, cap {cap} (ORACLE PARSER)",
                 f"{short(m.states)} states = {cap + 1} bits (+4 flags)",
                 [f"{100 * score(m.predict, probes[D]):.2f}%" for D in PROBE_D],
                 f"exact <= D={cap}", "", f"{time.time() - t1:.1f}s")
 
     # LEARNED raw-byte baselines at a fixed, honestly counted bit budget
-    for label, model in (("hashed 6-symbol context table", HashContext()),
+    for label, model in (("flat Markov/FST table, 4,096 contexts x 4 symbols x 2 bits", FlatMarkov()),
+                         ("hashed 6-symbol context table", HashContext()),
                          ("perceptron over hashed position/symbol features", HashPerceptron())):
         t1 = time.time()
         if isinstance(model, HashPerceptron):
@@ -591,13 +697,13 @@ def main():
 
     # recurrent baseline, trained shallow (with a disclosed depth curriculum), probed deep
     rnn_rows = {}
-    for hid in (4, 8, 16):
+    for hid, nrs in ((4, RESTARTS), (8, RESTARTS), (16, RESTARTS), (32, 2)):
         t1 = time.time()
         accs = {D: [] for D in PROBE_D}
         tracc, d8 = [], []
-        for r in range(RESTARTS):
+        for r in range(nrs):
             m = RNN(hid, random.Random(SEED + 100 * r))
-            fit_curriculum(m, train, SEED + 1000 * r)
+            fit_curriculum(m, train, SEED + 1000 * r, dec=SYM_BACK)
             tracc.append(score(m.predict, train[:800]))
             d8.append(score(m.predict, probes[8]))
             for D in PROBE_D:
@@ -605,7 +711,9 @@ def main():
         med = {D: sorted(accs[D])[len(accs[D]) // 2] for D in PROBE_D}
         best = {D: max(accs[D]) for D in PROBE_D}
         rnn_rows[hid] = (med, best, sum(1 for a in d8 if a >= 0.90), sorted(tracc)[len(tracc) // 2])
-        add_row(f"Elman h={hid} (median / best of {RESTARTS})", f"{RNN(hid, random.Random(0)).nparams()}",
+        add_row(f"Elman h={hid} (median / best of {nrs})",
+                f"{RNN(hid, random.Random(0)).nparams()} params = "
+                f"{32 * RNN(hid, random.Random(0)).nparams():,} bits",
                 [f"{100 * med[D]:.2f} / {100 * best[D]:.2f}%" for D in PROBE_D], "--", "",
                 f"{time.time() - t1:.0f}s")
 
@@ -634,23 +742,44 @@ def main():
     for c in rows:
         print("| " + " | ".join(x if x else "--" for x in c) + " |")
 
-    print("\nReading: the training set never exceeds nesting depth 8. A model that learned the rule")
-    print("stays exact at depth 16+; a model that learned to count to 8 does not. The 0-parameter")
-    print("rows sit near 50% at every depth, so any row above that is carrying some state.\n")
-    print("Two rows have to be read together, and neither is flattering to the neural baseline:")
-    print(f"- the Curriculum column is what makes the Elman runs learn at all: with it, h=16 reaches")
-    print(f"  {100 * rnn_rows[16][0][8]:.1f}% (median) at the depth it was trained to, and {100 * rnn_rows[16][0][16]:.1f}% at depth 16;")
-    print(f"- without it, every restart stalls near chance *on the training set*, so an uncurriculated")
-    print("  run would have been published as 'the baseline fails' when the truth is 'the optimizer")
-    print("  fails', which is exactly the mistake this harness has made before (Part 9).")
-    print("- the capped type stack is exact only up to the depth its cap can hold: a 1,023-state")
-    print("  stack is exact through depth 9 and fails at 16, because deciding depth 16 takes")
-    print("  2^17-1 = 131,071 states (closure.py) and depth 32 takes 8.59e9. That is the boundary a")
-    print("  candidate has to cross, and `k <= 1024` cannot cross it -- measured here, not asserted.")
-    print("- the type-blind depth counter row is a negative control: same transitions, no type memory,")
-    print("  and it is wrong in-distribution at every depth, which is why this is not a counter task.\n")
-    print("This is the surface `0007` should be scored on: it is above AMEND-006's 2^30 line, its")
-    print("probes are depth-pinned (no length-only split), and the baselines are all trained shallow.")
+    def row(prefix):
+        return next(c for c in rows if c[0].startswith(prefix))
+
+    fm, hx, no_map = row("flat Markov"), row("hashed 6-symbol"), row("capped type stack, cap 64, NO")
+    cap1024, e32 = row("capped type stack, cap 1024"), row("Elman h=32")
+    print("\nReading, with the numbers pulled from the table above rather than typed:")
+    print(f"- **The surface no longer hands out the syntax.** Four symbols are permuted by a seeded")
+    print(f"  bijection ({' '.join(ALPHA)}) with no case and no bracket shape. The oracle stack still"
+          f" answers")
+    print(f"  100% at every depth because it is handed the inverse map; strip that map and the same")
+    print(f"  65-bit machine falls to {no_map[6]} at `D=64`, i.e. chance. So `isupper()` was doing real")
+    print(f"  work, and every row below it is now measuring morphology, not glyph shape.")
+    print(f"- **32,768 bits of learned table are worth nothing here, and that is the headroom.** The")
+    print(f"  flat Markov/FST table (4,096 contexts x 4 symbols x 2-bit cells = 32,768 bits) answers")
+    print(f"  {fm[5]} at `D=32` and {fm[6]} at `D=64`; the hashed context table answers {hx[5]} and"
+          f" {hx[6]}. The")
+    print(f"  1,025-bit oracle stack answers {cap1024[5]} and {cap1024[6]} from 1/32 of the budget.")
+    print(f"  Capacity was never the constraint: **organization is**, and the gap between those two")
+    print(f"  columns is the `+50` points a non-PDA learner has to close to be interesting.")
+    print(f"- **The curriculum is what makes the Elman runs learn at all.** h=16 reaches")
+    print(f"  {100 * rnn_rows[16][0][8]:.1f}% (median) at the depth it was trained to and"
+          f" {100 * rnn_rows[16][0][16]:.1f}% at depth 16; h=32"
+          f" ({32 * RNN(32, random.Random(0)).nparams():,} bits) reaches"
+          f" {100 * rnn_rows[32][0][32]:.1f}% at `D=32`.")
+    print(f"  Without the curriculum every restart stalls near chance *on the training set*"
+          f" ({100 * min(flat):.1f}-{100 * max(flat):.1f}%), so an uncurriculated run would have been")
+    print(f"  published as 'the baseline fails' when the truth is 'the optimizer fails' -- the Part 9")
+    print(f"  mistake, kept visible so it is not repeated.")
+    print(f"- **The capped stack is exact only up to its cap, and the boundary is the task.** 1,023")
+    print(f"  states are exact through depth 9 and fail at 16, because deciding depth 16 takes")
+    print(f"  2^17-1 = 131,071 states (`closure.py`) and depth 32 takes 8.59e9. The cap-64 row is the")
+    print(f"  smallest machine that saturates `D=64`; the cap-1,024 row costs 1,025 bits and saturates")
+    print(f"  everything, which is the ORACLE-DISPATCH CEILING: inside 32,768 bits a hand-coded stack")
+    print(f"  is already perfect, so no design gets credit for budget alone.")
+    print(f"- **The type-blind counter is the negative control**: same transitions, no type memory, and")
+    print(f"  it is wrong in-distribution at every depth, which is why this is not a counter task.")
+    print(f"\nThis surface is above AMEND-006's 2^30 line, its probes are depth-pinned, its symbols are")
+    print(f"permuted, and every baseline is trained at `D <= 8` only.")
     print("\n---- total wall clock %.0fs on CPU ----" % (time.time() - t0))
     print("\nReproduce: python3 research/bench/dyck2.py")
 

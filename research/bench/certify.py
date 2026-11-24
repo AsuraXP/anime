@@ -528,6 +528,54 @@ def check_claims():
                      f"oracle cap-64 stack: {100 * dz.score(ms.predict, pr):.0f}% at {n_bits} bits; "
                      f"learned 32,768-bit context table: {100 * lrn_acc:.0f}%"))
 
+    # ---------------------------------------------------------------- C18 (AMEND-004 / turn 12)
+    m15 = re.search(r"PART 15:.*?(?=\n<!-- =|\Z)", md0, re.S)
+    part15 = m15.group(0) if m15 else ""
+    out.append(check("C18 Part 15 (permuted surface, inferred layout, GET2 at 32,768 bits) published",
+                     bool(part15) and "AMEND-004" in part15 and "32,768" in part15,
+                     f"{len(part15.splitlines())} lines"))
+
+    # the permutation is real: same 65-bit oracle, exact only when handed the inverse map
+    dz = load_module("dyck2")
+    tr = [(dz.enc(w), y) for w, y in dz.make_train_set(random.Random(dz.SEED), 800, dz.TRAIN_D)]
+    pr = [(dz.enc(w), y) for w, y in dz.make_set(random.Random(dz.SEED + 7 * 64), 150, 64, pin_depth=64)]
+    with_map = dz.score(dz.CapStack(64, dec=dz.SYM_BACK).fit(tr).predict, pr)
+    without = dz.score(dz.CapStack(64).fit(tr).predict, pr)
+    disjoint = not (set(dz.SYM_MAP.values()) & set(dz.SYM_MAP.keys()))
+    out.append(check("C18 symbols are permuted; the oracle is exact only with the inverse map",
+                     disjoint and with_map == 1.0 and without < 0.8,
+                     f"map {dz.SYM_MAP}: with the map {100 * with_map:.0f}%, without {100 * without:.0f}%"))
+
+    # the layout is inferred from the bytes, and the inference is unambiguous
+    k5, v5, e5, n5 = sw.build_stream(60, sw.SEED + 60)
+    q5 = sw.sample_queries(k5, 20, 60)
+    st5 = sw.raw_stream(k5, v5, q5, edit=(e5, n5))
+    lay, cand = sw.infer_layout(st5)
+    truth = {sw.SET_OP: 5, sw.GET_OP: 3, sw.EDIT_OP: 5}
+    out.append(check("C18 record widths are inferred from the stream, not hardcoded",
+                     lay == truth and cand == 1,
+                     f"inferred {lay} in {cand} consistent assignment(s); opcodes are "
+                     f"{sw.SET_OP}/{sw.GET_OP}/{sw.EDIT_OP}"))
+
+    # 32,768 learned bits vs a 1,025-bit ceiling on the permuted surface
+    fmk = dz.FlatMarkov()
+    fm_acc = dz.score(fmk.fit(tr).predict, pr)
+    cap_bits = 1024 + 1
+    out.append(check("C18 a 32,768-bit learned table loses to a 1,025-bit oracle parser ceiling",
+                     fmk.nbits == 32768 and cap_bits <= 32768 and fm_acc < 0.8,
+                     f"flat Markov {fmk.nbits:,} bits: {100 * fm_acc:.0f}% at D=64; oracle cap-1,024 "
+                     f"= {cap_bits} bits: 100%"))
+
+    # GET2 at the baton's budget: both families exact at n=512, so the headroom claim does not hold
+    hop1, hop2, ek2, nv2 = sw.two_hop(512, sw.SEED + 512)
+    qg = sw.sample_queries(list(hop1), 512, 512)
+    ob, _, _, _ = sw.two_hop_eval(512, 2048, hop1, hop2, ek2, nv2, qg)
+    lb, _, _, _ = sw.two_hop_eval(512, 2048, hop1, hop2, ek2, nv2, qg, cache_bits=32768)
+    out.append(check("C18 GET2 at B=32,768 and n=512 is exact for the oracle AND for a flat table",
+                     ob == 1.0 and lb == 1.0 and "4,096 bytes" in part15,
+                     f"2,048 slots x 16 bits = 32,768 bits = 4,096 bytes: oracle {100 * ob:.2f}%, "
+                     f"learned table {100 * lb:.2f}% -- no learned headroom at this n"))
+
     return out
 
 
