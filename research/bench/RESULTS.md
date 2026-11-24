@@ -1,4 +1,4 @@
-<!-- GENERATED -- do not hand-edit. Thirteen parts, their commands below. -->
+<!-- GENERATED -- do not hand-edit. Fourteen parts, their commands below. -->
 <!-- reproduce part 1: python3 research/bench/scorecard.py    (~11 s,  CPU, seeded) -->
 <!-- reproduce part 2: python3 research/bench/k3control.py    (~180 s, CPU, seeded) -->
 <!-- reproduce part 3: python3 research/bench/ceiling.py      (~90 s,  CPU, seeded) -->
@@ -2055,6 +2055,139 @@ fraction of keys under 4 KiB/token -- it would have to beat `~d/(2 ln |V|)` and 
 argument, so it would mean the encoding, not the bound, was the limit. Or a load at which
 add-only and oracle-erase give the same ratio, which would mean the ratio is not measuring the
 edit.
+
+Reproduce: `python3 research/bench/stream_ram.py` (2 s), `python3 research/bench/dyck2.py` (~9 min).
+
+
+<!-- ============ PART 14: turn 11 -- AMEND-008: oracle ceilings vs learned baselines ============ -->
+# Part 14 -- `AMEND-008`: oracle ceilings, learned baselines at 32,768 bits, and the `GET2` collapse (turn 11)
+
+`agent-a` (`MSG-0015`) applied `AMEND-008` after `0008` claimed a gradable contribution without
+giving credit-assignment equations. Clause 2 is the part that lands on this bench: every memory
+budget must be quoted in **bits and bytes**, and every *oracle* ceiling -- a machine handed the
+parse or the opcode -- must be separated from a **learned raw-byte baseline** at **>= 32,768
+bits**. Until now this file's best rows were oracle rows with a bits column beside them, which is
+exactly the confusion the amendment names.
+
+## 14.1 What changed in the instruments
+
+**`dyck2.py`.** The capped type stack is now labelled **`ORACLE PARSER`** on every row: it is
+hand-coded `push`/`pop`, so it is a ceiling on what a parser can reach, not a learned system.
+A cap-64 stack is exact through `D=64` at **69 bits** (65 stack + 4 flags). Two learned
+raw-byte baselines were added at **32,768 bits** = **4,096 bytes**: a hashed
+6-symbol context table and a perceptron over hashed position/symbol features. Neither has a
+stack, a counter, or any grammar knowledge.
+
+**`stream_ram.py`.** `direct 1024` is relabelled **`ORACLE OPCODE`** (it is handed `SET`/
+`GET`/`EDIT` semantics). The budget is now quoted as *entries x bits = bits = bytes*:
+`B = 1,024 x 16 bits =` **16,384 bits = 2,048 bytes**, and the learned row at `B = 2,048 x 16
+bits =` **32,768 bits = 4,096 bytes**. A hashed byte-level table was added that indexes on the
+key bytes at a fixed record offset -- record widths are the format, not oracle knowledge, and
+the row says so. A `GET2` block was added because one-hop binding is saturated by any exact
+store (`AMEND-008` K4) and therefore measures nothing.
+
+## 14.2 A2: 69 structured bits are worth 475x more than 32,768 unstructured ones
+
+The whole table, as the script prints it (one table, labels on the rows, no prose inside it):
+
+| system | params | D=4 (M=31, DEAD) | D=8 (M=511, DEAD) | D=16 (M=131,071, DEAD) | D=32 (M=8,589,934,591, VIABLE) | D=64 (M=3.69e+19, VIABLE) | exact through | note | wall |
+|---|---|---|---|---|---|---|---|---|
+| 0-param: always valid | **0** | 52.12% | 45.88% | 49.88% | 48.38% | 52.62% | -- | -- | -- |
+| 0-param: ends with a closer | **0** | 54.00% | 47.75% | 50.25% | 48.50% | 52.75% | -- | -- | -- |
+| type-blind depth counter, 32 states -- cannot pass by construction | 32 states | 72.62% | 69.88% | 72.62% | 51.62% | 47.38% | -- | -- | -- |
+| capped type stack, cap 2 (ORACLE PARSER) | 7 states = 3 bits (+4 flags) | 61.88% | 49.62% | 51.00% | 49.12% | 52.88% | exact <= D=2 | -- | 0.0s |
+| capped type stack, cap 3 (ORACLE PARSER) | 15 states = 4 bits (+4 flags) | 71.25% | 49.62% | 51.00% | 49.12% | 52.88% | exact <= D=3 | -- | 0.0s |
+| capped type stack, cap 4 (ORACLE PARSER) | 31 states = 5 bits (+4 flags) | 100.00% | 50.12% | 50.88% | 49.12% | 52.88% | exact <= D=4 | -- | 0.0s |
+| capped type stack, cap 9 (ORACLE PARSER) | 1,023 states = 10 bits (+4 flags) | 100.00% | 100.00% | 50.12% | 51.62% | 47.38% | exact <= D=9 | -- | 0.0s |
+| capped type stack, cap 64 (ORACLE PARSER) | 3.69e+19 states = 65 bits (+4 flags) | 100.00% | 100.00% | 100.00% | 100.00% | 100.00% | exact <= D=64 | -- | 0.0s |
+| hashed 6-symbol context table, LEARNED | 32,768 bits | 59.50% | 52.38% | 50.38% | 51.00% | 51.25% | -- | -- | 0.0s |
+| perceptron over hashed position/symbol features, LEARNED | 32,768 bits | 50.75% | 49.88% | 50.38% | 50.75% | 49.38% | -- | -- | 0.2s |
+| Elman h=4 (median / best of 4) | 46 | 58.38 / 58.63% | 52.88 / 54.50% | 51.25 / 53.87% | 50.38 / 51.25% | 50.88 / 52.75% | -- | -- | 42s |
+| Elman h=8 (median / best of 4) | 122 | 58.25 / 75.00% | 54.50 / 61.12% | 50.75 / 51.38% | 49.00 / 51.25% | 51.62 / 52.88% | -- | -- | 94s |
+| Elman h=16 (median / best of 4) | 370 | 73.25 / 83.75% | 58.13 / 68.38% | 50.88 / 52.25% | 50.38 / 52.62% | 49.38 / 52.75% | -- | -- | 252s |
+| Elman h=16, NO curriculum, 8 epochs (2 restarts) | 370 | -- | -- | -- | -- | -- | -- | training-set accuracy 51.2-52.9%, so the row above is not a tuning artifact | 46s |
+
+At `D=64` the oracle parser is **100.00%** for 69 bits of stack. The two learned baselines hold
+**51.25%** and **49.38%** with 32,768 bits -- four hundred and seventy-five times the state
+and no better than the 0-parameter rows. That is not a claim that learning fails on Dyck-2; the
+Elman rows reach 73% at `D=4` and the curriculum row shows why. It is a claim about what bits
+buy: **bits are not the currency, organization is.** A table with 32,768 cells cannot count to
+64, because counting is not in the hypothesis class however finely the cells are cut.
+
+The useful consequence is a scoring rule. `AMEND-006` caps working state at 2^30 bits and
+`stack@D=64` needs 69, so *capacity* is never the objection to a candidate here -- and a
+candidate that answers `D>=32` by carrying a bigger table is now measurable against a baseline
+that already has one. What a candidate has to show is a mechanism, not a budget.
+
+## 14.3 Task B: at matched bits the learned baseline *wins* one hop and loses the composition
+
+One-hop binding, same stream, same bytes:
+
+| n | machine | bits | coverage | edit collateral | bytes read/token | G4 |
+|---|---|---|---|---|---|---|
+| 1,000 | LEARNED byte table (hashed) | 32,768 | 100.00% | 0 | 2 | yes |
+| 1,000 | direct 1024 (ORACLE OPCODE) | 16,384 | 100.00% | -- | 2.7 | yes |
+| 10,000 | LEARNED byte table (hashed) | 32,768 | 20.10% | 0 | 2 | yes |
+| 10,000 | direct 1024 (ORACLE OPCODE) | 16,384 | 9.20% | -- | 3.7 | yes |
+
+At `n=10,000` the 32,768-bit learned table answers **20.10%** against the
+16,384-bit oracle store's **9.20%** -- half the bits and more than twice the
+coverage, because 2,048 hashed buckets spread 10,000 keys better than 1,024 slots taken modulo
+an adversarial key set. So the honest bar for this task is *not* `m/n`: any design that only
+matches a 1,024-slot store at 16,384 bits has not beaten a two-line learned baseline.
+
+`GET2` is where that baseline dies, and where the pigeonhole bound does the work:
+
+| n | machine | GET2 coverage | ceiling | bytes read/token | G4 |
+|---|---|---|---|---|---|
+| 1,000 | direct 1024 (2 hops) | 100.00% | 1.0000 | 2.0 | yes |
+| 1,000 | KV scan | 100.00% | 1.0000 | 4,000 | **no** |
+| 1,000 | LEARNED byte table (2 hops) | 67.30% | -- | 4 | yes |
+| 10,000 | direct 1024 (2 hops) | 1.07% | 0.0105 | 2.0 | yes |
+| 10,000 | KV scan | 100.00% | 1.0000 | 40,000 | **no** |
+| 10,000 | LEARNED byte table (2 hops) | 0.03% | -- | 4 | yes |
+
+The oracle store lands on its ceiling -- **1.07%** measured against
+**1.05%** -- because two hops square the per-hop loss, and the learned
+table gets **0.03%**, far below even that, because its collisions are not uniform.
+Only the KV scan is exact, at **40,000 bytes/token**: ten times the 4 KiB budget, which
+is G4's whole point. Composition is the headroom `AMEND-008` asked to see, and what it shows is
+that no fixed-budget store escapes `(m/n)^k` by being clever -- only by being exact.
+
+## 14.4 Four instruments built, published inside this part, and thrown away
+
+Every number in 14.2-14.3 came after an instrument that lied in a *different* direction. They are
+listed because three of the four would have made a store look better than it is, and the ceiling
+is the only thing that caught them:
+
+| # | what I built | what it reported | what was wrong | what caught it |
+|---|---|---|---|---|
+| 1 | queries drawn as `keys[:k]` | 0.00% learned coverage at `n=10,000` | the first `k` keys are the earliest writes, so they are exactly the ones a collision overwrites; measures write order, not coverage | the number was *too low* for the pigeonhole (`2,048/10,000 = 20%`) -- same error as the direct store in turn 8 |
+| 2 | `GET2` over a cycle `a->b->a` | 0.40% for the learned table | the chain returned the query itself, so the composition was never exercised | the oracle row read 65% against a 1% ceiling |
+| 3 | edit value reused from `C` | 65.20% for the oracle store | two `B` keys mapped to one `C` value, so a wrong link matched a wrong link | same ceiling check |
+| 4 | `A` in order, both hops paired by index | 5.50% for the oracle store | a dict's write order *is* insertion order, so 'last writer' meant 'largest index' in both hops, correlating them | ceiling 1.05%, and it did not move when `A` was shuffled -- the pairing, not the shuffling, was the bug |
+
+The pattern: a benchmark that reports *below* its own bound is as broken as one that reports
+above it, and only an independently derived bound distinguishes the two. `AMEND-007`'s
+pigeonhole requirement is what made these four findable.
+
+## 14.5 Audit of this part
+
+**Certified:** `C17` recomputes the four numbers this part rests on -- the 69/32,768-bit split
+on A2 (`D=64` exact for the oracle, not for the learned table), the learned-beats-oracle one-hop
+result at `n=10,000`, `GET2` landing on `(m/n)^2`, and the presence of bits-and-bytes units for
+every `B`. `dyck2.py` was re-run twice and `stream_ram.py` twice; both pairs are identical
+modulo wall-clock lines.
+
+**Not claimed:** that no learned system can pass A2 -- one mechanism (a differentiable counter)
+is untested here and is the obvious next build. Not claimed: that the learned byte table is the
+strongest matched-bit baseline; it is the cheapest one that is honest about its bits, and a
+trained embedding store at the same budget would be a harder bar. Not claimed: that `GET2` is
+the hardest composition -- depth 3 would cube the loss and I have not run it.
+
+**What would prove this wrong:** a learned model under 4,096 bytes of state that stays above
+chance at `D=64` after shallow training, or a fixed-budget store that beats `(m/n)^2` on `GET2`
+without storing keys exactly -- either would mean the bound is about the encoding, not the task.
 
 Reproduce: `python3 research/bench/stream_ram.py` (2 s), `python3 research/bench/dyck2.py` (~9 min).
 

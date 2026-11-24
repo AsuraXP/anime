@@ -406,6 +406,96 @@ class RNN:
                                 math.sqrt(Vk[i] / (1 - b2 ** step)) + eps)
 
 
+# ------------------------------------------------------------------ learned baselines at matched bits
+LEARNED_BITS = 32768          # AMEND-008: a learned baseline must be evaluated at >= B = 32,768 bits
+
+
+class HashContext:
+    """Learned raw-byte baseline at a fixed bit budget: the last `k` symbols vote into a hashed table.
+
+    No push/pop, no grammar knowledge: a context hash, and one 4-bit signed margin per bucket, fitted
+    by counting on the shallow training set. Bits are counted exactly -- `buckets * 4` -- and `k` is
+    free because the window is a shift register over the input, not stored.
+
+    This is the row AMEND-008 asks for: what does a *learned* system reach when it is given more bits
+    than the oracle parser ceiling needs (69 for a cap-64 stack), but no structure?
+    """
+
+    def __init__(self, bits=LEARNED_BITS, k=6):
+        self.buckets = bits // 4
+        self.k = k
+        self.tab = [0] * self.buckets
+
+    @property
+    def nbits(self):
+        return self.buckets * 4
+
+    def _key(self, w):
+        h = 0
+        for ch in w[-self.k:]:
+            h = (h * 131 + ord(ch)) % self.buckets
+        return h
+
+    def fit(self, data):
+        counts = {}
+        for w, y in data:
+            b = self._key(w)
+            c = counts.setdefault(b, [0, 0])
+            c[y] += 1
+        for b, (n0, n1) in counts.items():
+            tot = n0 + n1
+            # 4-bit signed margin, clipped to +/-7, so the table really is `buckets * 4` bits
+            self.tab[b] = max(-7, min(7, round(14 * (n1 - n0) / tot)))
+        return self
+
+    def predict(self, w):
+        return 1 if self.tab[self._key(w)] > 0 else 0
+
+
+class HashPerceptron:
+    """Learned raw-byte baseline #2: a perceptron over hashed position/symbol features.
+
+    Every (position, symbol) pair is hashed into `features` buckets, each holding a 16-bit signed
+    weight, so `bits = features * 16`. Trained by online perceptron updates on the shallow set. It can
+    learn "an unmatched closer appeared at position 3" but it cannot count, which is the point.
+    """
+
+    def __init__(self, bits=LEARNED_BITS, features=2048, epochs=8):
+        self.features = features
+        self.w = [0] * features
+        self.epochs = epochs
+
+    @property
+    def nbits(self):
+        return self.features * 16
+
+    def _feats(self, w):
+        out = []
+        for i, ch in enumerate(w[:256]):
+            out.append((i * 2654435761 + ord(ch) * 40503) % self.features)
+        return out
+
+    def fit(self, data, seed=0):
+        import random as _r
+        rng = _r.Random(seed)
+        order = list(range(len(data)))
+        for _ in range(self.epochs):
+            rng.shuffle(order)
+            for i in order:
+                w, y = data[i]
+                f = self._feats(w)
+                s = sum(self.w[j] for j in f)
+                p = 1 if s > 0 else 0
+                if p != y:
+                    d = 1 if y == 1 else -1
+                    for j in f:
+                        self.w[j] = max(-32768, min(32767, self.w[j] + d))
+        return self
+
+    def predict(self, w):
+        return 1 if sum(self.w[j] for j in self._feats(w)) > 0 else 0
+
+
 # ------------------------------------------------------------------ training
 def fit_curriculum(model, data, seed, lr=0.01, epochs=EPOCHS, stages=CURRICULUM):
     """Train with a depth curriculum: pass `stages` times, each restricted to a deeper subset.
@@ -458,31 +548,46 @@ def main():
     hdr = " | ".join(f"D={D} (M={short(m_at(D))}, {'DEAD' if m_at(D) <= FEASIBLE_MAX else 'VIABLE'})"
                      for D in PROBE_D)
     kill = tuple(d for d in PROBE_D if m_at(d) > FEASIBLE_MAX)
-    print(f"AMEND-007 / `graveyard/0018`: each depth column carries M(D) = 2^(D+1)-1 and its verdict at")
-    print(f"the 2^30 gate. **The kill metric is D in {kill} only** -- the DEAD columns are sub-threshold")
-    print(f"diagnostics and must not be averaged with the VIABLE ones.\n")
-    print(f"| system | params | {hdr} | wall |")
-    print("|---|---|" + "---|" * len(PROBE_D) + "---|")
+
+    # One table, rows collected then printed. The first version printed prose between rows -- the
+    # oracle-parser label and the learned-baseline label -- which silently split the markdown table in
+    # three (the same failure as Part 13's note-between-header-and-rows). Rows carry 7 cells here and
+    # are padded to 9 on print: system, params, |D| depths, `exact through`, note, wall.
+    rows = []
+
+    def add_row(system, params, cells, exact, note, wall):
+        rows.append([system, params] + cells + [exact, note, wall])
 
     # 0-parameter nulls
     for label, fn in (("0-param: always valid", lambda w: 1),
                       ("0-param: ends with a closer", lambda w: 1 if w[-1].islower() else 0)):
-        cells = " | ".join(f"{100 * score(fn, probes[D]):.2f}%" for D in PROBE_D)
-        print(f"| {label} | **0** | {cells} | -- |")
+        add_row(label, "**0**", [f"{100 * score(fn, probes[D]):.2f}%" for D in PROBE_D], "--", "", "--")
 
     # type-blind depth counter: a negative control, it cannot decide this task
     m = CapCounter(32).fit(train)
-    cells = " | ".join(f"{100 * score(m.predict, probes[D]):.2f}%" for D in PROBE_D)
-    print(f"| type-blind depth counter, 32 states -- cannot pass by construction | 32 states | "
-          f"{cells} | -- |")
+    add_row("type-blind depth counter, 32 states -- cannot pass by construction", "32 states",
+            [f"{100 * score(m.predict, probes[D]):.2f}%" for D in PROBE_D], "--", "", "--")
 
-    # capped type stacks, fitted on the shallow set only
-    for cap in (2, 3, 4, 9):
+    # ORACLE PARSER CEILING: hand-coded push/pop, fitted on the shallow set only
+    for cap in (2, 3, 4, 9, 64):
         t1 = time.time()
         m = CapStack(cap).fit(train)
-        cells = " | ".join(f"{100 * score(m.predict, probes[D]):.2f}%" for D in PROBE_D)
-        print(f"| capped type stack, cap {cap} | {m.states} states | {cells} | exact <= D={cap} | "
-              f"{time.time() - t1:.1f}s |")
+        add_row(f"capped type stack, cap {cap} (ORACLE PARSER)",
+                f"{short(m.states)} states = {cap + 1} bits (+4 flags)",
+                [f"{100 * score(m.predict, probes[D]):.2f}%" for D in PROBE_D],
+                f"exact <= D={cap}", "", f"{time.time() - t1:.1f}s")
+
+    # LEARNED raw-byte baselines at a fixed, honestly counted bit budget
+    for label, model in (("hashed 6-symbol context table", HashContext()),
+                         ("perceptron over hashed position/symbol features", HashPerceptron())):
+        t1 = time.time()
+        if isinstance(model, HashPerceptron):
+            model.fit(train, seed=SEED)
+        else:
+            model.fit(train)
+        add_row(f"{label}, LEARNED", f"{model.nbits:,} bits",
+                [f"{100 * score(model.predict, probes[D]):.2f}%" for D in PROBE_D], "--", "",
+                f"{time.time() - t1:.1f}s")
 
     # recurrent baseline, trained shallow (with a disclosed depth curriculum), probed deep
     rnn_rows = {}
@@ -500,9 +605,9 @@ def main():
         med = {D: sorted(accs[D])[len(accs[D]) // 2] for D in PROBE_D}
         best = {D: max(accs[D]) for D in PROBE_D}
         rnn_rows[hid] = (med, best, sum(1 for a in d8 if a >= 0.90), sorted(tracc)[len(tracc) // 2])
-        cells = " | ".join(f"{100 * med[D]:.2f} / {100 * best[D]:.2f}%" for D in PROBE_D)
-        print(f"| Elman h={hid} (median / best of {RESTARTS}) | "
-              f"{RNN(hid, random.Random(0)).nparams()} | {cells} | {time.time() - t1:.0f}s |")
+        add_row(f"Elman h={hid} (median / best of {RESTARTS})", f"{RNN(hid, random.Random(0)).nparams()}",
+                [f"{100 * med[D]:.2f} / {100 * best[D]:.2f}%" for D in PROBE_D], "--", "",
+                f"{time.time() - t1:.0f}s")
 
     # the control that justifies the curriculum: same width, no curriculum, short budget
     t1 = time.time()
@@ -511,9 +616,23 @@ def main():
         m = RNN(16, random.Random(SEED + 100 * r))
         m.train(train, EPOCHS, random.Random(SEED + 1 + 100 * r), lr=0.01)
         flat.append(score(m.predict, train[:800]))
-    print(f"\n| Elman h=16, NO curriculum, {EPOCHS} epochs (2 restarts) | 370 | "
-          + " | ".join(["--"] * len(PROBE_D)) + f" | training-set accuracy {100 * min(flat):.1f}-"
-          f"{100 * max(flat):.1f}%, so the row above is not a tuning artifact | {time.time() - t1:.0f}s |")
+    add_row(f"Elman h=16, NO curriculum, {EPOCHS} epochs (2 restarts)", "370",
+            ["--"] * len(PROBE_D), "--",
+            f"training-set accuracy {100 * min(flat):.1f}-{100 * max(flat):.1f}%, so the row above is "
+            f"not a tuning artifact", f"{time.time() - t1:.0f}s")
+
+    # ---- labels printed BEFORE the table (never between header and rows)
+    print(f"AMEND-007 / `graveyard/0018`: each depth column carries M(D) = 2^(D+1)-1 and its verdict at")
+    print(f"the 2^30 gate. **The kill metric is D in {kill} only** -- the DEAD columns are sub-threshold")
+    print(f"diagnostics and must not be averaged with the VIABLE ones.")
+    print(f"AMEND-008 clause 2: the `ORACLE PARSER` rows are hand-coded `push`/`pop`, so they are a")
+    print(f"ceiling and not a learned system -- the cap-64 row is exact through `D=64` at 69 bits")
+    print(f"(65 stack + 4 flags). The `LEARNED` rows are trained on the same shallow set with")
+    print(f"{LEARNED_BITS:,} bits = {LEARNED_BITS // 8:,} bytes, more than the ceiling needs.\n")
+    print(f"| system | params | {hdr} | exact through | note | wall |")
+    print("|---|---|" + "---|" * len(PROBE_D) + "---|---|")
+    for c in rows:
+        print("| " + " | ".join(x if x else "--" for x in c) + " |")
 
     print("\nReading: the training set never exceeds nesting depth 8. A model that learned the rule")
     print("stays exact at depth 16+; a model that learned to count to 8 does not. The 0-parameter")

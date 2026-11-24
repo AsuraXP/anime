@@ -477,6 +477,57 @@ def check_claims():
                      f"d=1024, n=64: {ok4} keys correct before, {coll4} damaged -- "
                      f"{100 * coll4 / max(1, ok4):.0f}% of what worked"))
 
+    # ---------------------------------------------------------------- C17 (AMEND-008 / turn 11)
+    m14 = re.search(r"PART 14:.*?(?=\n<!-- =|\Z)", md0, re.S)
+    part14 = m14.group(0) if m14 else ""
+    out.append(check("C17 Part 14 (oracle-vs-learned split, GET2) published",
+                     bool(part14) and "AMEND-008" in part14,
+                     f"{len(part14.splitlines())} lines"))
+
+    # clause 2: every B carries bits AND bytes
+    out.append(check("C17 every memory budget B is quoted in bits and in bytes",
+                     "16,384 bits = 2,048 bytes" in part14 and "32,768 bits = 4,096 bytes" in part14,
+                     "B = 1,024 cells (16,384 bits = 2,048 bytes); learned row 32,768 bits = 4,096 bytes"))
+
+    # clause 2: the oracle ceilings are labelled, and a learned row sits at >= 32,768 bits
+    learned_rows = [l for l in part14.splitlines()
+                    if l.startswith("|") and "LEARNED" in l and ("32,768" in l or "32,768".replace(",", "") in l)]
+    out.append(check("C17 the oracle ceilings are labelled and a learned row sits at >= 32,768 bits",
+                     "ORACLE PARSER" in part14 and "ORACLE OPCODE" in part14 and len(learned_rows) >= 1,
+                     f"{len(learned_rows)} learned row(s) at 32,768 bits; both ceilings named"))
+
+    # the numbers those rows rest on, recomputed here
+    k1, v1, e1, n1 = sw.build_stream(10000, sw.SEED + 10000)
+    q1 = sw.sample_queries(k1, 1000, 10000)
+    c1, _ = sw.ByteCache().run(sw.raw_stream(k1, v1, q1))
+    cov_cache = sum(1 for k, v in c1 if v == v1[k]) / len(q1)
+    rb1, _, _, _, _, _ = sw.direct_address(k1, v1, e1, n1, 1024, q1)
+    out.append(check("C17 at matched bits the learned byte table is not behind on one hop",
+                     cov_cache > rb1,
+                     f"n=10,000: learned 32,768-bit table {100 * cov_cache:.2f}% vs oracle "
+                     f"16,384-bit store {100 * rb1:.2f}%"))
+
+    # GET2: the oracle store sits on its (m/n)^2 ceiling; the scan is exact and over budget
+    hop1, hop2, ek2, nv2 = sw.two_hop(10000, sw.SEED + 10000)
+    qg = sw.sample_queries(list(hop1), 3000, 10000)
+    cov2 = sw.two_hop_direct(10000, 1024, hop1, hop2, ek2, nv2, qg)
+    ceil2 = (1024 / 10000) ** 2
+    out.append(check("C17 two hops square the loss: GET2 lands on its (m/n)^2 ceiling",
+                     abs(cov2 - ceil2) <= 0.01,
+                     f"n=10,000, m=1,024: measured {100 * cov2:.2f}%, ceiling {100 * ceil2:.2f}%"))
+
+    # the oracle parser ceiling: 69 bits answers D=64 exactly (import only; no 9-minute run)
+    dz = load_module("dyck2")
+    tr = dz.make_train_set(random.Random(dz.SEED), dz.TRAIN_N, dz.TRAIN_D)
+    ms = dz.CapStack(64).fit(tr)
+    pr = dz.make_set(random.Random(dz.SEED + 7 * 64), 200, 64, pin_depth=64)
+    n_bits = (ms.cap + 1) + 4          # stack contents + 4 flag bits; `states` is 2^(cap+1)-1
+    lrn_acc = dz.score(dz.HashContext().fit(tr).predict, pr)
+    out.append(check("C17 the oracle parser ceiling (69 bits) is exact at D=64, and learned 32,768 bits is not",
+                     dz.score(ms.predict, pr) == 1.0 and n_bits == 69 and lrn_acc < 0.8 and "69 bits" in part14,
+                     f"oracle cap-64 stack: {100 * dz.score(ms.predict, pr):.0f}% at {n_bits} bits; "
+                     f"learned 32,768-bit context table: {100 * lrn_acc:.0f}%"))
+
     return out
 
 
