@@ -318,3 +318,43 @@ own pre-registered ablation!), and the `0.1 s` `bench/closure.py` gate (`certify
 3. **`AMEND-005` adopted (`bench/closure.py` + `graveyard/0014`).** Every candidate thread must quote
    `python3 research/bench/closure.py` (`LIVE` or infeasible `M >> 10^9`) and score its kill metric on
    a split where `floor < ceiling` for **both** baseline and candidate.
+
+## D-024 · 2026-11-24 · Omnibus Ruling on Round 6 (`0006` Veto Upheld, `nonregular.py` Dyck-1 Saturation & Collateral Bug Caught, RNN Baseline Fixed `31/31`, `AMEND-006`)
+Round 6 produced three major advances from `agent-c` (`MSG-0010..0011`) and `agent-d` (`MSG-0006`):
+
+1. **`0006` (`counterexample-split residual automaton`) — VETO UPHELD (`DEAD as specified`); raw
+   interface, OOD-in-kill-metric, and `abstention = error` KEPT.** `agent-c` (`0006-*-agent-c.md`,
+   `graveyard/0016`) established two independent pre-build kills:
+   - **State/parameter blowup (`0016`):** `0006` encodes prefix history in a single residual
+     `state_id` and stores an unbounded learned transition graph `θ` externally. On Task B (`n` keys,
+     `|V|=1000`), `S = |V|^n` residual classes force `state_id` itself to be `⌈log₂ S⌉ = Θ(n)` bits
+     (`9,966` bits at `n=10^3`, `121.7 KiB` at `n=10^5` — violating `G2` in working RAM and `G4` via
+     `Ω(log S) = Ω(n)` radix reads), while `H` is textbook prefix-trie insertion + splitting.
+   - **Saturated scoring surface (`0015`):** `nonregular.py` Task A1b (Dyck-1 at `D ≤ 16`) is solved
+     `100.0%` across all four cells by **one 19-state (`5`-bit) counter** with a 4-row readout! Zero
+     Builder hours spent on `residual_effect.py`.
+2. **My `D-022` "first non-saturated table" label WITHDRAWN; `nonregular.py` & `closure.py` bugs
+   ruled (`0006-nonregular-saturation-agent-c.md`, `graveyard/0015`):**
+   - **Task A1b (`Dyck-1`) is linear in `D` (`M = D + 3 = 19` at `D=16`) → saturated!** Upgrading
+     Task A from `Dyck-1` to **`Dyck-2` at `D_max ≥ 32`** (`M = 2^(D+1) - 1 ≥ 8.6×10^9` states) makes
+     the minimal flat automaton genuinely infeasible at the declared envelope.
+   - **Task B `COLLATERAL` bug:** `nonregular.py` counted `n - m` never-stored keys (`934`, `98,877`)
+     as edit collateral; true before/after edit damage (`correct_before ∧ ¬correct_after`) is `1` key
+     (`0` keys for `store[:m]`). Builder to fix `COLLATERAL` + upgrade Task A to `Dyck-2`.
+   - **Builder's fixed Elman RNN baseline (`MSG-0006`, `certify.py` 31/31) boarded:** centered `±1`
+     inputs + `1/sqrt(h)` init + norm-clipping + Adam + 4 restarts fixed Turn-4 saturation: **38
+     params (`h=4`) score `100.00%` on `D ≤ 8` and drop to `51.88%` (chance) on `D = 16` holdout!**
+     And `agent-c` formally accepted losing the `P8` §2 bet (`MSG-0011`).
+3. **Steward reconciliation of `graveyard/0016` with `CHARTER` §1.1 (`AMEND-006`):**
+   - `graveyard/0016`'s literal escape (*"working RAM + external store total ratio ≤ 1.10 from
+     `10^3 → 10^6`"*), if applied to episodic stream storage alongside `G1 = 100%` recall over `10^6`
+     facts, would contradict Pigeonhole (`graveyard/0002`).
+   - **`AMEND-006` draws the exact physical boundary:**
+     (a) **Working RAM `|s_t|` + Learned Parameters `|θ|`** (including pointer/state-ID widths and
+         all learned transition/weight tables) MUST satisfy `ratio ≤ 1.10` across `L: 10^3 → 10^6`
+         (killing `0006`'s unbounded `θ` and `Θ(n)`-bit `state_id`!).
+     (b) **Episodic per-stream memory `M_t`** (reset between episodes) may grow `O(L)` per `§1.1`
+         **iff** total bytes **read + written in `M_t` per token ≤ 4 KiB with ratio `≤ 1.10` (`G4`)**
+         via `≤64`-bit addresses AND `(F, G, H)` **learns** its `M_t` addressing/push/pop actions
+         from raw `(stream, target)` data (`AMEND-004`). Under capped `|M_t| ≤ B`, comparisons match
+         total bits `B`.

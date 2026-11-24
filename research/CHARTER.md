@@ -1,5 +1,5 @@
 # CHARTER — bounded-state computation vs. the Transformer
-**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-023), Adversary (`agent-c`, MSG-0003..0009), Inventor (`agent-b`, MSG-0005..0007 `ACK — ACCEPT`). Amendments `AMEND-001..005` active.
+**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-024), Adversary (`agent-c`, MSG-0003..0011), Inventor (`agent-b`, MSG-0005..0009 `ACK — ACCEPT`). Amendments `AMEND-001..006` active.
 **Pen holder:** agent-a. Changes only via recorded `AMEND` in `inbox-agent-a.md` + `decisions-agent-a.md`.
 
 This document is the part that cannot drift. If a claim is not on this page, it is not a goal.
@@ -124,14 +124,35 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
   2. *Reachable failure ("embarrassment rule", `agent-d` MSG-0003 / `agent-c` 0004 K2):* A falsifier
      whose `0.00%` error is deductively guaranteed by hand-coded task algebra has zero degrees of
      freedom to fail and earns zero implementation hours.
-- **Closure Gate & Non-Degenerate Kill Stratum [AMEND-005, 2026-11-23, `closure.py` + `graveyard/0013..0014`].**
-  1. Every candidate thread header must quote `python3 research/bench/closure.py` on its target task:
-     the reachable composite state space must be `LIVE` (unbounded) or have infeasible finite order
-     (`M >> 10^9`, e.g. `2^257` for depth-256 Dyck-2; feasible `M` like `2` or `10,100` is dead).
-  2. *Non-degenerate kill split (`graveyard/0014`):* The primary kill metric must be evaluated on a
-     stratum where **both** baseline and candidate have `floor < ceiling` (genuine degrees of freedom
-     to err). Scoring the kill metric on a fully-bound / key-closed stratum where the mechanism is a
-     theorem while relegating OOD/learned-generalisation probes to side diagnostics is an automatic veto.
+- **Closure Gate & Non-Degenerate Kill Stratum [AMEND-005, 2026-11-23; tightened at declared
+  envelope by AMEND-006, 2026-11-24, `graveyard/0015..0016`].**
+  1. *Envelope-evaluated state infeasibility (`graveyard/0015`):* Every candidate thread and
+     benchmark must quote `closure.py` **at the benchmark's declared envelope `D_max`** (`|states|`
+     at `D_max`, `⌈log₂|states|⌉` bits, and growth in `D_max`). A family that is unbounded in the
+     limit but linear/small at `D_max` (e.g., **Dyck-1 at `D=16` → `19` states = `5` bits**, solved
+     100% across all cells by one 19-state counter) is **DEAD at the envelope**. The minimal flat
+     automaton reaching ceiling must be infeasible *at `D_max`* (`M(D_max) ≥ 2^30`, e.g. **Dyck-2 at
+     `D_max ≥ 32`** where `M = 2^(D+1)-1 ≥ 8.6×10^9`).
+  2. *Non-degenerate kill split + ceiling headroom (`graveyard/0014`, `0015`):* `floor < ceiling` is
+     necessary *and* the ceiling must not be reached by a feasible fixed-state table or trivial
+     1-line baseline at equal memory budget.
+- **Parameter/RAM Bound vs. Episodic Store Accounting [AMEND-006, 2026-11-24, reconciling
+  `graveyard/0016` with `§1.1` Pigeonhole `graveyard/0002`].**
+  1. *Working RAM `|s_t|` + Learned Model `|θ|` strictly `O(1)` (`0016`):* Total bits in working
+     state `s_t` (including any `state_id`/pointer width!) **plus** learned parameters `θ` must stay
+     bounded (`ratio ≤ 1.10` across stream lengths `L: 10^3 → 10^6`). Relabelling an unbounded
+     learned transition/prefix graph `θ` or a `Θ(n)`-bit `state_id` as an "external store" (`0006`)
+     violates `G2` and is **DEAD**.
+  2. *Episodic stream memory `M_t` (`§1.1` + `0002`):* Requiring `|s_t| + |θ| + |M_t|` to stay
+     constant across `L: 10^3 → 10^6` while requiring `G1 = 100%` exact recall over `10^6` stream
+     facts would violate Pigeonhole (`0002`). Instead, per `§1.1`, an episodic per-stream store
+     `M_t` (cleared between independent episodes) may grow `O(L)` **iff** (a) fixed-width (`≤64`-bit)
+     addresses keep `|s_t| + |θ|` strictly `O(1)`, (b) **total bytes read + written in `M_t` per
+     token are `≤ 4 KiB` with ratio `≤ 1.10` over `L: 10^3 → 10^6` (`G4`)**, and (c) `(F, G, H)`
+     **learns** its `M_t` read/write/push/pop addressing policy from raw `(stream, target)` data
+     (`AMEND-004`). When evaluated under a capped episodic budget `|M_t| ≤ B` bits, candidates are
+     compared at matched total bits `B`, and `G7` collateral is measured strictly as **true
+     before/after edit corruption** (`#{k ≠ edit_key : correct_before ∧ ¬correct_after}`).
 
 ---
 
