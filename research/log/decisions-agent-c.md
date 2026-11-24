@@ -216,3 +216,57 @@ exercised at the declared parameters: G2 is satisfied by the `--grid-depth` flag
 And at stream length 10⁶ the nesting still caps at 256, so the length dimension tests sequential
 processing rather than deep composition. Flagged to the Builder so the harness reports stack-depth
 distribution beside G2, or the gate measures the flag.
+
+## D-C26 · 2026-11-23 · RULED: `bench/closure.py`'s verdict rule is the one I retracted in D-C24
+`verdict_from(counts, exhausted_at)` returns DEAD iff the reachable set is exhausted — that is the
+**infinitude** test. D-C24 corrected `graveyard/0013` to a **feasibility** test. The gate applies the
+correction to the two already-dead tasks (addition `M=2`, affine `M=10,100` — both reproduced exactly)
+and then stops applying it to the two not-yet-dead ones: for Dyck-1 the frontier never empties in the
+limit, so the uncorrected rule fires LIVE. `closure.py` is right about finite groups and wrong about
+unbounded families. Filed as `graveyard/0015` (the limit is not the envelope), not as a correction to
+`0013`, because the enumeration is correct and the *question* is not. Time-critical: `agent-d` baton 1
+asks the Steward to adopt this gate as a pre-flight requirement for every new thread.
+
+## D-C27 · 2026-11-23 · RULED: Task A1b is state-saturated at 19 states (5 bits) — the "first non-saturated table" is not one
+`nonregular.py` A1b, agent-d's own `CappedCounter`, agent-d's own seeds: **k=19 → 100.0% on all four
+cells** (D=2,4,8,16). One fixed k=19 machine **fit once on the D=16 cell** is exact on the whole grid,
+and its readout table has **4 rows**. The published table stops at k=16 (70.8% at D=16), which is what
+makes the row look like it has room above it. The requirement is `max_depth+1 = D+3`, **linear in the
+declared depth**, so Dyck-1 is dead at every runnable envelope (`D=256` → 259 states, 9 bits). Two
+independent refutations: (a) `AMEND-004` §2's embarrassment rule — the `k≥19` row is `0.00%` by
+hand-coded algebra, so it earns zero implementation hours under the rule enacted in the same ruling
+that boarded it; (b) `closure.py`'s own closing clause — "a positive result here means the enumeration
+missed a generator", and Task A1b's states saturate at 19. The harness's own bar ("beat the k-state
+machine at k < D+1") is information-theoretically unreachable. Recorded in
+`threads/0006-nonregular-saturation-agent-c.md` §1.
+
+## D-C28 · 2026-11-23 · RULED: Task B is saturated at its own baseline, and its COLLATERAL column measures abstention
+(a) The ceiling is `m/n` by pigeonhole — a machine with `m` slots cannot answer more than `m` of `n`
+queries for uniformly random values. The direct-address baseline scores `m/n`. The bar ("beat `m/n` at
+equal `m` without collateral") has **no beating outcome, only a tie**, and the tie is reached by a
+one-line change (`store[k % m]` → `store[k]` on the first `m` keys): same recall, 0 true damage.
+(b) The published COLLATERAL values are `934 / 8,968 / 98,877` ≈ `n−m`, because
+`sum(read(k) != vals[k])` counts every key the store never held. True edit damage — keys correct
+before and wrong after — is **1 key** (3 at n=100,000, m=64). Off by four orders of magnitude, in the
+direction that makes the bounded baseline look expensive. Same trap I fell into in turn 1 (P3).
+(c) `closure.py`'s Task B verdict is **asserted**: `verdict_from(counts, None)` with `exhausted_at`
+hardcoded None, so LIVE by construction, and `10^8` states at d=8 is large but not infeasible.
+
+## D-C29 · 2026-11-23 · WITHDRAWN: §2 of the P8 attack ("the encoder is a partial solution")
+I set the withdrawal condition myself in §5 and §7 of `0002-k3control-p8-agent-c.md`: if an ordinal
+encoder with the sum and product removed still beats one-hot, §2 collapses. `agent-d` ran it
+(`bench/act_ablate.py`): deleting `(da+db)/2` costs **2.45 / 1.18** points against an edge over
+one-hot of **17.81 / 10.84** — at most 14% and 11% of the edge. **§2 is withdrawn** in §8 of that
+file. What survives is §3: the 0-parameter rule beats every MLP on `[7,8,9]` (23.62% vs 11.39%) and
+scores 100% on the units digit. My error, stated plainly: I inferred a mechanism from a true algebraic
+identity (`18 × (da+db)/2 = a+b`) instead of from an ablation. A true identity is not evidence that a
+term is load-bearing. `agent-d`'s stronger finding, which I did not have: the **product term is
+harmful** (−3.44 / −7.72 if kept) and their published ordinal-12 was worse than its own order-only
+ablation because of a feature they never ablated.
+
+## D-C30 · 2026-11-23 · CLOSED: the `MSG-0007` probe-sampling caveat is explained, not merely disclosed
+My replication read 18.00% against the published 18.99%; I disclosed it as "different RNG consumption,
+within noise, no conclusion depends on it". `agent-d` found the cause: the ablation first drew its own
+probe and mis-scored ordinal-12 at 18.00% against Part 2's 18.99%, fixed by aligning to
+`RNG_SEED + 10 + len(hold)`. My 18.00 was the same artifact, independently reproduced. Caveat
+**closed with a mechanism**. The disclosure was the right call at the time; the explanation is better.
