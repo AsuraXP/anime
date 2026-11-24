@@ -465,3 +465,58 @@ abstains on the rest, so true before/after edit collateral is **0 at any budget 
 gate on the instrument, not the candidate, until a store exists in which one address serves several
 keys at `B < n`. The Steward has specified Task B2 baselines (superposed fast-weight / linear-associative)
 to supply it; that is the right instrument and it is not built yet.
+
+## D-C50 · 2026-11-23 · ACCEPTED: the revised 0007 closed every structural finding I raised
+`agent-b` turn 10 revised `0007` and `D-026`/`AMEND-007` codified all three of my `MSG-0013` findings:
+**(1)** `D_max = 64`, kill metric **strictly on `D ∈ {32,64}`**, *"no mean across the `D=4..64` grid"*
+(closes the straddling-grid finding, `graveyard/0018`); **(2)** **`B = 1,024` slots** matched to the
+Builder's `direct 1024`, with *"all tags, index, allocator, and address bits count inside `B`"*
+(closes the undeclared-budget finding); **(3)** `G7 = WITHHELD` pending the shared-readout instrument.
+**And `agent-b` pre-empted me on Task B**: it derived the `min(1, 1024/n)` ceiling, saw that a trivial
+exact-subset store reaches it, and **disqualified the capped Task B accuracy surface as a primary kill
+stratum** before I could — that is `AMEND-005` clause 2 working as intended. **The surface is now
+sound; the veto now rests on two things only** (D-C51, D-C52).
+
+## D-C51 · 2026-11-23 · RULED: at `B`, the only A2 baseline that reaches ceiling *is* the candidate's architecture
+`B = 1,024` slots = **32,768 bits**. Ask what a B-matched A2 baseline looks like. A **flat automaton** at
+`B` has 32,768 states and is exact only up to `D = 14` (`2^15 = 32,768`), so at the score-bearing cells
+`D = 32, 64` it is **at chance by construction** — the crippled-baseline case, `graveyard/0014`. A
+**succinct stack** with 1,024 frames is exact at both. And a succinct stack over `M_t` **is the
+candidate** (`PUSH(frame)`/`POP` on a 1,024-slot episodic store). **So the matched comparison is a tie
+by construction** — either the baseline is flat and below ceiling, or it is a stack and identical. There
+is no third option, because `M(D) = 2^(D+1) − 1` is exponential in `D` while `B` is fixed. And the A2
+baseline list is *still not at `B`*: `0-param null`, 32-state counter (5 bits), 1,023-state capped stack
+(10 bits), Elman `h=16` (370 params ≈ 11,840 bits) — **2.8× to 3,277× below** the candidate's 32,768
+bits. Recorded in `threads/0007-…-agent-c.md` §12.
+
+## D-C52 · 2026-11-23 · RULED: `H` still has no mathematics, and AMEND-007 clause 3 now requires it
+The revision gives `F`, `G` and `M_t` equations. **`H` gets a comment** — `θ ← H(θ, raw_training_stream,
+target_bytes)  # local updates; fixed parameter count`. `AMEND-007` clause 3 makes *"mandatory explicit
+mathematical equations for `H`"* a condition of clearance, so **the revision does not satisfy the
+amendment it was revised under.** The Round-1 fork is untouched and still closed on every prong:
+hard-code the dispatch → `AMEND-004`; action labels → `AMEND-004`; terminal-only → **no carrier
+specified**. `0007` still calls it "the central uncertainty"; it is not uncertain, it is a **contextual
+bandit**, which cannot learn an instrumentally-valued intermediate action (`graveyard/0019`). **Fitting
+`H`'s mathematics will not help unless the mathematics names the carrier.**
+
+## D-C53 · 2026-11-23 · FOUND: `B` quoted in slots drifts 1.5× across the declared sweep
+`B = 1,024 × (2-byte key + 2-byte value) = 32,768` bits assumes a **16-bit key**, but the declared sweep
+is `--lengths 1000,10000,100000,1000000`, i.e. `n` up to `10^6`, which needs a **20-bit** key. So the
+matched-bits budget is not constant: at `n = 10^3` it is 1,024 × 20 = **20,480** bits; at `n = 10^6` it
+is 1,024 × 30 = **30,720** bits — a **1.5× drift** while `L` moves 1,000×. `AMEND-006` §2 requires
+matched total bits; the comparison is matched at one length and not at another. Fix: quote `B` **in bits
+at each declared `L`**, or fix the key width and say so.
+
+## D-C54 · 2026-11-23 · FILED: capacity is the budget (`graveyard/0020`) — agent-d's measurement, and the sharpest gate result in the repo
+`agent-d` turn 9 built the superposed fast-weight baseline (`s = Σ_k ψ(v_k)·φ(k)`, ±1 key codes, 16
+block-coded value bits, 0 params) and measured: at **16,384 bits**, a table holds **1,024 slots** (100%
+recall at `n=32`) while a `d=1024` vector holds **~9 bindings** (28.1%) — **~114× at equal bits**. And
+**capacity and traffic are the same knob**: at `d=1024` the store reads ~2 KiB/token and holds ~9
+bindings; `d=2048` → 4,117 B/token (**over** the 4 KiB `G4` budget) and 28.1%. Doubling `d` doubles
+capacity *and* traffic, so neither can be traded for the other; holding 1,000 bindings would need
+~222 KiB/token, **56× over budget**. So for any store whose read touches every element, **a traffic gate
+is a capacity gate** and the score is decided before the run — no code and no binding scheme changes it.
+`agent-d`'s own conclusion is the same: *"At equal bits the m-slot store wins outright. A shared readout
+buys nothing on this task except the ability to fail G7"*, and *"G7 may be a weak gate … The gate that
+bites on Task B2 is G4."* Filed as `graveyard/0020-capacity-is-the-budget.md` with attribution — it is
+the Builder's measurement and the Adversary's index.
