@@ -1,86 +1,46 @@
 # status — agent-d (BUILDER)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 7 — Round 7: the Adversary audited my harness, and it was right twice
+**Turn:** 8 — Round 8: AMEND-006 landed, and building the benchmark it asked for found two bugs in my own task
 **Branch:** `arena/154facdf-anime`
-**State:** two of my own published claims were **wrong** and are corrected in place. No candidate
-built (`0006` vetoed pre-build, as it should have been).
+**State:** all three D-024 harness items are built and gated (**46/46 in 59.6 s**). No candidate built.
+The headline is not the new table: it is that **my first Dyck-2 task was not Dyck-2** and would have
+been published as one.
 
 ## Did
 
-`agent-c` (`MSG-0011`) made three statements about `nonregular.py` while killing `0006`. Third-party
-audits of my numbers are what this seat exists for, so each was checked in `audit_harness.py` (0.4 s,
-deterministic) instead of accepted or argued with.
-
-| claim | checked | result |
+| D-024 / AMEND-006 item | delivered | evidence |
 |---|---|---|
-| A1b is a 19-state problem; `k=19` exact on every cell; one machine fit at D=16 exact everywhere; readout has 4 rows | recomputed | **CONFIRMED** |
-| the requirement is `D+3`, linear in depth | boundary scan | **CONFIRMED** — 5, 7, 11, 19 at D = 2, 4, 8, 16 |
-| Task B is an `m/n` problem and the baseline sits at it | recall vs `m/n`, edit blast radius | **CONFIRMED, and it found my defect** |
+| closure gate prints `\|states\|` **and** bits at `D_max`, `M >= 2^30` required | `closure.py` rewritten: per-depth counts, stop at `D_max`, DEAD / VIABLE / LIVE | Dyck-1 D=16 → **17 states, 5 bits, DEAD**; Dyck-2 D=32 → **8.59e9, 33 bits, VIABLE**; crossing computed at depth 30 |
+| Task A2: Dyck-2 at `D ∈ {4,8,16,32,64}`, trained `D <= 8` | `dyck2.py` (new, pair-identical, ~9 min): 0-param nulls, capped type stacks, Elman h ∈ {4,8,16} over 4 restarts | 1,023-state stack **100% at D=8, 50.1% at D=16**; Elman h=16 73.3% at D=4 → chance at 16 |
+| Task B collateral definition, raw serialization, `\|s_t\|+\|theta\|`, G4 bytes/token | `stream_ram.py` (new): byte-level stream, both baselines charged | direct store 22-26 bits state, 0 params, 3.4 bytes/token, coverage on `m/L`; KV scan 11,431 bytes/token at L=10^4 — over the 4 KiB budget |
 
-**Correction 1 — `k >= D+1` was wrong.** For three parts I published "exact iff `k >= D+1`", but the
-grid only sampled `k ∈ {2,4,8,16}`, so `D+1` and `D+2` were never tested. The measured requirement is
-**`D+3`**: two states more than I claimed, and the difference between "17 states at D=16" and a
-19-state machine that is exact on the entire grid with a **4-row readout**.
+RESULTS.md: Part 11 appended by script (1834 lines total). Gate: **C14 added, 46/46 in 59.6 s**.
 
-**Correction 2 — Task B's collateral column was collision loss.** The number I published as
-`COLLATERAL (unrelated keys changed)` — 934 of 999 at m=64 — is mostly write-time collision loss and
-barely moves when the edit is removed. Measured properly (correct before → wrong after), the edit's
-blast radius is **0–3 keys**, bounded by the slot population.
+## The two defects, because they are the turn
 
-| n | m | recall | m/n | **edit collateral** | keys wrong after | slot pop |
-|---|---|---|---|---|---|---|
-| 1,000 | 64 | 6.60% | 6.40% | **1** | 934 of 999 | 15 |
-| 10,000 | 1024 | 10.32% | 10.24% | **1** | 8,968 of 9,999 | 10 |
-| 100,000 | 64 | 0.17% | 0.06% | **3** | 99,831 of 99,999 | 1,562 |
+1. **`valid()` counted depth only.** `Ab` scored valid, so the "Dyck-2" label was a one-counter
+   (merged-alphabet) label with a two-type name.
+2. **Pinned probes were single-type runs.** `pairs == pin_depth` left the inner word empty, so every
+   depth-`D` probe was `AAAAAAAAaaaaaaaa`. The depth axis was real; the two-type half was untested.
 
-Consequence: **G7 has no instrument yet.** A direct-address store gives each key one slot, so one edit
-can damage at most the slot population; it cannot exhibit the collateral G7 asks about. That needs a
-store whose readouts are *shared* across keys, and it is the next instrument this seat owes.
+Plus a third, caught by an assert: a sign flip changes depth by **2**, so the "trained at depth <= 8"
+set contained depth-10 strings. And a fourth in the baseline: the stack readout lacked a
+final-stack-non-empty flag, which made the *minimal exact* machine look approximate (96-97% instead of
+100%) — a readout defect that would have been published as a property of the machine.
 
-**Also:** `closure.py` now has the three-way verdict `AMEND-005` adopted — DEAD / **VIABLE** / LIVE
-with `FEASIBLE_MAX = 10^9` — and carries the canonical viable case (Dyck-2 at depth ≤ 256 closes into
-`2.32e77` states: regular, finite, unbuildable, not a kill). `nonregular.py` is regenerated with both
-corrections, including its AMEND-003 opening lines, which had been stating the two wrong bars.
+All four are fixed in code; the numbers from the first run are void and appear nowhere in RESULTS.
 
-## What both tasks actually are
+## Not claimed
 
-| task | budget | ceiling | measured |
-|---|---|---|---|
-| A | `D+3` states (19 at D=16, 5 bits) | exact above the budget | one 19-state machine + 4-row readout is exact on the whole grid |
-| B | `m` slots | `m/n` (pigeonhole) | direct addressing sits at `m/n` + chance agreement |
+- The Elman rows are not a strong neural baseline. They only learn the shallow half, with a disclosed
+  curriculum, and **never become exact in-distribution** — so they show a qualitative collapse, not a
+  state budget. The budget evidence is the capped type stacks.
+- Task B still cannot test G7: collateral is 0-3 keys by construction.
+- `0007` is still unscored. The surface for it now exists; the candidate does not.
 
-**Neither is a composition test.** A candidate scoring 100% on A and `m/n` on B has matched two
-budgets, not shown composition — which is exactly why `0006` was scored on a saturated surface.
+## Next
 
-## Not done, and said plainly
-
-- **No candidate work.** `residual_effect.py` and `external_role_stack.py` untouched: `0006` and
-  `0005` were vetoed pre-build, per D-022/D-023.
-- **No sharing store, so no G7 instrument.** Stated above rather than papered over.
-- The neural baseline is still a small Elman net (Part 9); a stronger one would only confirm D ≤ 8.
-
-## Gates
-
-`certify.py` **37/37** in 79.8 s. New **C13**: Part 10 published, `D+3` recomputed (11 at D=8, 19 at
-D=16), Part 9 carries the corrected requirement and column, the closure gate has the feasible/
-infeasible split, and the audit separates collateral from collision loss. `audit_harness.py` joined
-the fast determinism list (0.4 s).
-
-Every number in Parts 7 and 9 that this turn corrects is now regenerated from the scripts rather than
-annotated by hand, and Part 7 carries a forward banner so history cannot be mistaken for the current
-baseline.
-
-## Baton
-
-1. **agent-a**: AMEND-005's "state space must grow" needs the companion clause this turn measured —
-   *and the growth must be infeasible to enumerate*. `closure.py` now implements it; D-023's wording
-   can point at the gate rather than describe it.
-2. **agent-c**: your three claims check out to the digit. The `D+3` boundary and the 0–3 blast radius
-   are in Part 10; if you want the G7 instrument, the design constraint is that readouts must be
-   shared across keys — direct addressing cannot produce the failure mode.
-3. **anyone building a candidate**: Task A's budget is 19 states at D=16 and Task B's is `m/n`. Beating
-   either means doing it with **less**, and the harness now says so in its own opening lines.
-
-**What would prove me wrong:** a depth-pinned set where some `k < D+3` machine is exact, or a store
-where one edit damages many keys at fixed `m` with flat reads.
+Score `0007` on `dyck2.py` (it is the design Part 11 was built for), or state that its working state
+cannot stay inside `2^30` at D=32 and close it the way `0006` was closed. Nothing else on my bench is
+waiting.

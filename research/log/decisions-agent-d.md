@@ -351,3 +351,76 @@ and the canonical viable case is in the table: Dyck-2 at depth <= 256 closes int
 2.32e77` states -- regular, finite, unbuildable, and therefore not a kill. The first version of the
 gate could only say DEAD or LIVE, which would have called a perfectly good benchmark dead by
 accident or alive for the wrong reason.
+
+## BD-029 · 2026-11-23 · The gate reports bits at the declared envelope, and Dyck-1 was dead at mine
+
+`AMEND-006` raised `FEASIBLE_MAX` from `10^9` to **`2^30`** and required the gate to print `|states|`
+*and* its bits **at the declared envelope** `D_max`, not at whatever depth the enumeration happened to
+reach. `closure.py` is rewritten to do that: per-depth counts, a stop at `D_max`, saturation
+separated from exhaustion, and a three-way verdict.
+
+The result rewrote my own benchmark story. **Dyck-1 at the harness's declared `D=16` closes into 17
+states (5 bits) -- DEAD.** Task A1b could never have falsified a composition claim; it is a
+state-budget table, which is what Parts 9-10 said without this number behind it. Dyck-2 at `D=32`
+closes into `2^33-1 = 8,589,934,591` (33 bits), and the crossing is *computed* rather than asserted:
+1,073,741,823 at depth 29 is below the line, 2,147,483,647 at depth 30 is above it.
+
+## BD-030 · 2026-11-23 · My first Dyck-2 task was not Dyck-2, and its probes were single-type runs
+
+Written and run, then withdrawn before publication. Two defects:
+
+1. `valid()` counted depth only, so `Ab` scored valid. The label was a merged-alphabet Dyck-1 label --
+   a one-counter task with a two-type name.
+2. The pinned probes were built with as many pairs as the pinned depth, so the inner word was always
+   empty and every depth-`D` probe was `AAAAAAAAaaaaaaaa`: a single run of one type.
+
+The second defect is the same class as `make_balanced_set` taking pairs for depth (turn 8, agent-c's
+finding): **a column labelled depth must be checked against `max(nested_depth)`, and a column labelled
+Dyck-2 must be checked against a word the label rejects.** Both now fail loudly.
+
+## BD-031 · 2026-11-23 · Corruption must respect the budget it claims to respect
+
+A sign flip changes running depth by 2 (one fewer closer *and* one more opener), so a uniform flip on a
+word nested to depth 8 can produce a depth-10 string. The "trained on depth <= 8" claim was false in
+the first version. `corrupt_word()` now rejects flips that leave the budget, and an assert on every
+generated training string enforces it. The replacement second class -- a **type swap**, which leaves
+the depth profile untouched -- is what makes the task need a stack of types rather than a counter.
+
+## BD-032 · 2026-11-23 · The state-budget baseline must be a capped type stack, and its boundary is the closure
+
+A depth counter cannot decide this task (`Ab` vs `AB`), and with 32 states it sits at 72.6% at D=4,
+69.9% at D=8. The baseline that carries the claim is `CapStack(cap)`: state = stack contents, so
+`2^(cap+1)-1` states, the same number `closure.py` reports. Measured: 31 states exact at D=4 and 50.1%
+at D=8; **1,023 states exact at D=8 and 50.1% at D=16**, because depth 16 needs 131,071 states. A
+`k <= 1024` machine cannot cross that line, measured rather than asserted.
+
+The readout needed a fourth flag (`tail`: final stack non-empty). Without it a word with surplus
+openers -- `AAaA` -- has no underflow and no mismatch, so the machine called it valid and cap 9 read
+96-97% instead of 100%. That is a readout defect, not a state one, and it is the kind of thing that
+would have been published as "the minimal machine is approximate".
+
+## BD-033 · 2026-11-23 · A baseline that cannot fit its own training set is not a measurement
+
+The Elman rows were at chance, and the cause was optimization, not the task: **5 of 5 restarts at 16
+epochs ended between 50% and 59% accuracy on the training set**, while the identical class learns a
+trivial last-character task to 96.5%. Published rows are therefore trained with a disclosed depth
+curriculum (2, 4, 6, 8; 8 epochs per stage), reported as median/best over 4 restarts, with a
+no-curriculum control quoted beside the table (51.2-52.9% on the data it trained on).
+
+Even with the curriculum the baseline **never becomes exact in-distribution** (h=16: 73.3% median at
+D=4, 58.1% at D=8). So it contributes a qualitative collapse, not a state-budget measurement; the
+budget evidence is the capped type stacks, which are exact by construction. Saying so is cheaper than
+tuning until the row looks strong.
+
+## BD-034 · 2026-11-23 · Task B is serialized and charged for, and the first sampler measured write order
+
+`stream_ram.py` writes the stream as raw bytes (`SET`/`GET`/`EDIT`, 2-byte keys and values), and charges
+both baselines: `|s_t|` bits, `|theta|` bits, bytes read+written per token against G4's 4 KiB budget.
+Direct-address store: flat `|s_t|` (22-26 bits), 0 parameters, 2.7-3.9 bytes/token, coverage at `m/L`.
+Full KV scan: exact, 11,431-15,388 bytes/token at L >= 10^4 -- over budget, which is the honest price
+of exactness.
+
+The first version sampled the **first 2,000 keys**, which are the earliest writes and therefore the
+ones a collision overwrites first: it reported 0.00% where the pigeonhole bound was 10.24%. A uniform
+sample tracks the bound (6.40 vs 6.40, 9.90 vs 10.24, 0.75 vs 1.02). Collateral stays 0-3 keys, so
+this baseline still cannot test G7 -- stated, not dressed up.

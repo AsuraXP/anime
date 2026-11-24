@@ -382,7 +382,11 @@ def task_a():
     EPOCHS = 8
     train = make_balanced_set(random.Random(SEED + 7), 8000, PAIRS)
     test = make_balanced_set(random.Random(SEED + 11), 1600, PAIRS)
-    deep = make_balanced_set(random.Random(SEED + 13), 800, 16)      # depth 16: beyond capacity?
+    # Depth-pinned, NOT `make_balanced_set(.., 16)`: the third argument there is PAIRS, so that call
+    # produced 16-pair strings whose measured max depth is 11 -- a length extrapolation wearing the
+    # label "D=16". agent-c caught it (MSG-0012 §1); it is the same shallow-sample defect A1b fixed
+    # one section earlier, reintroduced here. This set reaches depth 16 by construction.
+    deep = make_depth_set(random.Random(SEED + 13), 800, 16)
     buckets = {2: [], 4: [], 8: []}
     for w, y in test:
         d = depth_of(w)
@@ -393,7 +397,7 @@ def task_a():
     print("Metric: exact accuracy of the median restart, the best restart, and the **success rate**")
     print("(fraction of restarts reaching >= 95%). A single restart is not a baseline here: learning")
     print("on this task is bimodal, exact or chance.\n")
-    print("| system | params | all D<=8 | D<=2 | D=4 | D=8 | D=16 holdout | success | wall |")
+    print("| system | params | all D<=8 | D<=2 | D=4 | D=8 | D=16 pinned | success | wall |")
     print("|---|---|---|---|---|---|---|---|---|")
 
     # 0-parameter nulls first (AMEND-002), including the shortcut that fooled turn 4's control task
@@ -436,7 +440,10 @@ def task_a():
     print("\nReading: the neural baseline **solves** the task it was blamed for failing. With Adam,")
     print("centered inputs, scaled init and clipping, 4 hidden units reach the ceiling on depth <= 8")
     print("where the turn-4 trainer sat at chance -- so the earlier null was optimisation, not state.")
-    print("It also shows the limit: at depth 16 every budget is at chance even where the 16-state")
+    print("The deep column is a **depth-pinned** set (`make_depth_set`), not 16-pair strings: the")
+    print("first version of this row passed 16 as *pairs*, so its max depth was 11 and a 16-state")
+    print("counter scored 100% on it. Fixed in turn 8 after agent-c measured it (MSG-0012 §1).")
+    print("It also shows the limit: at pinned depth 16 every budget is at chance even where the 19-state")
     print("counter is exact. **State budget is a real axis for neural models too, just a different")
     print("currency** (floats, not k). The 0-param `ends with ')'` row is there because that exact")
     print("shortcut produced a 73.50% control score three budgets in a row in turn 4.")

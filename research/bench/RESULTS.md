@@ -1,4 +1,4 @@
-<!-- GENERATED -- do not hand-edit. Nine parts, their commands below. -->
+<!-- GENERATED -- do not hand-edit. Eleven parts, their commands below. -->
 <!-- reproduce part 1: python3 research/bench/scorecard.py    (~11 s,  CPU, seeded) -->
 <!-- reproduce part 2: python3 research/bench/k3control.py    (~180 s, CPU, seeded) -->
 <!-- reproduce part 3: python3 research/bench/ceiling.py      (~90 s,  CPU, seeded) -->
@@ -6,6 +6,8 @@
 <!-- reproduce part 7: python3 research/bench/budget.py       (~288 s, CPU, seeded) -->
 <!-- reproduce part 7: python3 research/bench/nonregular.py   (~295 s, CPU, seeded) -->
 <!-- reproduce part 8: python3 research/bench/closure.py      (~0.1 s, CPU, no RNG) -->
+<!-- reproduce part 11: python3 research/bench/dyck2.py      (~9 min, CPU, seeded) -->
+<!-- reproduce part 11: python3 research/bench/stream_ram.py (~0.1 s, CPU, seeded) -->
 <!-- reproduce part 8: python3 research/bench/act_ablate.py   (~290 s, CPU, seeded) -->
 <!-- verify all of it: python3 research/bench/certify.py --full -->
 <!-- all model values are deterministic (seeded). Only wall-clock timings vary run to run. -->
@@ -1653,4 +1655,180 @@ audits claims about *my* harness, not the candidates.
 **What would prove this wrong:** a depth-pinned set on which some `k < D+3` machine is exact,
 or a store where one edit damages many keys at fixed `m` with flat reads -- which would be the
 G7 instrument this part says is missing.
+
+
+<!-- ============ PART 11: turn 8 -- the envelope gate, Dyck-2, and stream accounting ============ -->
+# Part 11 -- the gate said Dyck-1 was dead; this is the surface that is not, and it found two bugs in my own task (turn 8)
+
+`agent-a`'s D-024 / AMEND-006 asked for three things: a closure gate that reports `|states|`
+*and* the bits at the declared envelope `D_max` with `M >= 2^30` required, a Task A2 that is
+actually above that line, and a Task B serialized as raw token streams with `|s_t| + |theta|`
+bits and bytes-per-token against G4's 4 KiB budget. All three exist now. The fourth thing this
+part does is report what building A2 broke: **the first version of the Dyck-2 task was not
+Dyck-2**, and its probes were single-type runs. Numbers from that run are void and are not
+quoted anywhere in this file.
+
+## 11.1 The envelope gate (AMEND-006)
+
+The rule, restated exactly: a task whose composites close into an order-`M` family **at the
+declared envelope** is saturated by an `M`-state automaton iff `M < 2^30`. Below the line the
+task is DEAD as a composition benchmark -- buildable machines decide it and no candidate can
+falsify anything by passing. Above the line it is VIABLE. No closure at all is LIVE.
+
+`closure.py` had to be rewritten to say this: the turn-7 version counted closure globally,
+which reports more states than there are sequences. It now counts per depth, stops at
+`D_max`, distinguishes saturation from exhaustion, and prints the state count and its bits at
+the envelope the task is actually declared at:
+
+| task | envelope D_max | M at D_max | bits | verdict |
+|---|---|---|---|---|
+| digit addition mod 10^16 (positional) | 16 | 2 | 1 | **DEAD** |
+| affine action over F_101 (candidate 0004) | 8 | 10,100 | 14 | **DEAD** |
+| Dyck-1, nesting <= 16 (nonregular.py Task A1b) | 16 | 17 | 5 | **DEAD** |
+| Dyck-2, nesting <= 32 | 32 | 8,589,934,591 | 33 | **VIABLE** |
+| Dyck-2, nesting <= 64 | 64 | 3.69e+19 | 65 | **VIABLE** |
+| Dyck-1, unbounded nesting | unbounded | no closure | -- | **LIVE** |
+| stream binding + E-EDIT (nonregular.py Task B) | unbounded | no closure | -- | **LIVE** |
+
+**The two results that matter.** Dyck-1 at the harness's own declared `D=16` closes into **17
+states, 5 bits** -- dead, exactly as `agent-c` said. Dyck-2 at `D=32` closes into **8,589,934,591
+states, 33 bits**, and at `D=64` into 3.69e19. The crossing is computed in the script, not
+asserted: 1,073,741,823 states at depth 29 is below the gate and 2,147,483,647 at depth 30 is
+above it.
+
+This is the number that makes Task A2 worth building, and the number that makes `0006`'s veto
+upheld rather than incidental: the grader's K1 design stored a `state_id` of `Theta(n)` bits
+(9,966 bits at 1k, 121.7 KiB at 100k), so it did not live inside the envelope it claimed.
+
+## 11.2 Task A2 -- Dyck-2, trained to depth 8, probed to 64
+
+Two bracket types, four symbols (`A`, `B`, `a`, `b`). A string is valid Dyck-2 iff it never
+underflows and **every closer matches the type on top of the stack**.
+
+**Two defects in the first version of this task, found before publication.**
+
+1. `valid()` counted depth only. `Ab` scored valid -- the closer does not match the opener, so
+   it is not a Dyck-2 word. The label was a merged-alphabet Dyck-1 label: a one-counter task
+   wearing a two-type name.
+2. The pinned probes were built with as many pairs as the pinned depth, so `inner` was always
+   empty and every depth-`D` probe was a single run of one type -- `AAAAAAAAaaaaaaaa`. The
+   'depth' axis was real; the 'two types' half of the task was not exercised at all.
+
+Both are fixed. Probes are now a mixed-type spine of exactly depth `D` with shallow sibling
+pairs for variety, and corruption is depth-safe: a sign flip changes running depth by **2**, so
+flips that would leave the budget are rejected (an earlier version let the 'depth <= 8'
+training set contain depth-10 strings), and half the corruptions are **type swaps**, which
+leave the depth profile untouched and are decidable only by remembering the stack's types.
+Without that class the task is decidable by a one-counter machine.
+
+What the models see, and what they are probed on:
+
+probe D= 4: max nesting  4, length 8-20, valid fraction 0.52
+probe D= 8: max nesting  8, length 16-44, valid fraction 0.46
+probe D=16: max nesting 16, length 46-82, valid fraction 0.50
+probe D=32: max nesting 32, length 96-158, valid fraction 0.48
+probe D=64: max nesting 64, length 218-292, valid fraction 0.53
+
+Every baseline is fitted on the shallow training set only (4,000 strings, max nesting 8,
+about half corrupted, 49% valid). Nothing sees a string deeper than 8 during training.
+
+| system | params | D=4 | D=8 | D=16 | D=32 | D=64 | exact through | wall |
+|---|---|---|---|---|---|---|---|---|
+| 0-param: always valid | **0** | 52.12% | 45.88% | 49.88% | 48.38% | 52.62% | -- | -- |
+| 0-param: ends with a closer | **0** | 54.00% | 47.75% | 50.25% | 48.50% | 52.75% | -- | -- |
+| type-blind depth counter, 32 states -- cannot pass by construction | 32 states | 72.62% | 69.88% | 72.62% | 51.62% | 47.38% | -- | -- |
+| capped type stack, cap 2 | 7 states | 61.88% | 49.62% | 51.00% | 49.12% | 52.88% | exact <= D=2 | 0.0s |
+| capped type stack, cap 3 | 15 states | 71.25% | 49.62% | 51.00% | 49.12% | 52.88% | exact <= D=3 | 0.0s |
+| capped type stack, cap 4 | 31 states | 100.00% | 50.12% | 50.88% | 49.12% | 52.88% | exact <= D=4 | 0.0s |
+| capped type stack, cap 9 | 1023 states | 100.00% | 100.00% | 50.12% | 51.62% | 47.38% | exact <= D=9 | 0.0s |
+| Elman h=4 (median / best of 4) | 46 | 58.38 / 58.63% | 52.88 / 54.50% | 51.25 / 53.87% | 50.38 / 51.25% | 50.88 / 52.75% | -- | 43s |
+| Elman h=8 (median / best of 4) | 122 | 58.25 / 75.00% | 54.50 / 61.12% | 50.75 / 51.38% | 49.00 / 51.25% | 51.62 / 52.88% | -- | 94s |
+| Elman h=16 (median / best of 4) | 370 | 73.25 / 83.75% | 58.13 / 68.38% | 50.88 / 52.25% | 50.38 / 52.62% | 49.38 / 52.75% | -- | 254s |
+
+Control from the same run, quoted as printed: training-set accuracy 51.2-52.9%, so the row above is not a tuning artifact
+
+**The capped type stack is the row that carries the state-budget claim**, and it is exact
+exactly where the closure says it should be: 1,023 states (cap 9) scores 100.00% at depth 8 --
+the depth it can hold -- and 50.12% at depth 16, because deciding depth 16 needs 2^17-1 =
+131,071 states. A `k <= 1024` machine cannot be exact at depth 16, at any budget this harness
+allows. The type-blind row is the negative control: same transitions, no type memory, and it
+is wrong in-distribution at every depth, which is what makes this a Dyck-2 task rather than a
+counter task.
+
+**The neural baseline row is weak, and the row is published with its control.** A flat 8-epoch
+run stalls near chance on the *training set* -- 5 of 5 restarts ended between 50% and 59% -- so
+the Elman rows here are trained with a disclosed depth curriculum (2, 4, 6, 8; 8 epochs per
+stage) and reported as median / best over 4 restarts. With it, h=16 reaches a median
+58.13 / 68.38% at depth 8 and is at chance at 16. So the honest statement is:
+**the 370-parameter system never becomes exact in-distribution** -- it is a partial learner
+that collapses OOD, not a fixed-state machine whose budget was measured. The state-budget
+evidence in this part comes from the capped type stacks, which are exact by construction. The
+no-curriculum control is there so a reader cannot mistake an optimizer failure for a task
+failure: without the curriculum the same code sits at 51-53% on the data it trained on.
+
+## 11.3 Task B as raw token streams (AMEND-006)
+
+`nonregular.py`'s Task B table reports coverage and an edit's blast radius, but it never
+serialized the stream and never accounted for what a machine spends. `stream_ram.py` writes
+the stream as raw bytes -- `SET`/`GET`/`EDIT` records, 2-byte keys and values, no oracle tags --
+and charges both baselines for every byte they read and write:
+
+| stream L | machine | coverage | **edit collateral** | |s_t| bits | |theta| bits | bytes/token | G4 (<= 4 KiB) |
+|---|---|---|---|---|---|---|---|
+| 1,000 | direct 64 | 6.40% | **1** | 22 | 0 | 2.7 | yes |
+| 1,000 | direct 1024 | 100.00% | **0** | 26 | 0 | 2.7 | yes |
+| 1,000 | full KV scan | 100.00% | **0** | 26 | 0 | 2,667 | yes |
+| 10,000 | direct 64 | 0.50% | **1** | 22 | 0 | 3.4 | yes |
+| 10,000 | direct 1024 | 9.90% | **0** | 26 | 0 | 3.4 | yes |
+| 10,000 | full KV scan | 100.00% | **0** | 30 | 0 | 11,431 | **no** |
+| 100,000 | direct 64 | 0.10% | **0** | 22 | 0 | 3.9 | yes |
+| 100,000 | direct 1024 | 0.75% | **0** | 26 | 0 | 3.9 | yes |
+| 100,000 | full KV scan | 100.00% | **0** | 33 | 0 | 15,388 | **no** |
+
+Read the coverage column against the pigeonhole bound `m/L`, which is what the row is testing:
+an m-slot store answers about `m/L` of random queries and the full scan answers all of them at
+`Theta(L)` bytes per token. Measured against the bound it tracks it from below -- 6.40% vs
+6.40% at L=1,000, 9.90% vs 10.24% at L=10,000, 0.75% vs 1.02% at L=100,000 -- with the last
+shortfall inside sampling noise for 2,000 queries. The first version of this file sampled the
+*first* 2,000 keys, which are the earliest writes and therefore the ones a collision
+overwrites first, and reported 0.00% where the bound was 10.24%; the sampler now draws
+uniformly.
+
+Two honest limits. **Collateral here is 0-3 keys**, so this baseline cannot test G7 -- a
+direct-address store gives every key one slot, and no candidate can be shown to do worse than
+a bound that is already nearly zero. And **working state is a register count**: the direct
+store's `|s_t|` is ~22-26 bits and 0 parameters, flat in `L`, which is exactly the claim a
+candidate has to make and exactly what this table can charge for.
+
+## 11.4 What this changes for `0006` and `0007`
+
+`0006` was vetoed on the envelope: its `state_id` is `Theta(n)` bits, so its working state grows
+with the stream and it fails G4 by construction rather than by measurement. The K2 graveyard
+entry -- a 19-state machine fitted on Task A1b -- stands as the *demonstration* that A1b is a
+state-budget table, and 11.1 now says why: A1b closes into 17 states at its declared envelope.
+
+`0007` is the design this part exists to score, and it has not been scored: the surface it
+would run on is now above `2^30` (8.59e9 states at D=32), its probes are depth-pinned, and
+every baseline in the table is fitted shallow. What is still missing is the candidate itself.
+
+## 11.5 Audit of this part
+
+**Certified:** `closure.py` and `stream_ram.py` are deterministic and in the gate (`C14`);
+`dyck2.py` was run twice and the two outputs are identical modulo wall-clock fields, and its
+tables are transcribed by this assembler from that output rather than retyped. The two task
+defects are fixed in code, not in prose, and the training budget is enforced by an assert on
+every generated string.
+
+**Not claimed:** that the Elman rows are a strong neural baseline -- they are a 370-parameter
+system that only learns the shallow half with a curriculum. That the capped type stack is
+optimal: it is the *minimal* machine the closure implies, which is the point. That Task B's
+collateral says anything about G7 -- it does not, and 11.3 says so.
+
+**What would prove this wrong:** a `k < 1023` machine exact at depth 16 on type-swapped probes
+(the closure says 131,071 states are needed, so this would mean the enumeration or the probes
+are wrong), or a stream machine with flat `|s_t| + |theta|` across `L: 10^3 -> 10^6` that beats
+`m/L` at equal `m` -- which would be a candidate, and this part contains none.
+
+Reproduce: `python3 research/bench/closure.py` (0.1 s), `python3 research/bench/dyck2.py`
+(~9 min), `python3 research/bench/stream_ram.py` (0.1 s).
 

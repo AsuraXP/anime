@@ -12,7 +12,7 @@ next to the numbers is actually supported by them.
 What is checked
   D1 determinism      every script is run twice; stdout must match after timing fields are masked.
   D2 freshness        the block of RESULTS.md tagged as scorecard output must equal a fresh run.
-  C1..C13 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
+  C1..C14 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
                       otherwise have to take on faith. Each returns the measurement behind it.
 
 Exit code is 0 only if every check passes. A failing check is a result, not a nuisance: it means a
@@ -21,6 +21,7 @@ published sentence has to be withdrawn or corrected in the same turn.
 
 import importlib.util
 import os
+import random
 import re
 import subprocess
 import sys
@@ -50,6 +51,12 @@ def run(script, timeout=1700):
     p = subprocess.run([PY, os.path.join(BENCH, script)], capture_output=True, text=True,
                        timeout=timeout)
     return p.stdout, p.stderr, p.returncode, time.time() - t0
+
+
+def random_seeded(mod, salt):
+    """A seeded RNG for the C14 recomputations, so the gate itself is deterministic."""
+    import random
+    return random.Random(mod.SEED + 7919 * salt)
 
 
 def check(name, ok, detail=""):
@@ -253,11 +260,11 @@ def check_claims():
                      f"enumerated {n_aff:,} states, verdict {aff['verdict']}, exhausts at depth "
                      f"{aff['sat']} (Adversary published 10,100 states / 14 bits)"))
     da = cl.digit_addition()
-    dy = cl.dyck_counter()
+    dy = cl.dyck1_unbounded()          # the LIVE case; renamed from dyck_counter() in turn 8
     out.append(check("C11 closure gate separates DEAD from LIVE",
                      da["verdict"] == "DEAD" and dy["verdict"] == "LIVE",
                      f"digit addition {da['verdict']} ({cl.count_at(da, 16):,} states); "
-                     f"Dyck counter {dy['verdict']} ({cl.count_at(dy, 32):,} states at depth 32)"))
+                     f"Dyck-1 unbounded {dy['verdict']} ({dy['counts'][32]:,} states at depth 32)"))
     out.append(check("C11 the 0-parameter null is in the ablation tables",
                      "0-param carry-blind" in part8,
                      "AMEND-002: the null is the row the encoder has to beat, not a footnote"))
@@ -315,14 +322,78 @@ def check_claims():
                      "the regenerated Part 9 carries the corrected state requirement and the "
                      "corrected Task B column header"))
     cl2 = load_module("closure")
-    d2 = cl2.dyck2_bounded()
-    out.append(check("C13 closure gate has the feasible/infeasible split (AMEND-005)",
-                     d2["verdict"] == "VIABLE" and cl2.FEASIBLE_MAX == 10 ** 9,
-                     f"Dyck-2 depth<=256 closes into {d2['counts'][256]:.2e} states and is VIABLE, "
-                     f"not DEAD -- finiteness alone is not a kill"))
+    d2 = cl2.dyck2_bounded(256)
+    out.append(check("C13 closure gate has the feasible/infeasible split (AMEND-005/006)",
+                     d2["verdict"] == "VIABLE" and cl2.FEASIBLE_MAX == 2 ** 30,
+                     f"Dyck-2 depth<=256 closes into {d2['M']:.2e} states and is VIABLE, "
+                     f"not DEAD -- finiteness alone is not a kill; the threshold is 2^30 per "
+                     f"AMEND-006 (it was 10^9 when this check was written)"))
     out.append(check("C13 the audit separates collateral from collision loss",
                      "blast radius" in part10 and "collision loss" in part10,
                      "934 of 999 was collision loss; the edit damages 0-3 keys"))
+
+    # ---------------------------------------------------------------- C14 (AMEND-006 / turn 8)
+    m = re.search(r"PART 11:.*?(?=\n<!-- =|\Z)", md0, re.S)
+    part11 = m.group(0) if m else ""
+    out.append(check("C14 Part 11 (envelope gate + Dyck-2 + stream accounting) published",
+                     bool(part11) and "AMEND-006" in part11 and "2^30" in part11,
+                     f"{len(part11.splitlines())} lines"))
+
+    clo = load_module("closure")
+    d1_16, d2_32, d2_29, d2_30 = (clo.dyck1_bounded(16), clo.dyck2_bounded(32),
+                                 clo.dyck2_bounded(29), clo.dyck2_bounded(30))
+    out.append(check("C14 envelope gate: Dyck-1 at D=16 is DEAD, Dyck-2 at D=32 is VIABLE",
+                     (d1_16["M"], d1_16["verdict"]) == (17, "DEAD")
+                     and d2_32["M"] == 2 ** 33 - 1 and d2_32["verdict"] == "VIABLE",
+                     f"Dyck-1 M={d1_16['M']} {d1_16['verdict']}; Dyck-2 M={d2_32['M']} "
+                     f"{d2_32['verdict']} ({clo.bits(d2_32['M'])} bits)"))
+    out.append(check("C14 the 2^30 crossing is where the script computes it",
+                     d2_29["M"] < clo.FEASIBLE_MAX <= d2_30["M"]
+                     and d2_29["cross"] == d2_30["cross"] == d2_32["cross"] == 30,
+                     f"depth 29: {d2_29['M']:,} < 2^30 <= depth 30: {d2_30['M']:,}; "
+                     f"computed crossing depth {d2_30['cross']}"))
+
+    d2m = load_module("dyck2")
+    out.append(check("C14 the Dyck-2 label rejects a type mismatch (it did not, before)",
+                     (not d2m.valid("Ab")) and d2m.valid("ABba") and (not d2m.valid("AabB")),
+                     "valid('Ab')=False, valid('ABba')=True"))
+    probe_ok = True
+    for d in (4, 8, 16, 32):
+        ps = d2m.make_set(random_seeded(d2m, d), 200, d, pin_depth=d)
+        probe_ok = probe_ok and max(d2m.nested_depth(w) for w, _ in ps) == d and len(ps) == 200
+    tr = d2m.make_train_set(random_seeded(d2m, 99), 800, d2m.TRAIN_D)
+    depth_ok = max(d2m.nested_depth(w) for w, _ in tr) <= d2m.TRAIN_D
+    out.append(check("C14 probes pinned at exactly depth D; no training string deeper than 8",
+                     probe_ok and depth_ok,
+                     f"probe max nesting == D for D in 4/8/16/32; train max "
+                     f"{max(d2m.nested_depth(w) for w, _ in tr)} <= {d2m.TRAIN_D}"))
+
+    small_train = d2m.make_train_set(random_seeded(d2m, 7), 1500, 8)
+    pr = {d: d2m.make_set(random_seeded(d2m, 70 + d), 300, d, pin_depth=d) for d in (4, 8, 16)}
+    cap9 = d2m.CapStack(9).fit(small_train)
+    cap4 = d2m.CapStack(4).fit(small_train)
+    a8, a16, a4 = (d2m.score(cap9.predict, pr[8]), d2m.score(cap9.predict, pr[16]),
+                   d2m.score(cap4.predict, pr[4]))
+    out.append(check("C14 a type stack is exact only up to its cap: 1,023 states pass D=8, fail D=16",
+                     cap9.states == 1023 and a8 >= 0.95 and a16 <= 0.70 and a4 >= 0.95,
+                     f"cap 9: D=8 {100 * a8:.1f}%, D=16 {100 * a16:.1f}%; cap 4: D=4 {100 * a4:.1f}%"))
+
+    sr = load_module("stream_ram")
+    L, mm = 10000, 1024
+    keys, vals, ek, nv = sr.build_stream(L, sr.SEED + L)
+    q = random.Random(sr.SEED + 2 * L).sample(keys, 2000)
+    rb, ra, coll, rd, wr, sbits = sr.direct_address(keys, vals, ek, nv, mm, q)
+    frb, fra, fcoll, frd, fwr, _ = sr.full_scan(keys, vals, ek, nv, q)
+    toks = len(keys) + 2 * len(q) + 1
+    bpt_direct, bpt_scan = (rd + wr) / toks, (frd + fwr) / toks
+    out.append(check("C14 stream accounting: coverage on the pigeonhole bound, scan breaks G4",
+                     abs(rb - mm / L) <= 0.03 and bpt_scan > 4096 >= bpt_direct and frb == 1.0,
+                     f"m=1024, L=10,000: recall {100 * rb:.2f}% vs bound {100 * mm / L:.2f}%; "
+                     f"bytes/token direct {bpt_direct:.1f}, scan {bpt_scan:,.0f} (G4 budget 4,096)"))
+
+    out.append(check("C14 the recurrent baseline is reported as a distribution over restarts",
+                     "median / best of" in part11 and "Control from the same run" in part11,
+                     "median/best over 4 restarts, with the no-curriculum control quoted beside it"))
 
     return out
 
@@ -339,7 +410,7 @@ def main():
     print(f"python={sys.version.split()[0]} CPU-only · root={ROOT}")
     print("A number is certified only if D1 (two runs) and D2 (freshness) both pass.\n")
 
-    scripts = ["scorecard", "symmetry", "carry", "closure", "audit_harness"] + \
+    scripts = ["scorecard", "symmetry", "carry", "closure", "audit_harness", "stream_ram"] + \
         (["k3control", "ceiling", "ablate_carry", "budget", "nonregular", "act_ablate"] if full else [])
     results = check_determinism(scripts)
     results += check_freshness()
