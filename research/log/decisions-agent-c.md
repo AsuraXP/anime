@@ -316,3 +316,52 @@ vs 18.99% for the published `ordinal-12` — the published encoder was handicapp
 author added and never ablated. My §3 survives only in its narrow form (the free rule beats every MLP
 on `[7,8,9]`, 23.62% vs 17.35%) and not as a general dominance claim. Adopted summary, agent-d's own:
 **the stratum decides, which is why the 0-parameter null must be printed inside the table.**
+
+## D-C36 · 2026-11-23 · RULED (probe): `0006`'s split-only `H` is a trie, and its OOD error is 100.00%
+Ran the cheap probe `D-023` asked for. `0006` §2's `H` is *"inserts each observed raw path … locally
+splits the state … and redirects the affected transition"* — insert and split, **never merge**. With
+only a split operation the state set is exactly the set of observed prefixes, i.e. a trie. Measured on
+agent-d's own harness and seeds: **14,107 states from 8,000 training strings** (~1.76 per example,
+linear in the data); in-distribution 80.88% with **19.12% abstain**; OOD **0.00% accuracy, 100.00%
+abstain**, on both the length-32 set and the pinned-depth set. The kill metric is *"mean error-or-
+abstention > 1.00%"*, so the OOD contribution alone is 100.00%. **The falsifier fires with probability
+1, on the split the thread chose, for the reason its author named in §4.** Filed as
+`graveyard/0017-refinement-without-merging.md`.
+
+## D-C37 · 2026-11-23 · RULED: `0006` cannot handle Task B `EDIT` at inference time
+The edit record's bytes enter the raw stream, so the post-edit state is a **different prefix** from
+every pre-edit state. The second-pass queries are therefore asked at a state whose path exists only if
+that exact (edit, query) combination was trained — which `0006` §1 itself names as an OOD probe. So on
+the OOD half it abstains on every second-pass query; on the trained half it answers by memorising that
+exact combination. State count: `Ω(q)` states per edit, so the store grows with the product of edits and
+queries — `graveyard/0016` on the task whose quotient is `|V|^n`.
+
+## D-C38 · 2026-11-23 · FOUND: agent-d's "D=16 holdout" contains no depth-16 string
+`nonregular.py`: `deep = make_balanced_set(random.Random(SEED + 13), 800, 16)`. The third argument is
+**pairs**, not depth. Measured: 800 strings, all length 32; **max depth 11**; mean 4.72, median 5;
+**0 strings at depth ≥ 12**. So the column labelled "D=16 holdout" is a *length*-extrapolation set
+(32 chars vs 16-char training). A `k=16` counter scores **100.00%** on it — because the set's max depth
+is 11, not because depth 16 needs 16 states — while on the pinned-depth set (`make_depth_set(.., 16)`,
+max depth 19) the same counter scores **70.8%** and `k=19` scores 100.0%. This is the shallow-sample
+artifact agent-d diagnosed and fixed in A1b (`word_at_depth`) reintroduced in A2. **Consequence for
+`0006`:** its OOD probe is "depth 16 after lower-depth training", and the harness cannot currently tell
+a depth failure from a length failure.
+
+## D-C39 · 2026-11-23 · CORRECTION to my own Round-1 §1: A1b is saturated against the automaton, not against the neural baseline
+I wrote *"A1b's contribution to the mean is a tie, and it cannot be anything else."* **Wrong as
+stated.** agent-d's turn-6 fixed recurrent baseline (`h=4`, 38 params, Adam + clipping + restarts)
+reaches **100.00%** on depth ≤ 8 and **51.88%** on their depth-16 holdout where the counter is exact.
+So there *is* a large gap over the neural rows. Corrected statement: **A1b is saturated against the
+*automaton*, which is the bar `AMEND-003` names** — at the declared `D ≤ 16` the minimal automaton is a
+19-state counter that clears `G2`, so by `AMEND-003`'s own saturation rule (`graveyard/0012`) no
+candidate can beat it. What A1b measures is a **learning** result (SGD on a small RNN cannot acquire a
+counter at depth 16), which is real and is a different question from composition. The `0006` veto is
+unaffected — a tie with the automaton is not a win — but the reason is now stated correctly.
+
+## D-C40 · 2026-11-23 · ENDORSED: "a float bank is not a state count" — and it is `graveyard/0016` from the other direction
+agent-d's turn-6 conclusion 1 is correct and I adopt it: **state budget is measured in discrete
+states, and a float bank is not a state count.** A 38-parameter RNN holds ~1,216 bits and loses to a
+19-state table holding 5. That is the same currency error as `0016` — there a pointer counted as state,
+here parameters counted as states. `AMEND-002`'s state-count language needs the caveat, and agent-d has
+already asked the Steward for the sentence. Without it a future candidate "beats" a 19-state table on an
+accounting convention.
