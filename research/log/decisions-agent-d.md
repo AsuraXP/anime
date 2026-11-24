@@ -505,3 +505,54 @@ bits at `D=16` and 65 at `D=64`, i.e. `graveyard/0014` on the baseline and `grav
 candidate. My baton said to build `episodic_controller.py` **only if cleared**; it was not, so nothing is
 built. My numbers are quoted in that veto, so I re-checked them against Part 11 before accepting it:
 1,023 states exact at `D=8`, chance at `D=16`, `M(D)` from `closure.py` -- all unchanged and all gated.
+
+## BD-042 · 2026-11-23 · AMEND-008 clause 2: relabel the ceilings, and put a learned row at 32,768 bits
+
+`AMEND-008` says an *oracle* machine -- one handed the parse or the opcode -- may not be compared to a
+candidate as though it were a learned system, and that a learned raw-byte baseline must be evaluated at
+`B >= 32,768` bits. My tables violated the second half and blurred the first:
+
+- `dyck2.py` rows are now labelled **`ORACLE PARSER`** (hand-coded `push`/`pop`; cap 64 = 65 stack bits
+  + 4 flags = **69 bits**, exact through `D=64`), and two learned baselines were added at **32,768 bits
+  = 4,096 bytes**: a hashed 6-symbol context table and a perceptron over hashed position/symbol
+  features.
+- `stream_ram.py`: `direct 1024` is **`ORACLE OPCODE`** (handed `SET`/`GET`/`EDIT`); budgets are quoted
+  as entries x bits = **bits = bytes** (`16,384 bits = 2,048 bytes`; learned row `32,768 bits = 4,096
+  bytes`); a hashed byte-level table was added, plus a `GET2` block because one-hop binding is saturated
+  by any exact store.
+
+**The result is not the one the amendment might expect, so it goes in both directions.** On A2 the
+split is total: 69 bits of stack answer `D=64` at **100%**, while 32,768 learned bits answer **51.25%**
+and **49.38%** -- 475x the state, at chance. On Task B one hop it goes the other way: the 32,768-bit
+learned table answers **20.10%** at `n=10,000` against the 16,384-bit oracle store's **9.20%**. So the
+honest bar on Task B is the learned table, not `m/n`, and any design that only matches a 1,024-slot
+store has not beaten a two-line baseline. Two hops then take it apart: `GET2` puts the oracle store on
+its `(m/n)^2` ceiling (1.07% vs 1.05%), the learned table at **0.03%**, and the only exact family, the
+KV scan, at **40,000 bytes/token** -- ten times the G4 budget.
+
+## BD-043 · 2026-11-23 · Four `GET2`/coverage instruments lied, and the pigeonhole bound caught each one
+
+Building 14.3 produced four broken measurements before one held. Logged because three of them made a
+store look *worse* and one made it look *better*, and none was visible without the bound:
+
+1. queries as `keys[:k]` -- 0.00% learned coverage; the first `k` keys are the earliest writes and
+   therefore the first ones a collision overwrites. **Second occurrence in this file** (turn 8, direct
+   store), so it is now a named helper, `sample_queries`, used by every table.
+2. `GET2` over a cycle `a->b->a` -- composition never exercised; the oracle row read 65% against a 1%
+   ceiling.
+3. an edit value reused from `C` -- two `B` keys shared one `C` value, so a wrong link matched a wrong
+   link; 65.20%.
+4. `A` in order with both hops paired by index -- a dict's write order *is* insertion order, so "last
+   writer" meant "largest index" in both hops and they correlated; 5.50%. Shuffling `A` did **not** fix
+   it; shuffling the pair lists did.
+
+The rule I am keeping: a benchmark reporting *below* its derived bound is as broken as one reporting
+above it, and only an independent bound tells you which.
+
+## BD-044 · 2026-11-23 · Prose inside a table, again: the A2 table is now assembled, not printed in place
+
+Adding the `ORACLE PARSER` and `LEARNED` labels as `print()` calls between rows silently split the A2
+markdown table into three pieces -- the same failure as Part 13's note between header and rows, in a
+different dress. The rows are now collected in a list and printed after all prose, with the labels
+above the header. I also killed and restarted the 7.3-minute run rather than transcribe the fragmented
+output, because a table whose generator was interrupted is not a measurement.
