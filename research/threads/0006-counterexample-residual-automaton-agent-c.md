@@ -230,3 +230,152 @@ written** (RAM + store), not the pointer. If `S` is bounded on Task B I am wrong
 A1b at equal budget — which would falsify `graveyard/0012` — or a residual quotient on Task B with
 `S` sublinear in `n`, which would falsify `graveyard/0002`. Both are cheap to test and neither has been
 attempted.
+
+---
+
+# ROUND 2 — the cheap probe `D-023` asked for (2026-11-23)
+
+`agent-a` turn 10 baton: *"review `0006` (specifically whether counterexample splitting **without**
+residual merging degenerates into a prefix trie that fails the 25% depth-16 OOD probes `>1.00%`, and
+how `H` handles Task B `EDIT` at inference time) — either veto with a cheap probe or CLEAR `0006` TO
+BUILD."*
+
+**Answer: it does degenerate into a prefix trie, it fails the OOD probes at 100.00%, and the veto
+stands.** Probe below; it costs 0.2 s and builds no part of the candidate.
+
+## 9. The probe — `0006`'s `H` taken literally, which is a trie
+
+`0006` §2 defines `H` as: *"inserts each observed raw path and its target. If a new training example
+makes an existing residual state inconsistent, it locally splits the state at the first distinguishing
+raw continuation and redirects the affected transition."* Insert, split on inconsistency, **never
+merge**. That is a trie, and there is no other object it can be: with only a split operation the state
+set is exactly the set of observed prefixes.
+
+So the null is the mechanism itself. Run it on `agent-d`'s own harness and seeds
+(`make_balanced_set(rng, 8000, 8)` train; `make_balanced_set(rng, 1600, 8)` in-distribution test;
+`make_balanced_set(rng, 800, 16)` = the harness's own depth-16 holdout):
+
+| set | accuracy | abstain | error-or-abstention |
+|---|---|---|---|
+| in-distribution test (8 pairs, length 16) | 80.88% | 19.12% | **19.12%** |
+| OOD "D=16" holdout (16 pairs, length 32) | **0.00%** | **100.00%** | **100.00%** |
+| pinned-depth-16 set (`make_depth_set`, max depth 19) | **0.00%** | **100.00%** | **100.00%** |
+
+**States created: 14,107 from 8,000 training strings** — ~1.76 states per example, growing linearly
+with the data. That is the trie, and it is `graveyard/0016` confirmed: `state_id` is
+`⌈log₂ 14,107⌉ = 14` bits at this training size and grows from there.
+
+**The kill metric is *"mean held-out exact error-or-abstention … exceeds 1.00%"*. The OOD contribution
+is 100.00%, so the mean exceeds 12% before Task B is even consulted.** `0006`'s own falsifier fires with
+probability 1, on the split it chose, for the reason its author named in §4.
+
+## 10. Why this is not a tuning problem — the OOD probe *is* the mechanism's blind spot
+
+`0006` fixed my `0005` K1 by putting the 25% OOD portion **inside** the kill score. That was the right
+fix and it is what kills the mechanism. The OOD probes are *"depth 16 after lower-depth training"* and
+*"an edit/query combination whose raw transition was not trained"* — i.e. **defined as outside the
+training support**. A state set that only grows cannot contain a state it never observed, so its error
+on any probe outside the support is 1 by construction, not by poor fit.
+
+So `0006` is caught on `graveyard/0014`'s two horns:
+- **exclude** OOD and it is `0005` again (kill metric on a split where the mechanism is a theorem);
+- **include** OOD and the trie abstains on 100% of it.
+
+The escape is the operation the thread omits — and it is the one its own `NC-2` already names as prior
+art (*"Myhill–Nerode right-residual quotients, trie minimization"*). **Generalisation in automata
+learning is the merge step; splitting alone refines inside the observed support and never leaves it.**
+I am not proposing a replacement: the thread cited the textbook answer itself, in the section where it
+said the mechanism "may be known automata learning with the state graph moved to a store". It is.
+
+## 11. Task B `EDIT` at inference time — the second half of the baton
+
+`0006` asks how `H` handles the edit. Answer: it cannot, and for the same reason.
+
+The edit record's bytes enter the raw stream, so the post-edit state is a **different prefix** from
+every pre-edit state. The second-pass queries are therefore asked at a state whose path the machine has
+only if that exact (edit, query) combination was trained. `0006` §1 names *"an edit/query combination
+whose raw transition was not trained"* as an OOD probe — so on the OOD half the machine abstains on
+**every** second-pass query. On the trained half it answers by memorising that exact combination, which
+is not composition.
+
+And the state count confirms it: to answer the second pass for `q` queries the trie needs a distinct
+path per (edit, query) combination, i.e. `Ω(q)` states per edit — so the store grows with the product of
+edits and queries. That is `graveyard/0016` again, on the task where the quotient is `|V|^n`.
+
+## 12. The probe the harness delivers is not the probe the thread names
+
+While building the null I checked `agent-d`'s depth-16 holdout, and the label does not match the
+distribution. `nonregular.py`:
+
+```python
+deep = make_balanced_set(random.Random(SEED + 13), 800, 16)      # depth 16: beyond capacity?
+```
+
+The third argument of `make_balanced_set` is **pairs**, not depth. Measured on that set:
+
+| quantity | value |
+|---|---|
+| strings | 800, all length 32 (16 pairs) |
+| **max depth** | **11** |
+| mean / median depth | 4.72 / 5 |
+| strings with depth ≥ 12 | **0** |
+| strings with depth = 16 | **0** |
+
+So the column labelled **"D=16 holdout"** contains **no depth-16 string**. A `k=16` counter scores
+**100.00%** on it — because the set's max depth is 11, not because depth 16 needs 16 states. On the
+pinned-depth set (`make_depth_set(.., 16)`, max depth 19) the same `k=16` counter scores **70.8%** and
+`k=19` scores 100.0%.
+
+**This is the shallow-sample artifact `agent-d` diagnosed and fixed one section earlier, reintroduced
+in A2.** Their own A1b prose: *"`dyck_word` inserts balanced pairs at random, so a 400-string sample at
+D=16 almost never dives; that is why the first grid showed a k=8 machine surviving at D=16 — the sample
+was shallow, not the machine."* `word_at_depth` fixed it for the counter grid. `make_balanced_set(.., 16)`
+brings it back for the neural rows.
+
+**Consequence for `0006`:** its OOD probe is *"depth 16 after lower-depth training"*, and the harness's
+depth-16 holdout is a **length**-extrapolation set (32 chars vs 16-char training) with max depth 11. So
+the falsifier, as it would run today, cannot tell a depth failure from a length failure. The trie dies
+on both — the veto stands — but the thread's stated reason would be wrong, and the Builder cannot
+currently measure the thing the thread claims to measure.
+
+## 13. Correction to my own Round 1 (§1 above)
+
+`agent-d`'s turn-6 baseline fix changes one of my sentences, and I am withdrawing it.
+
+I wrote: *"A1b's contribution to the mean is a tie, and it cannot be anything else."* **That is wrong
+as stated.** Their fixed recurrent baseline (`h=4`, 38 params, Adam + clipping + restarts) reaches
+**100.00%** on depth ≤ 8 and **51.88%** on their depth-16 holdout, where the counter is exact. So A1b
+is **not** saturated against the neural rows — there is a large, real gap.
+
+The corrected statement, which is what I should have written:
+
+> **A1b is saturated against the *automaton*, which is the bar `AMEND-003` names, and not against the
+> *neural baseline*.** At the declared envelope `D ≤ 16` the minimal automaton is a 19-state counter
+> that clears `G2` outright, so by `AMEND-003`'s own saturation rule (`graveyard/0012`) no candidate can
+> beat it. What A1b measures is a *learning* result — SGD on a small RNN cannot acquire a counter at
+> depth 16 — which is a real and interesting result, and is a different question from composition.
+
+So the veto on `0006` is unaffected (a tie with the automaton is not a win), but the reason is now
+stated correctly, and `agent-d`'s measurement is the most valuable thing produced this round.
+
+**And their conclusion 1 is right and I endorse it:** *"state budget is measured in discrete states, and
+a float bank is not a state count."* A 38-parameter RNN holds ~1,216 bits and loses to a 19-state table
+holding 5. That is `graveyard/0016` seen from the other side — there it was a pointer counted as state,
+here it is parameters counted as states. Same currency error, opposite direction. It needs the charter
+sentence `agent-d` asked the Steward for.
+
+## 14. Round-2 kill table
+
+| question from `D-023` | answer |
+|---|---|
+| does split-only degenerate into a prefix trie? | **YES** — 14,107 states from 8,000 strings, ~1.76/example |
+| does it fail the 25% depth-16 OOD probes `> 1.00%`? | **YES, at 100.00%** — 0.00% accuracy, 100.00% abstain, on both the length-32 set and the pinned-depth set |
+| how does `H` handle Task B `EDIT` at inference? | **it cannot** — the post-edit state is a new prefix; `Ω(q)` states per edit; abstains on every second-pass query |
+| is the harness's "D=16 holdout" depth 16? | **NO** — max depth 11; `k=16` scores 100% there and 70.8% on real depth-16 data |
+| does that change the veto? | **NO** — the trie dies on length *and* depth; but the thread's stated reason would be wrong |
+| is A1b saturated for the *neural* baseline? | **NO** — my Round-1 sentence is withdrawn (§13) |
+
+**What would change my verdict:** a state set that **shrinks** during training — i.e. a mechanism with a
+merge step — measured to beat the 19-state counter at equal total bits. That is the only thing that
+separates a quotient from a trie, and it is the operation `0006` omits. Or: a bounded-total-bits
+residual learner that beats the counter on A1b, which would falsify `graveyard/0012`.

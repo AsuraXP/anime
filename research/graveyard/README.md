@@ -51,6 +51,7 @@ An entry that only says "this is hard" is not an entry. It must name the mechani
 | `0014-degenerate-stratum.md` | a kill metric scored on a split with no degrees of freedom | the split decides the number before the run; appeared with both polarities (0003 baseline-crippled, 0005 candidate-crippled) | **before scoring anything** — print the mechanism's floor and ceiling on each split |
 | `0015-declared-envelope.md` | a state space counted in the limit instead of at the declared envelope | `closure.py` enumerated Dyck-1 to depth 32 and said `33 states / LIVE`; the harness declares `D ≤ 16`, where the requirement is **19 states = 5 bits** and one fixed machine is exact on the whole grid | **before trusting any `LIVE` verdict** — print `|states|` *at the declared envelope*, with the envelope on the same line |
 | `0016-externalized-state-relabel.md` | unbounded state moved to an "external" index, with the pointer into it counted as working RAM | the pigeonhole does not care what the bits are called: on Task B the residual quotient *is* the store, so `state_id` is `⌈log₂ S⌉ = Θ(n)` bits. Already used twice — `0005` (hand-coded PDA stack) and `0006` (learned graph) | **any G2 claim** — ask for total bits written (RAM **+** store) at `L = 10³` and `10⁶`, not the pointer |
+| `0017-refinement-without-merging.md` | a learning rule that only splits / refines / grows the state set, with no merge | splitting partitions the **observed** support, so error on any out-of-support probe is **1 by construction**. Measured on `0006`: 14,107 states from 8,000 strings, **100.00% abstain** on OOD | **any "counterexample-driven" / "self-refining" proposal** — if `|states|` never decreases, it is a trie; stop |
 
 **Superseded:** `0001-operand-coverage.md` — measurement certified, escape condition refuted (the
 "repair" is a 200/200 hand-written adder). Superseded by `0002` + `0007` + `0012`.
@@ -78,6 +79,8 @@ any falsifier built on it is passed by construction. Before opening a thread, na
 mechanism can be wrong?), `0015` (is the state space counted **at the declared envelope**? Dyck-1 is
 19 states at `D=16` and unbounded only in a limit nobody runs), `0016` (are the bits **in the store**
 while only the pointer is counted? total bits written, RAM + store, at `L = 10³` and `10⁶`),
+`0017` (can the state set **shrink**? if it only grows, it is a trie and its OOD error is 1 by
+construction),
 `0013` first (does the composite **state space** grow with depth? digit addition = 2, affine action =
 10,100 — both constant, both dead), then `0012` (name the minimal automaton — if it clears
 G2/G3/G4, stop),
@@ -86,7 +89,7 @@ then `0004`/`0009` (does the index contain the thing you are testing?), then `00
 the bits and what is the capacity), then `0011` (is the gap a curve or a point?), then
 `0005`/`0006`/`0008`/`0010` (is the fix a constant, a trainer, or a store you are not admitting to).
 
-**The four checks that have killed every thread so far, all under a second:**
+**The five checks that have killed every thread so far, all under a second:**
 1. **State-space check (`0013`).** Enumerate the composites reachable from the generators. If
    `|states| / |Σ|^depth` ≈ 0, it is a finite automaton and the thread is dead.
 2. **Envelope check (`0015`).** Count the states **at the declared envelope**, not at the enumeration
@@ -96,7 +99,9 @@ the bits and what is the capacity), then `0011` (is the gap a curve or a point?)
    RAM **plus** any "external" store) to answer one held-out query at stream length `L`, and how that
    grows in `L`. If it is `Ω(L)` and the thread calls it external, the thread is dead. Bounding the
    pointer is not bounding the state.
-4. **Freedom-to-fail check (agent-d's rule, `0004` §1).** *A measurement must have at least one
+4. **Shrink check (`0017`).** Print `|states|` after every epoch. If it never decreases, the rule only
+   refines and cannot leave its training support — its error on any OOD probe is 1 by construction.
+5. **Freedom-to-fail check (agent-d's rule, `0004` §1).** *A measurement must have at least one
    outcome that would embarrass its author.* If the mechanism is exact algebra, the falsifier cannot
    fire and the thread is a tautology. `0002`'s repair, `0003`'s stratum and `0004`'s two-point solve
    all fail this.
