@@ -358,3 +358,36 @@ Round 6 produced three major advances from `agent-c` (`MSG-0010..0011`) and `age
          via `≤64`-bit addresses AND `(F, G, H)` **learns** its `M_t` addressing/push/pop actions
          from raw `(stream, target)` data (`AMEND-004`). Under capped `|M_t| ≤ B`, comparisons match
          total bits `B`.
+
+## D-025 · 2026-11-24 · Round-7 Sync (`0006` Empirical Trie Kill `100%` OOD, `audit_harness.py` `37/37`, Shallow-Holdout Bug Caught, `G7`/`G4` Task B2 Spec)
+All three peer branches completed turns initialized prior to `MSG-0012` (`agent-b` `MSG-0010`,
+`agent-c` `MSG-0012` + `graveyard/0017`, `agent-d` `MSG-0007` @ `85f5235`, `certify.py` **37/37 in
+79.8 s**) and converged cleanly with `D-024`:
+
+1. **`0006` closed unanimously with an empirical probe (`graveyard/0017`):**
+   - `agent-b` (`MSG-0010`) accepted the pre-build veto of `0006`, recorded the post-mortem, and held
+     `0007` pending the envelope + bit-accounting ruling (`AMEND-006`).
+   - `agent-c` (`MSG-0012`) ran `0006`'s literal split-only `H` on `agent-d`'s harness and seeds (0.2 s):
+     **`14,107` states from `8,000` strings** (`~1.76`/example), **`80.88%` in-distribution (`19.12%`
+     abstain)**, and **`0.00%` accuracy / `100.00%` abstain on OOD** (both length-32 and pinned-depth-16)
+     — firing `0006`'s own `>1.00%` falsifier with probability 1. Added **`graveyard/0017`** (split-only
+     refinement without merging is a prefix trie) to `AMEND-006`.
+2. **Three harness corrections verified & queued (`audit_harness.py` `37/37` + `MSG-0012` §1):**
+   - **Confirmed (`audit_harness.py`):** Task A1b exactness requires `k = D + 3` (`5, 7, 11, 19` at
+     `D = 2, 4, 8, 16`; `k=19` fit once at `D=16` is `100.0%` on all four cells with a 4-row readout),
+     and Task B true before/after edit collateral on `store[k % m]` is **`1–3` keys** (`934/999` was
+     write-time collision loss). `closure.py` now includes `VIABLE` (`FEASIBLE_MAX = 10^9`) and
+     `Dyck-2` (`2.32e77` states at depth 256), and `agent-c` withdrew its Round-1 sentence claiming A1b
+     tied neural rows.
+   - **New bug caught (`agent-c` `MSG-0012` §1):** `nonregular.py`'s neural `"D=16 holdout"` called
+     `make_balanced_set(rng, 800, 16)` (`16` **pairs**, max depth **`11`**, `0` strings at depth `≥ 12`!).
+     Builder must use **pinned depth** (`make_depth_set` / `make_dyck2_depth_set`) for all OOD depth
+     columns, and `closure.py` must evaluate `Dyck-1` **at its declared envelope `D=16` (`19` states →
+     `DEAD`)** rather than `LIVE` in the limit.
+   - **Answering Builder's `G7` instrument finding (`MSG-0007`):** direct-address `store[k % m]` gives
+     each key one slot so edit blast radius is `≤ ceil(n/m)`. To measure **both** `G7` collateral and
+     `G4` read scaling on **Task B2 (raw-token stream binding + `E-EDIT`)**, Builder should include:
+     (i) a **superposed fast-weight / linear-associative baseline** at matched state bytes (which
+     exhibits true rank-1 overwrite collateral across unrelated keys, `graveyard/0003, 0008`), and
+     (ii) an **append-only KV-scan baseline** (`100%` recall, `0` collateral, **fails `G4` via `Θ(n)`
+     bytes read/query**), alongside (iii) `0`-param null and `m`-slot table.

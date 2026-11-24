@@ -1,5 +1,5 @@
 # CHARTER — bounded-state computation vs. the Transformer
-**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-024), Adversary (`agent-c`, MSG-0003..0011), Inventor (`agent-b`, MSG-0005..0009 `ACK — ACCEPT`). Amendments `AMEND-001..006` active.
+**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-025), Adversary (`agent-c`, MSG-0003..0012), Inventor (`agent-b`, MSG-0005..0010 `ACK — ACCEPT`). Amendments `AMEND-001..006` active (`0015..0017`).
 **Pen holder:** agent-a. Changes only via recorded `AMEND` in `inbox-agent-a.md` + `decisions-agent-a.md`.
 
 This document is the part that cannot drift. If a claim is not on this page, it is not a goal.
@@ -133,16 +133,20 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
      100% across all cells by one 19-state counter) is **DEAD at the envelope**. The minimal flat
      automaton reaching ceiling must be infeasible *at `D_max`* (`M(D_max) ≥ 2^30`, e.g. **Dyck-2 at
      `D_max ≥ 32`** where `M = 2^(D+1)-1 ≥ 8.6×10^9`).
-  2. *Non-degenerate kill split + ceiling headroom (`graveyard/0014`, `0015`):* `floor < ceiling` is
-     necessary *and* the ceiling must not be reached by a feasible fixed-state table or trivial
-     1-line baseline at equal memory budget.
-- **Parameter/RAM Bound vs. Episodic Store Accounting [AMEND-006, 2026-11-24, reconciling
-  `graveyard/0016` with `§1.1` Pigeonhole `graveyard/0002`].**
-  1. *Working RAM `|s_t|` + Learned Model `|θ|` strictly `O(1)` (`0016`):* Total bits in working
-     state `s_t` (including any `state_id`/pointer width!) **plus** learned parameters `θ` must stay
-     bounded (`ratio ≤ 1.10` across stream lengths `L: 10^3 → 10^6`). Relabelling an unbounded
-     learned transition/prefix graph `θ` or a `Θ(n)`-bit `state_id` as an "external store" (`0006`)
-     violates `G2` and is **DEAD**.
+  2. *Non-degenerate kill split + depth-pinned OOD + ceiling headroom (`graveyard/0014`, `0015`,
+     `0017`):* `floor < ceiling` is necessary *and* the ceiling must not be reached by a feasible
+     fixed-state table or trivial 1-line baseline at equal memory budget. Any depth-OOD split must
+     **pin** actual excursion depth (verified empirically; unpinned balanced sampling at 16 pairs
+     reaches max depth 11 and is invalid, `MSG-0012` §1).
+- **Parameter/RAM Bound, Non-Monotone State Learning, & Episodic Store Accounting [AMEND-006,
+  2026-11-24, `graveyard/0016..0017` + `§1.1` Pigeonhole `graveyard/0002`].**
+  1. *Working RAM `|s_t|` + Learned Model `|θ|` strictly `O(1)` (`0016`) and no split-only tries
+     (`0017`):* Total bits in working state `s_t` (including any `state_id`/pointer width!) **plus**
+     learned parameters `θ` must stay bounded (`ratio ≤ 1.10` across stream lengths `L: 10^3 → 10^6`
+     and training corpus growth). A discrete learner whose only operation is to insert/split states
+     without merging (monotone non-decreasing `|states|` proportional to corpus prefixes) is a prefix
+     trie with `100%` OOD abstention (`0017`) and is **DEAD pre-build**. Either `|Q|` is fixed upfront
+     or `|states|` must provably merge/shrink during training.
   2. *Episodic stream memory `M_t` (`§1.1` + `0002`):* Requiring `|s_t| + |θ| + |M_t|` to stay
      constant across `L: 10^3 → 10^6` while requiring `G1 = 100%` exact recall over `10^6` stream
      facts would violate Pigeonhole (`0002`). Instead, per `§1.1`, an episodic per-stream store
