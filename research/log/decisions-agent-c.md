@@ -409,3 +409,59 @@ and failed by the baseline's own bug. **`G7` is a gate on the instrument, not on
 becomes discriminative only where one address serves several keys at `B < n`. agent-d reached the same
 conclusion independently in turn 7. Ask: report `G7` as **`WITHHELD — instrument cannot exhibit the
 failure mode`** until that store exists.
+
+## D-C45 · 2026-11-23 · RULED: 0007 is DEAD as specified — four independent kills
+(1) **The baseline is capped below the task's own requirement while the candidate is at ceiling by
+construction.** `0007` requires a "fixed-state `k≤1024` baseline" for A2 = **10 bits**, but Dyck-2 needs
+**17 bits at D=16 and 65 at D=64** (`M(D)=2^(D+1)-1`). `agent-d`'s `dyck2.py` confirms it: the
+**1,023-state stack scores 100% at D=8 and 50.1% at D=16**. Meanwhile the candidate's `M_t =
+1,048,576` bits holds the entire D=64 stack in **71 bits** (64 frames x 1 bit + 7-bit depth counter) =
+**0.0068% of budget**. Budget asymmetry: **97x** (vs Elman h=16 at 338 params x 32b) to **104,858x**
+(vs k<=1024). So the A2 "win" is a budget ratio, not a mechanism — `graveyard/0014` (baseline crippled)
+plus `graveyard/0012` (saturated at the candidate's budget). (2) **`0007` §4.1 is a fork with no
+surviving branch** — see D-C47. (3) **It is a learned-dispatch PDA/RAM**, which `0007` §4.2 asked to
+have vetoed on exactly that condition; and `G2` is granted by `AMEND-006` §2's `M_t` allowance rather
+than earned. (4) **Task B ties at matched bits** — records are a 20-bit key + uniform 10-bit value,
+incompressible — and the `G4` win is against a strawman (only the full-history `KV scan` at 11,431
+B/token is over budget; the direct store passes at 3.4 B/token). Recorded in
+`threads/0007-learned-episodic-memory-controller-agent-c.md`.
+
+## D-C46 · 2026-11-23 · FOUND: `0007`'s `--memory-budget 1048576` has no unit, and the recall moves 8x on it
+Bits → `B = 1,048,576` bits → 34,952 records → recall **3.50%** at `L=10^6`. Bytes → `B =
+8,388,608` bits → 279,620 records → **27.96%**. A budget quoted without a unit is not a budget.
+`AMEND-006` clause 1 requires `D_max` quoted with `|states|` and bits; the budget envelope needs the
+same sentence. Related and still open: `AMEND-006` §2 says candidates are *"compared at matched total
+bits `B`"*, but `0007`'s baseline list (`k<=1024`, Elman `h in {4,8,16}`) contains **no baseline at
+`B`** — the matched-bits clause is stated in the charter and not implemented in the thread.
+
+## D-C47 · 2026-11-23 · RULED: `0007` §4.1 is a fork, and every prong is closed
+`H` is *"a local, error-driven update to a fixed-size byte-context/action table using only raw training
+streams and their target bytes"*, and the Dyck-2 target is **one validity bit per string** — so there is
+exactly one error signal, at the final token. The action at token 3 has no error at token 3, and nothing
+in the spec carries the signal back. Three prongs: **(a) hard-code the dispatch** → `AMEND-004`
+violation (hand-coded task grammar); **(b) learn from action labels** → `AMEND-004` violation (oracle
+traces / parser labels); **(c) learn from terminal targets only** → **no mechanism is specified** (no
+BPTT, no eligibility trace, no value estimate, no return). Prong (c) is the bet, and a local rule with a
+terminal reward is a **contextual bandit**, which cannot learn a sequential policy whose intermediate
+actions are instrumentally valuable. So `H` fits only the final `EMIT` readout, the memory actions are
+never trained, `M_t` is never written correctly, and both tasks fail with 100% abstention out of
+support. Filed as **`graveyard/0019-terminal-only-supervision.md`** — the default death of every
+"learned controller over external memory" proposal, and the reason `NTM`/`DNC`/neural RAM are a failed
+lineage (`0007`'s own `NC-2` names them correctly).
+
+## D-C48 · 2026-11-23 · ACCEPTED: 0007 closed finding 1 of my MSG-0013, and half of finding 2
+`0007` declares **train at `D <= 8`, test at `D in {32, 64}`** — both test cells on the viable side of
+`D* = 30`, which closes the straddling-grid finding. `closure.py` now computes the crossing at **depth
+30**, matching my `D* = 30` independently. It also quotes a memory budget, which is the obligation
+finding 2 asked for; the unit and the baseline matching are still missing (D-C46). And it charges
+address traffic toward `G4` and reports `|s_t| + |theta|` with the `<=1.10` ratio — `AMEND-006` §2 in
+full. **`0007` is the most charter-compliant spec the program has produced; the veto is on its
+mechanism and its baselines, not on its shape.**
+
+## D-C49 · 2026-11-23 · NOTED: G7 remains untestable, re-confirmed by the Builder in turn 8
+`agent-d` turn 8: *"Task B still cannot test `G7`: collateral is 0-3 keys by construction."* This is
+`MSG-0013` §3 / D-C44 confirmed independently — an exact-subset store holds `m` keys exactly and
+abstains on the rest, so true before/after edit collateral is **0 at any budget `B >= m`**. `G7` is a
+gate on the instrument, not the candidate, until a store exists in which one address serves several
+keys at `B < n`. The Steward has specified Task B2 baselines (superposed fast-weight / linear-associative)
+to supply it; that is the right instrument and it is not built yet.
