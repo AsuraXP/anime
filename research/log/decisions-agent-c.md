@@ -588,3 +588,79 @@ prediction: **`0008` ties it**), **T5** the critic fork (a critic is prior art *
 something, and a `VETO` cannot be a description of what the mechanism happens not to do. **This is the
 `AMEND-001` pre-flight falsifier power check applied one candidate early** — print the falsifiers
 before the candidate's number exists, not after.
+
+## D-C60 · 2026-11-23 · WITHDRAWN: my "tie by construction" (Kill A) is wrong, and `D-028` is right
+Round 2 argued that at `B` the only A2 baseline reaching ceiling is a 1,024-frame succinct stack, so a
+stack over `M_t` *is* the candidate and the comparison is a tie by construction. **`D-028` corrects
+this, and the correction is decisive:** the stack that reaches ceiling does it with
+`if ch.isupper(): st.append(ch)` — a **hand-coded syntax test**, which is `AMEND-004`-illegal for any
+candidate. So it is not the candidate's architecture; it is an **oracle**. I conflated the candidate's
+*architecture* with a *hand-coded implementation* of that architecture. The Builder then measured the
+consequence and retired the claim outright (`graveyard/0021`): **a 69-bit oracle scores 100.00% at
+`D = 64` while every legal learned baseline at 32,768 bits sits at chance — 475× the state for zero
+points.** The comparison is not a tie; it is a 49-point gap that is entirely the value of the syntax the
+candidate may not hard-code. **Withdrawn as stated; replaced by the two-row prediction in the amended
+pre-registration (T4).** This is the second time a Round-2 framing of mine has been improved by a peer
+(the first was `0007`'s Task B saturation) and both times the improvement came from reading the code
+rather than the prose.
+
+## D-C61 · 2026-11-23 · FOUND: `min(1, m/n)` is an architecture bound, not a task ceiling — the program's only false-positive direction
+`agent-d` turn 11, one-hop binding at `n = 10,000`: the exact `m`-slot store scores **9.20%** at
+16,384 bits, and a **hashed learned byte table at 32,768 bits scores 20.10%**. **A legal learned baseline
+exceeds the number the framework has been calling the analytic recall ceiling** by 2.2×. The bound
+`min(1, 1024/10,000) = 10.24%` is the ceiling *of a store that holds exactly `m` keys*; a generalizing
+learner answers keys it never stored, which is precisely why it is not bound by it.
+
+**Why this matters more than any other finding this round.** Every other instrument error in this
+program produces a **false negative** — a thread dies that might have lived. This one produces a
+**false positive**. `0007` wrote *"the analytic recall ceiling is `min(1, 1,024/n)`"*, and `AMEND-005`
+clause 2 makes the ceiling load-bearing: *the baseline must provide a reachable-error stratum strictly
+below its analytic ceiling.* If the ceiling is quoted **low**, then a candidate at **15%** reads as
+**exceeding an impossible bound** — a result that would be celebrated in a message headline, and that
+is in fact a **5-point loss to a plain learned table**. The program has spent eleven rounds defending
+against over-claiming; this is the one direction in which it could under-claim and be wrong in the
+opposite direction.
+
+**Rule adopted (T7, pre-registered).** Every number labelled a ceiling must be paired with the
+**architecture it is a ceiling of**. The kill metric is **fraction of the best legal learned baseline at
+`≥ B`**, with the oracle in a separate row. **If a legal baseline ever exceeds a quoted ceiling, the
+ceiling is withdrawn in the same commit.** `min(1, m/n)` should leave the Charter's vocabulary as a task
+ceiling; it is a property of exact-subset stores and it should be named that way.
+
+## D-C62 · 2026-11-23 · FOUND: `n = 512` and `n = 10,000` measure different things, and the second has almost no dynamic range
+Two configurations of Task B2 are now in play and they are not interchangeable:
+
+| configuration | oracle | learned | what the gap measures |
+|---|---|---|---|
+| `GET2`, `n = 512` | **100%** — all bindings fit in 1,024 slots | ~0% | **learning to bind**; the ceiling is reachable by capacity, so the gap is the same as A2's |
+| `GET2`, `n = 10,000` | **1.07%** (ceiling 1.05%) | 0.03% | **composition under capacity**; the exact store is *at* its `m²/n²` bound |
+
+At `n = 512` the headroom is enormous and entirely a learning gap. At `n = 10,000` the headroom is
+**1.02 percentage points**, and a candidate at 0.5% "beats the baseline 16×" while sitting at **half the
+ceiling**. **Ratios of tiny numbers are noise amplifiers**, and a stratum whose entire dynamic range is
+one point cannot separate a mechanism from a lucky seed. **Do not average the two configurations and do
+not report only one.** Pre-registered reporting rule: absolute recall at a declared `n`, **with a noise
+floor from re-run seeds**, and the kill metric stated as a **fraction of the exact-store ceiling chosen
+before the run**. No noise floor → `UNSCORABLE`.
+
+## D-C63 · 2026-11-23 · AUDIT: `D-028`'s `+95` pts of B2 headroom is quoted at an `n` where no row exists yet
+`D-028` §3 places the learned baselines at *"~0% on B2 (`n=512` opaque 2-hop `GET2`)"* and derives
+**+95 pts** of headroom. The Builder's turn-11 table reports the B2 rows at **`n = 10,000`**, not 512,
+and **Part 14 — which is what produces the opaque-byte `n = 512` rows — has not shipped.** So the +95 is
+either from a run that is not in the record or a projection from the `n = 10,000` rows. Stated without
+accusation, because the fix is one word: **cite the `n = 512` rows if they exist, or label the figure
+projected until Part 14 lands.** This matters more than a footnote because +95 is the number the Inventor
+will design against, and a headroom quoted before it is measured is exactly the class of number
+`AMEND-001`'s pre-flight check exists to catch.
+
+## D-C64 · 2026-11-23 · RETIRED: `D-C57` is closed by construction, and `0020` is now a charter obligation
+- **`D-C57` (`B` drifts across the sweep) — closed.** The remedy it proposed was *"or fix the key width
+  and say so"*, and `D-028` does exactly that: **fixed 16-bit key + 16-bit value, zero drift across
+  `L`**, with Task B2 at `n = 512` where a 16-bit key addresses 65,536 keys. The finding did its job and
+  is retired. My corrected figure stands as arithmetic history (1.385× with a `⌈log₂ n⌉` key) and is no
+  longer live.
+- **`0020` (capacity is the budget) — absorbed into the Charter.** `D-028` now requires of `0008`
+  *"sparse `O(1)`-traffic pointer/link cells in `M_t` (`0020` escape — NO hardwired `PUSH`/`POP` stack
+  opcodes and NO hardcoded `SET`/`GET` opcodes)"*. That is the escape condition from `0020` written as a
+  build requirement, which is the correct fate for a graveyard entry: **the family stays dead, the
+  condition becomes a gate.** Credited to the Steward.

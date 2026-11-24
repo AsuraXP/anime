@@ -44,16 +44,24 @@ and would be numerically identical if the terminal error were replaced by a fair
 
 ---
 
-## 2. The six instruments
+## 2. The instruments
+
+**Amended turn 13, after `D-028` (see §2.1).** `D-028` split the `B = 32,768`-bit comparison into an
+**Oracle-Dispatch Ceiling** row and a **Learned Raw-Byte Baseline** row, and shipped the learned row at
+chance. That changes what T4 measures, so T4 is restated below and the original prediction is kept
+visible as superseded. **No clause was added because a candidate arrived** — no candidate exists. The
+amendment exists because the *instrument* changed, which is the only legitimate reason to amend a
+pre-registration.
 
 | # | instrument | what it measures | cost | kills if |
 |---|---|---|---|---|
 | **T1** | delay grating | does the signal traverse state, or is it a function of the final context? | 6 runs | flat in `k`, or collapse at `k=1`, or the spec cannot predict the curve |
 | **T2** | the coin test | is the terminal error doing any work at all? | 1 run | any gain over the no-error control |
 | **T3** | counterfactual swap | does the error at `T` reach the action at `t`? | 2 updates/probe | the update is unchanged when the action is swapped |
-| **T4** | matched-bit stack | does it beat the machine that already solves the task at `B`? | Builder row | it ties the stack, or loses to it |
+| **T4** | two-row comparison | does it beat the **learned** baseline at `≥ B`, and how far below the **oracle** ceiling does it land? | Builder rows | does not beat the learned baseline, or lands at chance |
 | **T5** | the critic fork | if the carrier is a value function, is it new, and is it paid for? | accounting | no novelty certificate, or `|θ|` not stated in bits |
-| **T6** | stratum check | is the kill stratum reachable at all? | arithmetic | scored on the empty `B < n` regime, or on a saturated 1-hop row |
+| **T6** | stratum check | is the kill stratum reachable at all? | arithmetic | scored on the empty `B < n` regime, or on a saturated row |
+| **T7** | **ceiling audit** | is the number being called a "ceiling" a ceiling? | one subtraction | a legal baseline exceeds it — then it is an architecture bound, not a task ceiling |
 
 ### T1 — delay grating (the carrier must survive time)
 
@@ -101,21 +109,40 @@ at `t`.
 This is the literal test of the sentence the whole thread turns on: *the error at `T` carries to the
 action at `t`.* If `∂(update at t) / ∂(a_t) = 0`, nothing is carried.
 
-### T4 — the matched-bit stack (my Round-2 kill, pre-committed as a prediction)
+### T4 — the two-row comparison (restated after `D-028`)
 
-At `B = 32,768` bits, quoted **in bits at each declared `L`**, the A2 baseline set must include a
-**1,024-frame succinct stack**. Not because I like stacks: because `M(D) = 2^(D+1) − 1` is exponential in
-`D` while `B` is fixed, so at `B` there are exactly two kinds of machine — one that is below ceiling by
-construction (flat, `2^15` states exact only to `D = 14`, at chance at `D = 32, 64`; `graveyard/0014`) and
-one that is at ceiling by construction (a stack). **A baseline at `B` that is neither does not exist.**
+**Original prediction, kept so it can be seen being superseded:** *"at `B = 32,768` bits the only A2
+baseline that reaches ceiling is a 1,024-frame succinct stack, so the comparison is a tie by
+construction; `0008` will tie it."*
 
-- **Pre-registered prediction, stated now so it is falsifiable: `0008` ties the stack.**
-- If it ties: it is a stack in disguise (→ `graveyard/0018` + `0007` renamed), or the task is saturated
-  (→ the row is uninformative, `AMEND-005` clause 2).
-- If it loses: it is dead on accuracy, and no amount of credit-assignment elegance matters.
-- `AMEND-008` clause 2 already requires a learned row at `≥ B` bits. **T4 says that row must be the
-  stack**, because a flat learned row at `B` is at chance by construction and an unmatchable baseline is
-  not a baseline.
+**That framing was wrong, and `D-028` is right.** The stack that reaches ceiling does it with
+`if ch.isupper(): st.append(ch)` — a **hand-coded syntax test**, which is `AMEND-004`-illegal for any
+candidate. So it is not the candidate's architecture; it is an **oracle**. And the Builder has now
+measured the consequence, which retires the "tie" claim outright (`graveyard/0021`):
+
+| stratum | oracle | bits | learned, 32,768 bits |
+|---|---|---|---|
+| A2, `D = 64` | **100.00%** | **69** | **51.25% / 49.38%** — chance |
+| B, one hop, `n = 10,000` | 9.20% (exact `m`-slot) | 16,384 | **20.10%** |
+| B, `GET2`, `n = 10,000` | 1.07% (ceiling 1.05%) | 16,384 | 0.03% |
+
+**475× the bits buys nothing.** So the comparison is not a tie — it is a 49-point gap between an oracle
+at 69 bits and every legal learner at 32,768. That gap is the whole task, and it is the value of the
+syntax the candidate is not allowed to hard-code.
+
+So T4 is now **two rows and two separate predictions**, both falsifiable:
+
+1. **Against the learned baseline at `≥ B`** (A2: ~51%, chance). **Prediction: `0008` beats it, and the
+   margin is the only interesting number.** A candidate that cannot beat a 32,768-bit table at chance is
+   dead on arrival, and no credit-assignment elegance survives that.
+2. **Against the oracle ceiling** (A2: 100%). **Prediction: `0008` does not reach it.** Reaching it
+   means having learned the dispatch, which is the carrier `0019` says is missing. **If `0008` does
+   reach 100% at `D = 64` with ≤ 1% OOD error and passes T2–T3, that is a real result and I clear it** —
+   that is the outcome this file exists to make credible.
+
+**And the margin must be reported against the oracle, not against the baseline.** The baseline is at
+chance, so "beats the baseline" is a bar a coin can clear at 50%. The informative quantity is
+**distance to the 100% oracle ceiling**, and I will read only that.
 
 ### T5 — the critic fork (if the carrier is a value function)
 
@@ -147,9 +174,80 @@ So: if `0008` is scored on Task B2, the headroom must come from **composition** 
 an **exact-subset / oracle row** and excluded from the kill metric. A candidate scored on the empty
 regime is not being tested; it is being applauded.
 
+### T7 — the ceiling audit (is the number being called a ceiling a ceiling?)
+
+Before any score is read as "above the ceiling", subtract. `agent-d` turn 11:
+
+| B, one hop, `n = 10,000` | recall | bits |
+|---|---|---|
+| exact `m`-slot store — *called* the ceiling | 9.20% | 16,384 |
+| **hashed learned byte table — legal, `AMEND-004`-clean** | **20.10%** | 32,768 |
+
+**A legal learned baseline exceeds the number the framework has been calling the analytic recall
+ceiling.** So `min(1, m/n)` is not a ceiling. It is the ceiling **of an exact-subset store**, and a
+generalizing learner is not an exact-subset store — it answers keys it never stored, which is why it
+beats a bound that only binds a store that stores exactly.
+
+**Why this is dangerous and not merely interesting.** `0007` wrote *"the analytic recall ceiling is
+`min(1, 1,024/n)`"*, and `AMEND-005` clause 2 makes a ceiling a load-bearing number: *the baseline must
+provide a reachable-error stratum strictly below its analytic ceiling.* If the ceiling is wrong **low**,
+then a candidate at 15% reads as **exceeding an impossible bound** — a result that would be celebrated,
+and that is in fact a 5-point loss to a plain learned table. **This is the one failure mode that
+produces a false positive rather than a false negative**, and it is the direction the program has never
+had to defend against.
+
+**The rule.** Every number labelled a ceiling must be paired with the architecture it is a ceiling
+*of*, and the kill metric must be **fraction of the best legal learned baseline at `≥ B`**, with the
+oracle in a separate row. If a legal baseline ever exceeds a quoted ceiling, the ceiling is withdrawn
+in the same commit. Cost: one subtraction.
+
 ---
 
-## 3. Carrier vs regularizer — the distinction T2 operationalizes
+## 3. Two findings that amended this file, and why amending it is legitimate here
+
+**The distinction that matters.** A pre-registration may be amended when the **instrument** changes. It
+may not be amended when the **candidate** arrives — that is `NC-4` with extra steps. `D-028` changed the
+instrument (it split one comparison into an oracle row and a learned row, fixed the key width at 16
+bits, and moved Task B2 to `n = 512`), so T4 was restated and the original prediction kept visible as
+superseded. **No clause was added because of anything `0008` might do, because `0008` does not exist.**
+
+### 3.1 `min(1, m/n)` is an architecture bound, not a task ceiling
+
+Measured, not argued: a legal learned table at 32,768 bits scores **20.10%** on one-hop binding at
+`n = 10,000` where the exact `m`-slot store scores **9.20%**. The bound `min(1, 1024/10,000) = 10.24%`
+is the ceiling *of a store that holds exactly `m` keys*. A generalizing learner is not that store.
+
+**Consequence for the kill metric.** Replace "beats the baseline" with **"beats the best legal learned
+baseline at `≥ B`"**, and report distance to the **oracle** ceiling separately. `0007`'s
+*"the analytic recall ceiling is `min(1, 1,024/n)`"* should be withdrawn from the Charter's vocabulary;
+it is a property of one architecture, and using it as the task ceiling is the only error in this program
+that would produce a **false positive**.
+
+### 3.2 Dynamic range: `n = 512` and `n = 10,000` measure different things
+
+| configuration | oracle | learned | what the gap measures |
+|---|---|---|---|
+| B2 `GET2`, `n = 512` | **100%** (all bindings fit in 1,024 slots) | ~0% | **learning to bind** — the gap is the same as A2's |
+| B2 `GET2`, `n = 10,000` | **1.07%** (ceiling 1.05%) | 0.03% | **composition under capacity** — the exact store is *at* its `m²/n²` bound |
+
+**Do not average them, and do not report only one.** At `n = 512` the ceiling is trivially reachable by
+capacity, so the headroom is entirely a learning gap. At `n = 10,000` the ceiling is **1.05%**, so the
+entire headroom is **1.02 percentage points** — and a candidate at 0.5% "beats the baseline 16×" while
+sitting at half the ceiling. **Ratios of tiny numbers are noise amplifiers.**
+
+**Pre-registered reporting rule.** Absolute recall at a declared `n`, with a **noise floor** (re-run
+seeds), and the kill metric stated as a **fraction of the exact-store ceiling** chosen before the run.
+If no noise floor is reported, the stratum is `UNSCORABLE` — not because the candidate is wrong, but
+because two numbers differing by less than the noise are not a result.
+
+**And one audit note, stated without accusation:** `D-028` quotes the B2 learned baselines at
+`n = 512` ("`~0%`"), while the Builder's turn-11 table reports `n = 10,000`. Part 14 has not shipped.
+**The `+95` pts of headroom is therefore a projection at an unmeasured `n` until those rows exist.** If
+they exist, cite them; if not, label the figure projected. A headroom number that is quoted before it is
+measured is exactly the kind of number `AMEND-001`'s pre-flight check exists to catch.
+
+---
+## 4. Carrier vs regularizer — the distinction T2 operationalizes
 
 `AMEND-008` clause 1 names three admissible families as examples. All three are prior art, and one of
 them is not a credit carrier at all:
@@ -168,25 +266,29 @@ it survives the coin test by construction.
 
 ---
 
-## 4. Order of operations
+## 5. Order of operations
 
-No accuracy number is quoted as a result until all six have run:
+No accuracy number is quoted as a result until all seven have run:
 
 ```
-T2 (coin, 1 run)  →  T3 (swap, 2 updates/probe)  →  T1 (delay, 6 runs)
-                  →  T6 (stratum, arithmetic)    →  T4 (matched-bit stack)
-                  →  T5 (novelty certificate + |θ| in bits)
+T7 (ceiling audit, 1 subtraction)
+  →  T2 (coin, 1 run)  →  T3 (swap, 2 updates/probe)  →  T1 (delay, 6 runs)
+  →  T6 (stratum, arithmetic)    →  T4 (two rows, learned + oracle)
+  →  T5 (novelty certificate + |θ| in bits)
 ```
 
-Cheapest and most decisive first. T2 and T3 cost almost nothing and kill most of the space; T4 is the
-Builder's row; T5 is paperwork that must exist before the run, not after it.
+**T7 first, and it is one subtraction**, because it is the only check that protects against a **false
+positive**: if the "ceiling" is below a legal baseline, every score above it is an illusion and the rest
+of the file is measuring nothing. Then cheapest and most decisive first — T2 and T3 cost almost nothing
+and kill most of the space; T4 is the Builder's row; T5 is paperwork that must exist before the run, not
+after it.
 
 This is `AMEND-001`'s pre-flight falsifier power check applied to `0008`: print the falsifiers and the
 baseline's score **before** the candidate's number exists.
 
 ---
 
-## 5. What would prove me wrong
+## 6. What would prove me wrong
 
 Pre-committed, so that a `CLEAR TO BUILD` from me later is worth something:
 
@@ -203,16 +305,16 @@ Pre-committed, so that a `CLEAR TO BUILD` from me later is worth something:
 
 ---
 
-## 6. How I will rule
+## 7. How I will rule
 
 One of three words, with the clause cited:
 
 - **`CLEAR TO BUILD`** — all six pass. I will say which instrument convinced me, in one line.
 - **`VETO`** — any clause fails. I name the clause and the mechanism that failed, and file the family in
   `graveyard/` if it is new.
-- **`UNSCORABLE`** — T6 fires, or `B` is not quoted in bits at each declared `L`. The candidate is not
-  wrong; the table cannot be read. This is the verdict `0007` should have received on its baselines, and
-  it is not a pass.
+- **`UNSCORABLE`** — T6 fires, T7 fires, `B` is not quoted in bits at each declared `L`, or a stratum
+  is reported without a noise floor. The candidate is not wrong; the table cannot be read. This is the
+  verdict `0007` should have received on its baselines, and it is not a pass.
 
 **What this file does not do:** it does not let me veto a candidate for being unfamiliar, and it does not
 let me clear one for being well-written. Every clause above is either a measurement or an accounting
