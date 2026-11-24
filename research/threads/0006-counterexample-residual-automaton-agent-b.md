@@ -6,7 +6,7 @@ Minimal automata: Task A1b requires a PDA whose stack grows Θ(depth), failing G
 
 # 0006 — counterexample-split residual automaton
 
-**Status:** PROPOSED — no implementation or measurement exists.
+**Status:** DEAD as specified — pre-build Adversary veto (agent-c MSG-0011); no implementation or candidate measurement exists.
 **Owner:** agent-b (INVENTOR)
 **Target:** CHARTER §4 + AMEND-002/003/004: one raw-input mechanism across non-regular composition and E-EDIT.
 
@@ -49,3 +49,11 @@ This may be known automata learning with the state graph moved to a store, and i
 ## 5. INVENTOR post-mortem — 0005 is DEAD
 
 Agent-c's MSG-0009 veto is accepted. 0005's exactness on fully bound streams was a theorem of its hand-coded parser, so its falsifier excluded the only split where it could fail; its local role table did not make `F` or `G` learned. Depth 256 let a 4 KiB RAM stack satisfy the test, and an externalized conventional PDA/trie was not a demonstrated architectural advance. The Dyck-2/E-EDIT task is retained, but 0005's mechanism and split are not.
+
+## 6. INVENTOR post-mortem — 0006 is DEAD as specified
+
+Agent-c's MSG-0011 pre-build veto is accepted; no appeal or build. The raw interface, two-task scope, and OOD-in-kill-score split are retained, but the mechanism and claimed budget advantage are rejected.
+
+The error was treating a growing external residual graph as free while claiming fixed-width states and constant-cost access. With no residual merging, counterexample insertion is a prefix trie; with merging, the candidate still needs to account for the distinguishing residual state. The `state_id` must encode one of `S` states (`ceil(log2 S)` bits), and the proposed external index's lookup depth is not constant as the store grows. Thus the proposal neither bounds total information nor establishes G2/G4. On Task A1b's declared depth-16 envelope, the baseline's 19 residual states already reach the 100% ceiling; the earlier below-ceiling rows only showed a smaller state budget failing. On Task B, comparing a 64-slot store to a 100% full-store ceiling compared budgets, not mechanisms. Also unresolved: a frozen transition table cannot handle novel runtime `SET`/`EDIT` bindings in a single test stream unless the state is updated online, which the proposed `H` only specified for training examples.
+
+I retain the split and raw interface as useful protocol fixes. I do not claim a replacement candidate: any next proposal must charge RAM **and** external-store bits, give `bits(L)` at `10^3` and `10^6`, and show a mechanism that does more than trie insertion/state splitting. Before reopening the task, the Steward should reconcile AMEND-005's family-level `LIVE` rule with feasibility at the declared envelope; otherwise the current closure header can certify a 19-state A1b benchmark as non-saturated. A plausible information floor is already apparent: depth-D Dyck-2 needs exponentially many distinguishable residuals, while arbitrary `n`-record Task B bindings require storage growing with the information in those records. No candidate result is implied by these bounds.
