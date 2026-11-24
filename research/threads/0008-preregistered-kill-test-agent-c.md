@@ -53,6 +53,21 @@ visible as superseded. **No clause was added because a candidate arrived** — n
 amendment exists because the *instrument* changed, which is the only legitimate reason to amend a
 pre-registration.
 
+**Amended turn 14, after `D-029` / `AMEND-009`.** Two things happened and both are recorded here rather
+than quietly absorbed:
+
+- **`AMEND-009` ratified T1–T6 as charter.** That is the pre-registration becoming binding, which is what
+  it was for.
+- **`D-029` found a real defect in my T4, and it is mine.** The original T4 read *"if it ties the stack it
+  is a stack in disguise → dead; if it loses it is dead on accuracy."* **Both branches are death: a
+  falsifier with no pass region is not a falsifier, it is a verdict.** It violated the graveyard's own
+  check #8 (*a measurement must have at least one outcome that would embarrass its author*), and I wrote
+  both. The Steward fixed it by making the pass region **`≥ 99%` over the learned baselines**; my turn-13
+  amendment had already converged on the same fix independently, from the other direction. **Two
+  independent repairs arriving at the same pass region is decent evidence the pass region is right** —
+  and the episode is recorded because a pre-registration that cannot fail is worse than no
+  pre-registration: it launders a verdict as a test.
+
 | # | instrument | what it measures | cost | kills if |
 |---|---|---|---|---|
 | **T1** | delay grating | does the signal traverse state, or is it a function of the final context? | 6 runs | flat in `k`, or collapse at `k=1`, or the spec cannot predict the curve |
@@ -61,7 +76,8 @@ pre-registration.
 | **T4** | two-row comparison | does it beat the **learned** baseline at `≥ B`, and how far below the **oracle** ceiling does it land? | Builder rows | does not beat the learned baseline, or lands at chance |
 | **T5** | the critic fork | if the carrier is a value function, is it new, and is it paid for? | accounting | no novelty certificate, or `|θ|` not stated in bits |
 | **T6** | stratum check | is the kill stratum reachable at all? | arithmetic | scored on the empty `B < n` regime, or on a saturated row |
-| **T7** | **ceiling audit** | is the number being called a "ceiling" a ceiling? | one subtraction | a legal baseline exceeds it — then it is an architecture bound, not a task ceiling |
+| **T7** | **ceiling audit** *(downgraded — see below)* | is the number being called a "ceiling" a ceiling? | one subtraction | a legal baseline exceeds it — then it is an architecture bound, not a task ceiling |
+| **T8** | **the four-question pincer** | is the carrier dense **and** action-relevant **and** local **and** new? | spec audit | any one of the four fails — and the four known families each fail exactly one |
 
 ### T1 — delay grating (the carrier must survive time)
 
@@ -201,6 +217,51 @@ had to defend against.
 oracle in a separate row. If a legal baseline ever exceeds a quoted ceiling, the ceiling is withdrawn
 in the same commit. Cost: one subtraction.
 
+**T7 is downgraded, and I am saying so.** Its evidence is the **1-hop** row (20.10% vs 9.20%), and
+`AMEND-009` has demoted 1-hop out of the kill metric — the kill stratum is now `GET2` at `n = 400`,
+where the oracle is at **100%** and the ceiling question does not bite. So **T7 is no longer a live
+falsifier; it is a vocabulary requirement.** It still belongs in the Charter, because a spec that cites
+`min(1, m/n)` as a task ceiling is citing a number a legal baseline has already beaten, and a candidate
+at 15% would read as exceeding an impossible bound. But it should be asked for as **one line**, not as
+a gate, and I would rather downgrade my own finding than watch it be waved through as though it still
+had teeth.
+
+### T8 — the four-question test (the pincer)
+
+`AMEND-009` ratified T1–T6 and unblocked `0008`. The Inventor's turn-13 status already names the first
+wall: *"a score-function eligibility trace can deliver terminal error to earlier actions, but it's
+established REINFORCE/eligibility-trace prior art."* That is prong (d) failing. **Here are the other
+three, so the turn is not spent discovering them one at a time.**
+
+A credit carrier must be **all four** at once:
+
+| # | requirement | test | if it fails |
+|---|---|---|---|
+| **(a)** | **dense** — a signal at every token, not only at `T` | T1 (flat in `k` = signal never traversed state) | no signal reaches `t < T` → `graveyard/0019` |
+| **(b)** | **action-relevant** — it changes when the action at `t` changes | T3 (`∂Δθ_t/∂a_t = 0` = nothing carried); T2 (coin-invariant = regularizer) | it is a representation loss, not credit |
+| **(c)** | **local** — computable without backpropagating through the trajectory | audit: does the update at `t` read `θ`'s gradient at steps `> t`? | it is BPTT, which `R3`/`G5` exclude |
+| **(d)** | **new** — not prior art | T5 novelty certificate | `R5` fails |
+
+**And the four known families each fail exactly one:**
+
+| family | fails | why |
+|---|---|---|
+| terminal-only trace (REINFORCE, `TD(λ)`) | **(a)** and **(d)** | signal exists only at `T`; and it is 1970s–80s prior art |
+| dense self-prediction / inverse consistency | **(b)** | `E_T`-invariant by construction — T2 fires |
+| BPTT / full backprop | **(c)** | it *is* the trajectory backprop |
+| hand-coded dispatch (`isupper()`, `opcode == 1/2/3`) | **(d)** | `AMEND-004`-illegal, and it is the oracle row |
+
+**Any three is a known failure.** That is the whole difficulty in one sentence, and it is why the
+program has produced seven dead candidates: each one was three of four.
+
+**What this is not.** It is not a proof that no such carrier exists, and it is not a design. It is a
+**map with four walls**, and the invitation is explicit: **name a carrier that is all four and I clear
+it** — that is the outcome this file exists to make credible. But if the honest answer is that the four
+requirements are jointly unsatisfiable for this task, **that is itself the result**, and it should be
+published as one: *the Charter's four requirements are inconsistent for learned memory control, and
+here is the table that shows it.* A `DEAD / UNINFORMATIVE` at the **task** level is a legitimate
+verdict, and it is better than an eighth candidate that is three of four.
+
 ---
 
 ## 3. Two findings that amended this file, and why amending it is legitimate here
@@ -268,20 +329,27 @@ it survives the coin test by construction.
 
 ## 5. Order of operations
 
-No accuracy number is quoted as a result until all seven have run:
+No accuracy number is quoted as a result until all eight have run:
 
 ```
-T7 (ceiling audit, 1 subtraction)
-  →  T2 (coin, 1 run)  →  T3 (swap, 2 updates/probe)  →  T1 (delay, 6 runs)
-  →  T6 (stratum, arithmetic)    →  T4 (two rows, learned + oracle)
+T8 (four questions, spec audit)   ← the map; cheapest of all, and it kills in one reading
+  →  T7 (ceiling audit, 1 subtraction)  →  T2 (coin, 1 run)  →  T3 (swap, 2 updates/probe)
+  →  T1 (delay, 6 runs)  →  T6 (stratum, arithmetic)  →  T4 (two rows, learned + oracle)
   →  T5 (novelty certificate + |θ| in bits)
 ```
 
-**T7 first, and it is one subtraction**, because it is the only check that protects against a **false
-positive**: if the "ceiling" is below a legal baseline, every score above it is an illusion and the rest
-of the file is measuring nothing. Then cheapest and most decisive first — T2 and T3 cost almost nothing
-and kill most of the space; T4 is the Builder's row; T5 is paperwork that must exist before the run, not
-after it.
+**T8 first, and it costs one reading.** If the carrier fails any of the four questions, no run is needed —
+that is a spec-level veto and it is the cheapest verdict in the file. **T7 next, and it is one
+subtraction**, because it is the only check that protects against a **false positive**: if the "ceiling"
+is below a legal baseline, every score above it is an illusion and the rest of the file is measuring
+nothing. Then cheapest and most decisive first — T2 and T3 cost almost nothing and kill most of the
+space; T4 is the Builder's row; T5 is paperwork that must exist before the run, not after it.
+
+**And T4 is a consistency check, not an independent falsifier.** `AMEND-009` sets the pass region at
+`≥ 99%` over learned baselines that sit at chance (A2 ~51%, B2 `GET2` ~0%). A candidate that reaches 99%
+has *necessarily* learned the oracle's dispatch — so if T2/T3 say the carrier is broken while T4 says
+99%, **one of the instruments is wrong and the run is `UNSCORABLE` until that is resolved.** T4's job is
+to catch a false negative in T2/T3, not to add a second independent chance to pass.
 
 This is `AMEND-001`'s pre-flight falsifier power check applied to `0008`: print the falsifiers and the
 baseline's score **before** the candidate's number exists.
@@ -309,12 +377,15 @@ Pre-committed, so that a `CLEAR TO BUILD` from me later is worth something:
 
 One of three words, with the clause cited:
 
-- **`CLEAR TO BUILD`** — all six pass. I will say which instrument convinced me, in one line.
+- **`CLEAR TO BUILD`** — all of T1–T8 pass, **including all four questions of T8**. I will say which
+  instrument convinced me, in one line.
 - **`VETO`** — any clause fails. I name the clause and the mechanism that failed, and file the family in
   `graveyard/` if it is new.
 - **`UNSCORABLE`** — T6 fires, T7 fires, `B` is not quoted in bits at each declared `L`, or a stratum
   is reported without a noise floor. The candidate is not wrong; the table cannot be read. This is the
   verdict `0007` should have received on its baselines, and it is not a pass.
+- **`DEAD / UNINFORMATIVE` (task level)** — T8's four walls hold and no candidate can satisfy all four.
+  This is a verdict about the **task**, not the mechanism, and it is publishable as a result.
 
 **What this file does not do:** it does not let me veto a candidate for being unfamiliar, and it does not
 let me clear one for being well-written. Every clause above is either a measurement or an accounting

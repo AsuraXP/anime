@@ -664,3 +664,67 @@ will design against, and a headroom quoted before it is measured is exactly the 
   opcodes and NO hardcoded `SET`/`GET` opcodes)"*. That is the escape condition from `0020` written as a
   build requirement, which is the correct fate for a graveyard entry: **the family stays dead, the
   condition becomes a gate.** Credited to the Steward.
+
+## D-C65 · 2026-11-23 · ACCEPTED: my `T4` had no pass region, `D-029` caught it, and the fix is right
+The original `T4` read: *if `0008` ties the stack it is a stack in disguise → dead; if it loses it is dead
+on accuracy.* **Both branches are death.** A falsifier with no reachable pass region is not a falsifier —
+it is a verdict wearing a test's clothes, and it violates the graveyard's own check #8: *a measurement
+must have at least one outcome that would embarrass its author.* I wrote check #8 and then wrote a
+falsifier that could not fail. **That is the most serious error in this file and it is mine.**
+
+`D-029` fixed it by setting the pass region at **`≥ 99%` over the 32,768-bit learned baselines** (A2
+`~51%`, B2 `GET2 @ n=400` `~0%`), which is reachable and which is a real bar. My turn-13 amendment had
+already converged on the same fix from the other direction — I restated `T4` as two rows with an explicit
+*clear* branch — **and two independent repairs landing on the same pass region is decent evidence the
+pass region is right.** Recorded rather than absorbed, because **a pre-registration that cannot fail is
+worse than no pre-registration: it launders a verdict as a test**, and the next one should be checked for
+a pass region before it is ratified.
+
+**The general lesson, and it is the same one as `D-C61`:** an instrument can be wrong in either
+direction. `D-C61` is the false-positive direction (a ceiling quoted low, so a losing candidate reads as
+beating an impossible bound). `D-C65` is the false-negative direction (a falsifier with no pass region,
+so a winning candidate cannot be cleared). **Every clause in a pre-registration should be read once for
+each direction before it is signed.**
+
+## D-C66 · 2026-11-23 · DOWNGRADED: `T7` is a vocabulary requirement, not a live falsifier — `AMEND-009` demoted its evidence
+`T7`'s evidence is the **1-hop** row: learned byte table **20.10%** vs exact `m`-slot **9.20%** at
+`n = 10,000`, i.e. a legal baseline beating `min(1, m/n)` by 2.2×. `AMEND-009` has moved the kill metric
+to **`GET2` at `n = 400`**, where the oracle is at **100%** (800 bindings fit in 1,024 slots) and the
+ceiling question does not bite. **So `T7` no longer has teeth and I am saying so rather than letting it
+be waved through as though it did.** It still belongs in the Charter as **one line** — *every number
+labelled a ceiling must name the architecture it is a ceiling of* — because a spec that cites
+`min(1, m/n)` as a task ceiling is citing a number a legal baseline has already beaten. But it should be
+asked for as a wording change, not as a gate. Downgrading my own finding when the instrument moves is
+the same duty as retracting a number when the measurement moves.
+
+## D-C67 · 2026-11-23 · SHARPENED: `D-C63` stands — the headroom has now been quoted at three different `n`, and the `n = 400` row is scheduled, not measured
+`D-028` quoted `+95` pts at `n = 512`. The Builder measured `n = 10,000`. `D-029` specifies the kill
+stratum at **`n = 400`** — and assigns it to `agent-d`'s **next** turn (*"add `GET2` at `n = 400` chains
+… + seeded-bijection byte permutation"*). **So the row the pass bar is defined against does not exist
+yet**, and the headroom figure has been quoted at three different values of `n` in three turns. **I
+promised to void `D-C63` if the rows existed. They do not.** It stands, and it is now a concrete ask
+rather than an audit note: *the `≥ 99%` bar is well-defined only once the `n = 400` oracle row and the
+learned row both exist at fixed `B = 32,768` bits.* Until then `T4` is `UNSCORABLE` — not wrong, unreadable.
+
+## D-C68 · 2026-11-23 · RULED (pre-registration, T8): the four walls — a carrier must be dense AND action-relevant AND local AND new
+`AMEND-009` ratified `T1–T6` and unblocked `0008`; the Inventor's turn-13 status already names the first
+wall — *"a score-function eligibility trace can deliver terminal error to earlier actions, but it's
+established REINFORCE/eligibility-trace prior art."* That is prong **(d)** failing. The other three, so
+the turn is not spent discovering them one at a time:
+
+| # | requirement | test | family that fails it |
+|---|---|---|---|
+| **(a)** | **dense** — signal at every token, not only at `T` | T1 | terminal-only trace (`REINFORCE`, `TD(λ)`) — also fails (d) |
+| **(b)** | **action-relevant** — changes when the action at `t` changes | T3, T2 | dense self-prediction / inverse consistency — `E_T`-invariant |
+| **(c)** | **local** — no backprop through the trajectory | audit of what the update at `t` reads | BPTT — it *is* the trajectory backprop |
+| **(d)** | **new** — not prior art | T5 | hand-coded dispatch (`isupper()`, `opcode == 1/2/3`) — also `AMEND-004`-illegal |
+
+**Any three is a known failure — and that is why the program has seven dead candidates: each was three of
+four.** Filed as **T8** in the pre-registration, run first because it costs one reading.
+
+**What this is not.** Not a proof that no such carrier exists, and not a design. It is a **map with four
+walls** and an explicit invitation: *name a carrier that is all four and I clear it.* But if the honest
+answer is that the four are jointly unsatisfiable for this task, **that is the result, and it should be
+published as one** — a `DEAD / UNINFORMATIVE` at the **task** level is a legitimate verdict, it is
+sharper than an eighth candidate that is three of four, and it says something the program has not yet
+said out loud: *the Charter's four requirements may be inconsistent for learned memory control.*
