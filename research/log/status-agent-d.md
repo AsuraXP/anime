@@ -1,82 +1,78 @@
 # status — agent-d (BUILDER)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 5 — Round 5: the pre-flight closure gate, and the P8 §2 ablation
+**Turn:** 6 — Round 6: the withheld baseline fixed, and the null inside Part 2
 **Branch:** `arena/154facdf-anime`
-**State:** both assigned items done and certified twice. **The Adversary's §2 mechanism is falsified by
-its own ablation, and my published encoder was handicapped by a feature I never tested.** Gate
-**26/26**.
+**State:** both D-022 items done and certified twice. **The baseline that was withheld now solves the
+task it was blamed for failing**, which changes what Task A is evidence for. Gate **31/31**.
 
 ## Did
 
-**Item 1 — `bench/closure.py`** (0.1 s, deterministic, no RNG): the pre-flight form of the kill that
-demolished `0004`, which agent-c asked for in `MSG-0008`. It enumerates the reachable composite states
-from the generators and refuses to say "benchmark" until the frontier empties:
+**Item 1 — the recurrent baseline is fixed** (`nonregular.py`; 330 s, two runs identical).
 
-| task | states | verdict | exhausts at |
-|---|---|---|---|
-| digit addition (carry) | 2 | **DEAD** | depth 2 |
-| affine action over F_101 (`0004`) | 10,100 | **DEAD** | depth 9 |
-| Dyck-1 validity (my Task A) | 33 at depth 32 | **LIVE** | never |
-| stream binding (my Task B) | 10^d | **LIVE** | never |
+Four defects, three already found in turn 4. The fourth was optimisation and it was the whole story:
+0/1 inputs, unscaled init, plain SGD and **one restart**. Fixed with centered ±1 inputs, init scaled by
+`1/sqrt(h)`, global-norm clipping, Adam and restarts:
 
-The affine enumeration reproduces agent-c's number exactly (10,100 states = 14 bits, 80,800
-closed-form entries) while the sequence count at depth 8 is 16.8M. Three turns of digit addition and a
-full candidate specification later, this is the check that costs a tenth of a second.
+| system | params | D<=8 | D=4 | D=8 | D=16 holdout | success |
+|---|---|---|---|---|---|---|
+| **0-param: always valid** | **0** | 48.38% | 57.69% | 29.84% | 48.12% | -- |
+| **0-param: ends with `)`** | **0** | 51.50% | 61.70% | 31.01% | 51.00% | -- |
+| h=2 (median of 4) | 16 | 51.50% | 61.70% | 77.91% | 59.88% | 0% |
+| h=4 (median of 4) | 38 | **100.00%** | 100.00% | 100.00% | 51.88% | 75% |
+| h=8 (median of 4) | 106 | 99.94% | 100.00% | 99.61% | 51.00% | 50% |
 
-**Item 2 — `bench/act_ablate.py`** (296 s, seeded, same probes as Part 2):
+Two things follow, and both cut against my own turn-4 framing:
 
-| system | R2({9}) | R2({7,8,9}) |
-|---|---|---|
-| **0-param carry-blind null** | 16.65% | **23.62%** |
-| ordinal-12 (published) | 18.99% | 11.39% |
-| ordinal-9, no digit sum | 16.54% | 10.21% |
-| ordinal-9, no product | 22.43% | 19.11% |
-| ordinal-6, order only | **22.65%** | 17.35% |
-| one-hot-60 | 1.18% | 0.55% |
+1. **A1b is a state-budget gate, not evidence that composition is hard for neural models.** 38
+   parameters solve depth ≤ 8 outright. The teeth are in the *discrete* budget; `AMEND-002`'s state
+   count needs the caveat that h floats are not h states.
+2. **The depth axis is real.** At depth 16 every budget is at chance while a 16-state counter is
+   exact. That boundary is now measured against a baseline that works.
 
-- **The bet is lost by whoever named the mechanism.** The encoder's edge over one-hot is 17.81 and
-  10.84 points; deleting the digit sum costs 2.45 and 1.18, i.e. **at most 14% and 11% of the edge**.
-  A contributor, not the explanation. agent-c's §1 stands.
-- **The product term is harmful** (−3.44, −7.72 points if kept). My ordinal-12 was worse than its own
-  order-only version because of a feature I added and never ablated. Best encoder on both strata:
-  the 6-feature order-only one.
-- The 0-parameter null still outscores every MLP on `[7,8,9]`. On `[9]` the encoders win. The stratum
-  decides that, which is why the null must be printed inside the table.
+Learning is **bimodal** (exact or chance), so every row reports median, best and success rate — a
+single run would have published 82% or 48% for the same model depending on the seed.
+
+The worse defect was in the *control*, not the network: turn 4's control admitted a 75% last-character
+shortcut and every budget found it (73.50%, three times). Rebuilt as `"(" + w` only; the shortcut now
+scores 50.25%.
+
+**Item 2 — the 0-parameter null is inside `k3control.py`'s tables** (D-021 §2.2). It is now the first
+row of R1 and of every SYMBOL table. Regenerating Part 2 changed no other row — 29.21 / 26.26 / 1.18 /
+18.99 reproduce to the digit — which is the check that the edit was additive. The row is worse news
+than expected: **in-split the 0-parameter rule scores 30.61% against one-hot's 29.21% and ordinal-12's
+26.26%**, where the counted table and the analytic ceiling are both 100%.
 
 ## Not done, and said plainly
 
-- **The null is not yet in `k3control.py`'s own `SYMBOL` tables** (Part 2). D-021 asked for it there.
-  It is beside every row of the *new* ablation table; putting it in Part 2 means editing the source of
-  a published block and regenerating it (2 × 180 s + reassembly), which I did not do in this turn's
-  remaining budget. Carried, nothing blocking it.
-- **The recurrent baseline stays withheld** (turn 4). Still needs gradient clipping + input
-  normalisation, and its control task must pass at every published budget before a row is published.
-- No candidate was built. `affine_action.py` remains untouched, per D-021 §2.1 and the `0004` veto.
+- **No candidate was built.** `external_role_stack.py` (`0005`) remains untouched pending agent-c's
+  ruling, per D-022 §2.1.
+- **The baseline is still a small Elman net**, not an LSTM or a Transformer. A stronger one can only
+  raise the D ≤ 8 ceiling (already 100%) and may or may not reach D = 16. If a future seat adds one,
+  A1b's depth-16 claim gets tested rather than assumed.
+- `nonregular.py` runs ~5.5 min per pass, so it stays in `certify.py --full`, not in the fast gate; the
+  fast gate recomputes one h=4 restart (8 s) as C12 instead.
 
 ## Gates
 
-`certify.py` **26/26 in 72.8 s**. New **C11** recomputes the closure gate instead of trusting its
-prose (AGL(1,101) must be exactly 10,100 and DEAD; digit addition 2 and DEAD; Dyck LIVE), requires the
-0-param null in the ablation tables, and requires the noise floor to be stated beside the verdict so a
-1-point difference cannot be published as a mechanism. `closure.py` is in the fast determinism list
-(0.1 s); `act_ablate.py` is in `--full` (~32 min).
+`certify.py` **31/31 in 79.9 s**. New **C12**: Part 9 published, baseline reported as a distribution,
+control shortcut provably gone (recomputed at 50.25%), **one h=4 restart recomputed to 100.00%**, and
+the 0-param null present inside Part 2. C10's withheld-label check is now state-aware: a `WITHHELD` row
+must be followed by a banner when a later part fixes it.
 
-Three of my own defects were caught and fixed this turn: the gate's first verdict rule said LIVE for a
-10,100-state group (it asked "did the count grow?" instead of "did the frontier empty?"); the ablation
-first drew its own probe and mis-scored ordinal-12 at 18.00% against Part 2's 18.99% (fixed by
-aligning to `RNG_SEED + 10 + len(hold)`); and my determinism masker silently skipped `_29s_` cells, so
-the first "FAILED" was the masker, not the runs.
+Part 7 keeps its turn-4 rows and carries a forward banner; Part 9 is the live baseline. History is not
+rewritten, and a reader cannot mistake one for the other.
 
 ## Baton
 
-1. **agent-a**: adopt `closure.py` as a pre-flight requirement for every new thread — `python3
-   research/bench/closure.py` and a quoted `|states|` in the thread header. It is cheaper than one
-   review round and would have killed `0004` before it was specified.
-2. **agent-c**: the §2 ablation is above. If you dispute it, the decisive experiment is one budget at
-   a tighter CI (the 95% half-width here is ±1.1 points at n=8,000), not a re-reading of the encoder.
-3. **Round 6**: the `SYMBOL` null inside `k3control.py` (Part 2 regeneration), then the recurrent
-   baseline's clipping fix. Neither is blocked.
+1. **agent-c**: the §2 ablation stands as published (Part 8); the neural baseline is now a real one
+   (Part 9), so `0006` can be scored against 100% at D ≤ 8 and chance at D = 16 rather than a model at
+   chance everywhere.
+2. **agent-a**: A1b's framing needs one sentence in the charter — *state budget is measured in discrete
+   states, and a float bank is not a state count*. Without it a 38-parameter RNN "beats" a 17-state
+   table on a technicality that is really an accounting convention.
+3. **Round 7**: nothing is blocked on me. If `0005`/`0006` is cleared, the scoring harness it needs is
+   already certified.
 
-**What would prove me wrong:** an encoder that loses its unseen-symbol advantage once the digit sum is
-deleted, measured at a CI tight enough to see a 2-point effect.
+**What would prove me wrong:** a 4-unit restart that solves the depth-16 holdout, or a success rate
+that moves the wrong way with data budget. Both are in the table above and neither happens.

@@ -12,7 +12,7 @@ next to the numbers is actually supported by them.
 What is checked
   D1 determinism      every script is run twice; stdout must match after timing fields are masked.
   D2 freshness        the block of RESULTS.md tagged as scorecard output must equal a fresh run.
-  C1..C11 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
+  C1..C12 claim checks the specific sentences in RESULTS.md / threads 0001-0002 that a reader would
                       otherwise have to take on faith. Each returns the measurement behind it.
 
 Exit code is 0 only if every check passes. A failing check is a result, not a nuisance: it means a
@@ -229,9 +229,14 @@ def check_claims():
         above.append(nr.score_binary(nr.CappedCounter(k).fit(data).predict, data))
     out.append(check("C10 above the budget the machine is near-exact", min(above) >= 0.90,
                      f"min {100 * min(above):.1f}% over {len(above)} above-cap cells"))
-    out.append(check("C10 uncertified baseline is labelled, not published as a baseline",
-                     "WITHHELD" in part7 and "No claim in this file rests on A2" in part7,
-                     "the recurrent baseline degenerates (see A2d); the label is the finding"))
+    # A withheld label is only honest while the withdrawal still stands: once a later part fixes the
+    # baseline, the document must say so at the place a reader meets the stale rows.
+    _withheld = "WITHHELD" in part7
+    _banner = "Superseded for the recurrent baseline" in md0
+    out.append(check("C10 uncertified baseline is labelled, and the label is kept current",
+                     _withheld and (not _withheld or _banner),
+                     "Part 7 marks the turn-4 rows WITHHELD; Part 9 fixes them and the Part 7 banner "
+                     "points forward, so a reader cannot mistake history for the current baseline"))
 
     # C11 -- the closure gate (`closure.py`) is the pre-flight check the Adversary asked for, and it
     # is only worth having if it reproduces the number it was built to explain: AGL(1,101) has order
@@ -261,6 +266,36 @@ def check_claims():
                      and "negative = deleting helps" in part8,
                      "a 1-point difference at n=8,000 is not a mechanism; the table states the "
                      "half-width and the sign convention instead of ranking rows it cannot separate"))
+
+    # C12 -- D-022 §2.3: the withheld recurrent baseline must be fixed and published, and the gate
+    # recomputes the one fact that makes it a baseline rather than a hope: one h=4 restart must reach
+    # the ceiling at depth <= 8. A curve published without that check is the turn-4 mistake again.
+    part9 = md0.split("PART 9")[-1] if "PART 9" in md0 else ""
+    out.append(check("C12 Part 9 (fixed recurrent baseline) published", bool(part9),
+                     "D-022 §2.3: the harness needs a neural baseline before 0006 can be scored"))
+    out.append(check("C12 the baseline is reported as a distribution, not one run",
+                     "success rate" in part9 and "median" in part9,
+                     "learning is bimodal (exact or chance); a single run would have called this "
+                     "baseline 82% or 48% depending on the seed"))
+    nr2 = load_module("nonregular")
+    _ctrl = nr2.make_control_set(__import__("random").Random(nr2.SEED + 11), 800, 8)
+    _lc = nr2.score_binary(lambda w: 1 if w.endswith(")") else 0, _ctrl)
+    out.append(check("C12 the control's last-character shortcut is gone", abs(_lc - 0.5) < 0.10,
+                     f"the shortcut scores {100 * _lc:.2f}% on the control (it scored 73.50% on turn "
+                     f"4's construction), so a model that passes the control is counting"))
+    t0 = time.time()
+    tr = nr2.make_balanced_set(__import__("random").Random(nr2.SEED + 7), 8000, 8)
+    te = nr2.make_balanced_set(__import__("random").Random(nr2.SEED + 11), 1600, 8)
+    m = nr2.RNN(4, __import__("random").Random(nr2.SEED))
+    m.train(tr, 8, __import__("random").Random(nr2.SEED + 1))
+    acc = nr2.score_binary(m.predict, te)
+    out.append(check("C12 a 4-unit restart reaches the ceiling at depth <= 8", acc >= 0.95,
+                     f"recomputed one restart: {100 * acc:.2f}% exact in {time.time() - t0:.0f}s "
+                     f"(turn 4's trainer was at chance here)"))
+    part2 = md0.split("PART 2")[-1].split("PART 3")[0]
+    out.append(check("C12 the 0-param null is inside Part 2's own tables",
+                     "0-param carry-blind" in part2,
+                     "D-021 §2.2 / AMEND-002: the null must be a row, not a note in another file"))
 
     return out
 

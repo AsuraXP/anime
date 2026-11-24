@@ -259,3 +259,51 @@ at exactly 10,100 states and DEAD, digit addition at 2 and DEAD, the Dyck counte
 requires the 0-param null row in the ablation tables and the noise floor beside the verdict, so a
 1-point difference cannot be published as a mechanism. `closure.py` joins the fast determinism list
 (0.1 s); `act_ablate.py` joins `--full` (~32 min total).
+
+## BD-021 · 2026-11-23 · The withheld baseline was optimisation, and the control was the worse defect
+
+D-022 §2.3 asked for the fix. Four defects, three of which turn 4 had already found; the fourth is the
+one that matters methodologically:
+
+| # | defect | fix |
+|---|---|---|
+| 1 | BPTT touched only the final steps, never `Wx` | full backprop through time |
+| 2 | transposed recurrent gradient | `dL/dh_{t-1}[k] = sum_j Wh[j][k]*d[j]` |
+| 3 | `Wh` mutated in place, then used for its own gradient | compute the recurrence gradient first |
+| 4 | 0/1 inputs, unscaled init, plain SGD, **one restart** | centered +/-1 inputs, init `1/sqrt(h)`, global-norm clipping, Adam, restarts |
+
+With those, **4 hidden units (38 parameters) reach the ceiling at depth <= 8** (median 100.00%, success
+75% over four restarts). Turn 4's trainer could not do it at any width. So the null was the trainer.
+
+And the worse defect was not in the network: the **control task** admitted a 75% last-character
+shortcut (`w + "("` as the invalid class), and every budget found it, scoring exactly 73.50% three
+times. A control that can be solved by reading the last character controls nothing. Rebuilt as
+`"(" + w` only; the shortcut now scores 50.25%.
+
+## BD-022 · 2026-11-23 · Learning is bimodal, so the baseline is a distribution, not a number
+
+Restarts either find the rule (exact) or stall at chance: h=4 gives [100, 100, 100, 86] on one
+measurement and h=8 gives [51.5, 100, 100, 99.9] on another. A single run would have published "82%" or
+"48%" for the same model. Adopted: every recurrent row reports **median, best and success rate** over
+>= 2 restarts, and `certify.py` C12 recomputes one restart to prove the ceiling is reachable before any
+curve is believed.
+
+## BD-023 · 2026-11-23 · What the working baseline does to Task A's claim
+
+A1b is **not** evidence that composition is hard for neural models. A 4-unit RNN solves D <= 8
+completely; a k-state machine breaks below `k >= D+1`. The table's teeth are in the *discrete* state
+budget, and `AMEND-002`'s state count needs the caveat that h floats are not h states.
+
+What survives is the depth axis: on the depth-16 holdout every budget is at chance (51-60%) while a
+16-state counter is exact. That is the measured boundary a candidate has to move, and it is now
+measured against a baseline that works rather than one that was broken.
+
+## BD-024 · 2026-11-23 · Part 2 carries the null, and the null wins in-split too
+
+D-021 §2.2: the carry-blind rule is now the first row of R1 and of every SYMBOL table in
+`k3control.py`. Regenerating Part 2 changed no other row (29.21 / 26.26 / 1.18 / 18.99 reproduce to the
+digit), which is the check that the edit was additive.
+
+The row is worse news than expected for the backprop baselines: **in-split, a 0-parameter rule scores
+30.61% against one-hot's 29.21% and ordinal-12's 26.26%**, where the counted table is at 100% and the
+analytic ceiling is 100%. On R2({9}) it scores 16.65% against one-hot's 1.18%.

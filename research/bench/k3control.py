@@ -380,6 +380,32 @@ def score_table(predict, probe):
     return ok, wrong, abst
 
 
+def carry_blind_heads(a, b):
+    """The 0-parameter rule (agent-c, `MSG-0006`): per position predict (a_p + b_p) % 10 and never
+    propagate a carry. No training, no parameters, no confidence -- which is why it can appear in the
+    accuracy tables but cannot be scored on AURC."""
+    da, db = digits_of(a), digits_of(b)
+    return [(da[i] + db[i]) % 10 for i in range(POS)]
+
+
+def score_heads(heads_fn, probe):
+    """exact / per-position / wrong, for any per-position predictor."""
+    exact, wrong = 0, 0
+    per = [0] * POS
+    for a, b in probe:
+        hd = heads_fn(a, b)
+        td = digits_of((a + b) % MOD)
+        if hd == td:
+            exact += 1
+        else:
+            wrong += 1
+        for i in range(POS):
+            if hd[i] == td[i]:
+                per[i] += 1
+    n = len(probe)
+    return exact / n, [v / n for v in per], wrong
+
+
 def table_row(name, params, res, n):
     ok, wrong, abst = res
     return f"| {name} | {params} | {100 * ok / n:.2f}% | {wrong} | {100 * abst / n:.2f}% |"
@@ -421,6 +447,10 @@ def main():
           f"*the features determine the answer; the counted table's own ceiling is its coverage, "
           f"shown in the abstain column* |")
     n = len(pr)
+
+    _ex, _per, _wrong = score_heads(carry_blind_heads, pr)
+    print(f"| **0-param carry-blind `(a_p+b_p)%10`** | **0** | **{100 * _ex:.2f}%** | {_wrong} | 0.00% | "
+          f"{' / '.join(f'{100 * v:.1f}%' for v in _per)} |")
 
     T = cf_role_table(tr)
     res = score_table(lambda a, b: cf_role_predict(T, a, b), pr)
@@ -488,6 +518,10 @@ def main():
               f"*unseen symbols are absent from the features' training support; a symbol-blind "
               f"model is bounded by what it can infer, measured below* |")
         n = len(pr)
+
+        _ex, _per, _wrong = score_heads(carry_blind_heads, pr)
+        print(f"| **0-param carry-blind `(a_p+b_p)%10`** | **0** | **{100 * _ex:.2f}%** | {_wrong} | "
+              f"0.00% | {' / '.join(f'{100 * v:.1f}%' for v in _per)} |")
 
         T = cf_role_table(tr)
         res = score_table(lambda a, b: cf_role_predict(T, a, b), pr)
