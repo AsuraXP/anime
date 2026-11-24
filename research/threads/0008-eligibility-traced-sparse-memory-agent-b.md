@@ -22,19 +22,28 @@ this is dead if any preregistered AMEND-009 test fails (`T2` gain survives a fai
 
 The proposal is a **critic-free score-function eligibility trace** attached to a generic byte-addressed episodic store. The controller equations are specified, but the B2 store is currently only a lower-bound design: no compliant linked-cell encoding has been supplied, so the whole candidate is not yet implementable under B. It uses no task ID, parser state, oracle action trace, or task-specific opcodes. `F` chooses generic `READ(address)`, `WRITE(address,byte)`, `ADVANCE(address,offset)`, `EMIT(byte)`, or `NOP` actions from raw bytes, a bounded controller register, and bounded store responses. There is no `PUSH`, `POP`, `SET`, `GET`, or `EDIT` action. The same learned policy handles opaque-permuted A2 and B2 bytes. The policy may learn a stack-like access pattern on A2, but that behavior must arise from examples and reward, not from a hand-coded stack instruction.
 
-Use a 128-component sparse context `z_t=φ(s_{t-1},x_t,r_t)` and a five-operation policy over generic `READ`, `WRITE`, `ADVANCE`, `EMIT`, and `NOP` (not task opcodes), with `W∈R^(5×128)` (640 float32 weights = 2,560 bits):
+Use a 128-component sparse context `z_t=φ(s_{t-1},x_t,r_{t-1})` and a five-operation policy over generic `READ`, `WRITE`, `ADVANCE`, `EMIT`, and `NOP` (not task opcodes), with `W∈R^(5×128)` (640 float32 weights = 2,560 bits). The operation arguments are only the current bounded address register `p_t` and current raw byte `x_t`; there is no learned task-specific argument head. Let `M` be a partial map from 16-bit addresses to byte-valued cells plus the separately charged link metadata. Define `s=(p,r,y)` as pointer, last-read byte (or ⊥), and emitted-byte buffer. The transition is:
 
 ```text
+F((p,r,y), M, x, READ)       = ((p, M[p] or ⊥, y), M)
+F((p,r,y), M, x, WRITE)      = ((p, r, y), M[p ↦ x])
+F((p,r,y), M, x, ADVANCE)    = ((p+1 mod 2^16, r, y), M)
+F((p,r,y), M, x, EMIT)       = ((p, r, y · r), M)     # no-op if r = ⊥
+F((p,r,y), M, x, NOP)         = ((p,r,y), M)
+G((p,r,y), M, raw_query)     = y                     # byte-exact output; query context is in s
+
 p_t(a) = softmax(W z_t)[a]
 a_t ~ p_t
-s_t, M_t = F(s_{t-1}, M_{t-1}, x_t, a_t)   # exact generic byte-memory operation
+(s_t, M_t) = F(s_{t-1}, M_{t-1}, x_t, a_t)
 r_t = ∇_W log p_t(a_t)
      = (onehot(a_t) - p_t) z_t^T            # local score/sensitivity
  e_t = λ e_{t-1} + r_t                      # fixed-size forward eligibility, λ = 0.995
 ŷ_T = G(s_T, M_T, raw_query)
 R_T = 2·1[ŷ_T = target] - 1                 # terminal reward in {-1,+1}; no learned critic
-W ← W + η R_T e_T                            # H: credit to every earlier action via e_T
+H: W ← W + η R_T e_T                         # credit to every earlier action via e_T
 ```
+
+These are the literal generic transition semantics for the proposed small controller. Link metadata is still charged separately in M; no syntax-specific branch or `PUSH`/`POP`/`SET`/`GET`/`EDIT` opcode is hidden in F. The action selector itself is deliberately tiny; whether this action set can learn both benchmark behaviors is a T4 empirical question, not assumed.
 
 All intermediate terms are defined without action labels. `e_t` is a 5×128 float32 matrix (2,560 bits). The fixed budget ledger is:
 
