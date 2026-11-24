@@ -419,6 +419,43 @@ Adversary's pre-flight surface audit (`agent-c` `MSG-0013`, `graveyard/0018`), a
    - **`G7` `WITHHELD`** until `stream_ram.py` includes a shared-readout / superposed baseline; and
      every candidate must write **explicit update equations for `H`** (`0007` §2 currently leaves `H`
      as prose `"local, error-driven update"`).
-3. **`0007` (`learned episodic memory controller`) routed to `agent-c` for pre-build review:**
+3. **`0007` (`learned episodic memory controller`) routed to `agent-c` for pre-build attack:**
    `agent-c` ran `MSG-0013` 4 minutes before `0007` synced; Round 9 (`3 → 2 → 4 → 1`) puts `0007`
    directly under `agent-c`'s microscope before any Builder code is written for it.
+
+## D-027 · 2026-11-24 · Round-9 Omnibus (`0007` Pre-Build Veto Upheld, `graveyard/0019` Credit-Assignment Law, Task B2 Fast-Weight `51/51` Boarded, `AMEND-008`)
+Round 9 delivered Adversary's pre-build kill of `0007` (`agent-c` `MSG-0014`, `graveyard/0019`),
+Inventor's independent self-block of `0007` on Task B saturation (`agent-b` `MSG-0012`), and
+Builder's Task B2 superposed fast-weight instrument (`agent-d` `MSG-0009`, `certify.py` **51/51 in
+59.2 s**):
+
+1. **`0007` (`learned episodic memory controller`) — VETO UPHELD (`DEAD as specified`, `0` Builder
+   hours spent):** `agent-c` (`0007-*-agent-c.md`) established four independent kills:
+   - **K1 (Budget asymmetry):** `dyck2.py`'s baselines (`k ≤ 1024` = `10` bits; `Elman h=16` =
+     `11,840` bits) were below `0007`'s budget (`B = 1,024` slots = `32,768` bits, or `1,048,576`
+     unitless in v1), whereas a depth-64 Dyck-2 stack takes only **`71` bits** of `M_t`.
+   - **K2 (`graveyard/0019` — Terminal-only supervision = contextual bandit):** `0007`'s prose `H`
+     (*"local, error-driven update to a byte-context/action table"*) receives **zero signal at tokens
+     `t < T`** from a terminal validity bit at `T`, leaving intermediate memory actions untrained.
+   - **K3 (Learned-dispatch PDA re-run):** hardwiring `PUSH(frame)` and `POP` into `F` makes `0007` a
+     learned-dispatch wrapper around a conventional PDA/RAM (`0007` §4.2 self-veto condition met).
+   - **K4 (Capped 1-hop Task B saturation & unitless `B`):** on incompressible 1-hop records, matched
+     `B` ties `m/n` (`agent-b` `MSG-0012` independently noted this and blocked `0007`).
+2. **Certified & boarded `stream_ram.py` Part 12 (`agent-d` `MSG-0009`, `certify.py` 51/51 in 59.2 s):**
+   - Superposed fast-weight vector `s = ∑_k ψ(v_k) φ(k)` (`0` params; `add` / `oracle` / `recalled`
+     edit rules): at `d=1024`, recall is **`28.1%` (`n=32`) / `7.8%` (`n=64`)** with **`2–3` keys**
+     true edit collateral (`2,059–2,069 B/tok`, `G4=yes`); at `d=2048`, recall is `28.1%` (`n=64`),
+     `5` keys collateral, **`4,117 B/tok` (`G4=NO`)**.
+   - **Three empirical findings (`C15`):** (i) at equal bits (`16,384` b), discrete `m`-slot
+     addressing (`100%` @ `n=32`) beats superposed fast-weights (`28.1%`); (ii) fast-weight capacity
+     and `G4` read bandwidth are the **same number** (`d=2048` crosses `4 KiB/tok`); (iii) **`G4`
+     (bandwidth), not `G7` (collateral `0–5` keys), is the gate that bites**! (`G7` is now
+     un-withheld with `C15` live, and its low discrimination power is recorded.)
+3. **Enacted `AMEND-008` & set Round-10 baton (`4 → 2 → 3 → 1`):**
+   - Notice why `capped type stack` (`dyck2.py`) and `direct 1024` (`stream_ram.py`) hit ceiling: both
+     are **Oracle Parsers** (hand-coded `push/pop` and hand-coded `SET/GET/EDIT` opcodes in Python,
+     illegal for candidates under `AMEND-004`!). Separating **Oracle Parser Ceilings** from **Learned
+     Raw-Byte Baselines at `≥ B` total bits** (plus adding a **2-hop compositional `GET2` query** or
+     raw-byte learner baseline on `stream_ram.py`) gives `0008` an airtight matched-bit surface, while
+     `AMEND-008` requires `0008` to write **explicit non-bandit credit-assignment equations (`0019`)**
+     with **no hardwired `PUSH`/`POP` opcodes**.

@@ -1,15 +1,12 @@
 # Status — agent-a (**STEWARD**)
-Updated: turn 13 on `arena/e3b30063-anime`
+Updated: turn 14 on `arena/e3b30063-anime`
 
 ## What I did this turn
-1. **Synced Round-8 completions** (`agent-d` `MSG-0008` `certify.py` **46/46 in 59.6 s**, `agent-b` `MSG-0011` opening `0007`, `agent-c` `MSG-0013` surface pre-flight + `graveyard/0018`).
-2. **Issued Ruling `D-026` and enacted `AMEND-007` (`CHARTER.md`):**
-   - **Certified & boarded `closure.py` + `dyck2.py` (Task A2) + `stream_ram.py` (Task B) (`46/46`):**
-     - `closure.py`: `Dyck-1 @ D=16 = 17` states (`5` bits, `DEAD`); **`Dyck-2 @ D=32 = 8.59e9` (`33` bits, `VIABLE`)**, `D=64 = 3.69e19` (`65` bits, `VIABLE`), crossover `D* = 30`.
-     - `dyck2.py` (after `agent-d` self-caught & fixed type-blind `valid()`, `AAAAaaaa` probes, and `+2` sign-flip depth leaks using depth-safe **type swaps**): `1,023`-state stack = `100.00%` at `D=4,8` → **`50.12% / 51.62% / 47.38%` (chance) at `D=16,32,64`**; Elman `h=16` (`370` params) = `73.25% / 58.13%` (`D=4,8`) → **chance at `D=16,32,64`**.
-     - `stream_ram.py`: `direct 1024` = `100% / 9.90% / 0.75%` (`2.7–3.9 B/tok`, `G4=yes`); `full KV scan` = `100%` (`11,431` & `15,388 B/tok` → **`G4=NO`**).
-   - **Enacted `AMEND-007` (`graveyard/0018` + `0007-surface-preflight`):** (1) no straddling-grid means across `D* = 30` (Task A2 kill metric strictly on `D ∈ {32,64}`); (2) explicit `B` + Pigeonhole check (flagging `0007` line 1's `L=10^6, B=1 MiB` contradiction); (3) `G7 = WITHHELD` until shared-readout superposed store lands in `stream_ram.py`, plus mandatory explicit mathematical equations for `H`.
-   - **Routed `0007` (`learned episodic memory controller`) to `agent-c` for pre-build attack.**
+1. **Synced Round-9 completions** (`agent-c` `MSG-0014` vetoing `0007` + `graveyard/0019`, `agent-b` `MSG-0012` self-blocking `0007` on Task B saturation, `agent-d` `MSG-0009` shipping Task B2 fast-weight baseline `certify.py` **51/51 in 59.2 s**).
+2. **Issued Ruling `D-027` and enacted `AMEND-008` (`CHARTER.md`):**
+   - **Upheld pre-build veto of `0007` (`DEAD as specified`, `0` Builder hours wasted):** (K1) baseline bit-budget asymmetry (`10`b/`11.8`Kb vs `32,768`b where `D=64` stack needs `71`b); (K2, `graveyard/0019`) terminal-only local table `H` is a contextual bandit (`0` signal at `t < T`); (K3) hardwired `PUSH/POP` = learned-dispatch PDA (`0007` §4.2 self-veto); (K4) 1-hop capped Task B ties `m/n`.
+   - **Certified & boarded `stream_ram.py` Part 12 (`51/51` in 59.2 s):** at `16,384` bits, discrete `1,024`-slot (`100%` @ `n=32`) crushes superposed fast-weights (`28.1%`, `2–5` keys collateral); `d=2048` fails `G4` (`4,117 B/tok`); **`G4` (bandwidth), not `G7` (collateral), is the gate that bites**.
+   - **Enacted `AMEND-008`:** (1) explicit non-bandit credit-assignment equations for `t < T` (`0019`) with **no hardwired `PUSH`/`POP` PDA opcodes**; (2) unit-bearing `B` (`bits`) + **learned raw-byte baselines at `≥ B` bits** separated from Oracle Parser Ceilings (`hand-coded push/pop` & `hand-coded SET/GET/EDIT`).
 
 ## Blocking on
-- **Round 9 (`3 → 2 → 4 → 1`):** `agent-c` attacks `0007` pre-build → `agent-b` supplies explicit `H` math / `AMEND-007` fixes (or opens `0008`) → `agent-d` adds `0018` headers + shared-readout `G7` baseline (and builds `0007` **iff** cleared).
+- **Round 10 (`4 → 2 → 3 → 1`):** `agent-d` adds `≥ 32,768`-bit learned baselines + Oracle-Ceiling labels + 2-hop/raw-learner Task B2 row → `agent-b` proposes `0008` solving `graveyard/0019` with explicit `H` equations → `agent-c` tests `0008` (`VETO` or `CLEAR TO BUILD`).
