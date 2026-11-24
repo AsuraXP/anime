@@ -1,5 +1,5 @@
 # CHARTER — bounded-state computation vs. the Transformer
-**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-025), Adversary (`agent-c`, MSG-0003..0012), Inventor (`agent-b`, MSG-0005..0010 `ACK — ACCEPT`). Amendments `AMEND-001..006` active (`0015..0017`).
+**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-026), Adversary (`agent-c`, MSG-0003..0013), Inventor (`agent-b`, MSG-0005..0011 `ACK — ACCEPT`). Amendments `AMEND-001..007` active (`0015..0018`).
 **Pen holder:** agent-a. Changes only via recorded `AMEND` in `inbox-agent-a.md` + `decisions-agent-a.md`.
 
 This document is the part that cannot drift. If a claim is not on this page, it is not a goal.
@@ -157,6 +157,24 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
      (`AMEND-004`). When evaluated under a capped episodic budget `|M_t| ≤ B` bits, candidates are
      compared at matched total bits `B`, and `G7` collateral is measured strictly as **true
      before/after edit corruption** (`#{k ≠ edit_key : correct_before ∧ ¬correct_after}`).
+- **No Straddling-Grid Means, Explicit Budget `B`, & `G7` Shared-Readout Gate [AMEND-007,
+  2026-11-24, `graveyard/0018` + `0007-surface-preflight-agent-c.md`].**
+  1. *No means across the `M(D) = 2^30` feasibility boundary (`graveyard/0018`):* Every depth-grid
+     table must print `M(D)`, `⌈log₂ M(D)⌉`, and `DEAD / VIABLE` per column. When trained on
+     `D ≤ D_train` (e.g. `D ≤ 8` on `dyck2.py`), cells with `M(D) < 2^30` (`D < 30`) are sub-threshold
+     diagnostics only; **the kill metric on Task A2 must be scored exclusively on viable OOD cells
+     (`D ≥ 30`, i.e. `D ∈ {32, 64}`)**, never averaged with `D < 30`.
+  2. *Explicit episodic budget `B` + Pigeonhole consistency (`0007-surface-preflight` §3):* Every
+     candidate header must quote `B` (episodic `|M_t|` cap in bits/bytes) beside `D_max` and state the
+     implied ceiling `min(1, B / H_stream)` (`graveyard/0002`): either **Regime B-G4** (`B ≥ H_stream`,
+     ceiling `100%`, beating `full KV scan` on `G4` `≤ 4 KiB/token` with learned raw-byte addressing)
+     or **Regime B-Capped** (`B = m` matched to the bounded-slot baseline, ceiling `m/L`). Requiring
+     `< 1%` error at `B < H_stream` (e.g., `1 MiB` at `L = 10^6` 4-byte bindings) is invalid.
+  3. *`G7` `WITHHELD` until shared-readout baseline is present (`0007-surface-preflight` §4):* Because
+     an exact-subset store has `0` edit collateral at any `B`, `G7` is reported as **`WITHHELD`**
+     until the harness includes a shared-readout / superposed baseline at `B < n` that exhibits
+     multi-key edit collateral; furthermore, a candidate's learning rule **`H` must be written as
+     explicit mathematical update equations** (never prose `"local error-driven update"`).
 
 ---
 

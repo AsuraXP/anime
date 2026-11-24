@@ -391,3 +391,34 @@ All three peer branches completed turns initialized prior to `MSG-0012` (`agent-
      exhibits true rank-1 overwrite collateral across unrelated keys, `graveyard/0003, 0008`), and
      (ii) an **append-only KV-scan baseline** (`100%` recall, `0` collateral, **fails `G4` via `Θ(n)`
      bytes read/query**), alongside (iii) `0`-param null and `m`-slot table.
+
+## D-026 · 2026-11-24 · Round-8 Omnibus (`dyck2.py` & `stream_ram.py` `46/46` Boarded, `0007` Registered & Gated on Adversary, `AMEND-007` / `graveyard/0018`)
+Round 8 delivered both new benchmarks (`agent-d` `MSG-0008`, `certify.py` **46/46 in 59.6 s**),
+Adversary's pre-flight surface audit (`agent-c` `MSG-0013`, `graveyard/0018`), and Candidate `0007`
+(`agent-b` `MSG-0011`, `0007-learned-episodic-memory-controller-agent-b.md`):
+
+1. **Certified & boarded `agent-d` `MSG-0008` (`46/46 in 59.6 s`):**
+   - **`closure.py` rewritten with envelope gate (`FEASIBLE_MAX = 2^30`):** `Dyck-1` at `D=16` =
+     **`17` states (`5` bits, `DEAD`)**; **`Dyck-2` at `D=32` = `8.59×10^9` (`33` bits, `VIABLE`)**;
+     `D=64` = `3.69×10^19` (`65` bits, `VIABLE`); exact crossover computed at `D* = 30`.
+   - **`dyck2.py` (Task A2, rebuilt after `agent-d` caught 3 bugs in its own first draft — type-blind
+     `valid()`, single-type `AAAAaaaa` probes, and `+2` depth leak from sign-flip corruptions):** with
+     depth-safe **type swaps**, `1,023`-state capped type stack (`cap 9`) scores **`100.00%` at
+     `D=4, 8`** and drops to **`50.12% / 51.62% / 47.38%` (chance) at `D=16, 32, 64`**; Elman `h=16`
+     (`370` params, 4 restarts, curriculum `2..8`) scores `73.25%` (`D=4`), `58.13%` (`D=8`) →
+     **`50.88% / 50.38% / 49.38%` at `D=16, 32, 64`**.
+   - **`stream_ram.py` (Task B, raw byte stream):** `direct 1024` = `100.00% / 9.90% / 0.75%` at
+     `L = 10^3 / 10^4 / 10^5` (`26` bits `|s_t|`, `2.7–3.9 B/tok`, `G4=yes`); `full KV scan` =
+     `100.00%` (`11,431` & `15,388 B/tok` → **`G4=NO`**).
+2. **Adopted `AMEND-007` (`graveyard/0018` + `0007-surface-preflight-agent-c.md`):**
+   - **No straddling-grid means (`0018`):** Task A2 kill metric must be evaluated strictly on viable
+     OOD cells **`D ∈ {32, 64}` (`D ≥ 30`)**, never averaged with `D ∈ {4, 8, 16}` (`M(D) < 2^30`).
+   - **Explicit `B` + Pigeonhole check:** flagged a concrete bug in `0007` line 1 (`--lengths
+     ...,1000000 --memory-budget 1048576` asks for `< 1%` error over `10^6` 4-byte bindings inside
+     `1 MiB`, violating Pigeonhole `0002`!).
+   - **`G7` `WITHHELD`** until `stream_ram.py` includes a shared-readout / superposed baseline; and
+     every candidate must write **explicit update equations for `H`** (`0007` §2 currently leaves `H`
+     as prose `"local, error-driven update"`).
+3. **`0007` (`learned episodic memory controller`) routed to `agent-c` for pre-build review:**
+   `agent-c` ran `MSG-0013` 4 minutes before `0007` synced; Round 9 (`3 → 2 → 4 → 1`) puts `0007`
+   directly under `agent-c`'s microscope before any Builder code is written for it.
