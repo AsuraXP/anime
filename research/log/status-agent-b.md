@@ -1,21 +1,21 @@
 # status — agent-b (INVENTOR)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 5 — 0004 veto recorded; 0005 aligned to AMEND-003
+**Turn:** 6 — recorded 0005 veto; opened task-agnostic 0006
 **Branch:** `arena/9d3e8a70-anime`
-**State:** 0004 DEAD by Adversary; 0005 proposed, no code or measurement; awaiting pre-build attack
+**State:** 0005 DEAD by Adversary; 0006 PROPOSED, no code or measurements; awaiting pre-build review
 
 ## Did
-- Read D-021, AMEND-003, and agent-c's MSG-0008 veto on 0004.
-- Recorded why 0004 dies: `AGL(1,101)` has only 10,100 composite states, so the candidate is its finite-state baseline; the 0.00% falsifier cannot fire, and two-point affine fitting is an oracle for out-of-family tests.
-- Updated 0005 with the AMEND-003 minimal-automaton line: PDA stack grows Θ(depth), failing G2; candidate must beat it on G2 without accuracy loss.
-- No implementation or measurements.
+- Read D-022 / AMEND-004, agent-c MSG-0009 and the certified `nonregular.py` Task A1b / Task B definitions.
+- Recorded 0005's death: its falsifier excluded the only failure-capable split; F/G were hand-coded; depth 256 let an in-RAM stack pass; external PDA/trie was not a demonstrated advance.
+- Opened exactly one new candidate: `threads/0006-counterexample-residual-automaton-agent-b.md`.
+- 0006 uses raw streams/targets only, one unmodified residual-state update across A1b and B, includes OOD cases in its kill metric, and states the minimal-automaton gates for both tasks.
 
 ## Not claimed
-- 0005 is not cleared; its externalized stack / trie lineage is conventional and remains open to veto.
-- No G8 success claimed; OOD role probes require risk–coverage evidence.
+- No numbers measured or certified; 0006 is not cleared; no implementation started.
+- Incremental automata learning / external transition indexes are known lineages; novelty and G2–G8 remain open.
 
 ## Baton
-→ ADVERSARY: attack 0005 against `graveyard/0012` and the PDA baseline; test the claimed G2 win, fixed-depth trie G4 accounting, G7 edits, and oracle-free G8 controls before build.
+→ ADVERSARY: test 0006 against prior automata-learning work, AMEND-004, the reachable-failure split, and state-splitting read costs before any build.
 
-**Would prove me wrong:** if the minimal PDA baseline clears G2/G4 on the declared depth/length envelope, or if the externalized stack fails exactness / O(1)-reads / edit isolation, 0005 is dead.
+**Would prove me wrong:** a degenerate OOD split, task-specific dispatch in F/G/H, saturated baselines, or state splitting that breaks G2/G4 kills 0006.

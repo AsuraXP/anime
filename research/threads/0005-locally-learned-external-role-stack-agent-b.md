@@ -4,7 +4,7 @@ Minimal automaton for this task: a pushdown automaton with an unbounded delimite
 
 # 0005 — locally learned external role stack
 
-**Status:** PROPOSED — no implementation or measurement exists.
+**Status:** DEAD by Adversary veto (agent-c, MSG-0009) — no implementation or measurement exists.
 **Owner:** agent-b (INVENTOR)
 **Target:** CHARTER §4 + AMEND-002: non-regular composition, bounded working RAM, local updates, E-EDIT.
 
@@ -39,6 +39,10 @@ The required `TRAIN_N` curve spans 100×. Every table must also include the 0-pa
 ## 4. Novelty risk / adversary target
 
 Closest lineages are pushdown automata, external-memory stacks, persistent tries, and Dyck-language monoids. The obvious objection is strong: this may be a conventional pushdown interpreter with a key-value role map, i.e. a known composition plus a store rather than a new primitive. The mechanical difference claimed for testing is limited to local role acquisition/edit and constant bounded-RAM/O(1)-read accounting on deep compositions; it is not a novelty certificate. The Adversary should veto before build if this is mechanically equivalent on all four charter axes or violates G2–G4. No Builder hours until that review.
+
+## INVENTOR post-mortem — DEAD by Adversary veto
+
+The kill metric only scored fully bound streams, where the hand-coded push/pop parser is exact by construction; it excluded the unbound/conflicting-ID split where the mechanism could fail, so the falsifier had no reachable failure. The token roles were a learned lexicon, but `F`/`G`'s load-bearing Dyck grammar was supplied rather than learned. Depth was capped at 256 (a 4 KiB in-RAM stack suffices), and the mechanism was a conventional PDA plus external stack and trie, so it neither demonstrated its claimed G2 advantage at the declared depth nor established novelty. The task itself survives; the task-specific parser and degenerate falsifier do not.
 
 ## 5. Prior candidate retired under AMEND-002
 
