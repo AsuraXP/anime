@@ -1,24 +1,24 @@
 # status — agent-b (INVENTOR)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 15 — accepted pre-build veto; 0008 closed DEAD
+**Turn:** 16 — D-031 received; 0008 post-mortem corrected; 0009 math search in progress
 **Branch:** `arena/9d3e8a70-anime`
-**State:** 0005/0006/0007/0008 DEAD; no implementation or candidate measurements
+**State:** 0005/0006/0007/0008 DEAD; no live candidate or implementation
 
 ## Did
-- Synced peer updates. Read Adversary MSG-0018 in full (T8; T7 downgraded; T4 unscorable until exact B2 n=400 rows/noise floor) and Builder MSG-0012 / Part 15.
-- Accepted Adversary's T8 veto and recorded 0008's post-mortem in its thread: the terminal-only eligibility trace fails T8(a) dense and T8(d) new (ordinary REINFORCE/eligibility-trace prior art). Independently, the linked-cell lower bound makes total memory/controller/trace ≥38,848 bits, over T5's 32,768-bit cap.
-- Builder Part 15 reports a 32,768-bit learned hashed table at 100% on B2 GET2 n=512, eliminating presumed headroom at that measured stratum. The exact n=400 learned row/noise floor remains pending; do not label it measured. This does not affect the independent T5/T8 failures.
-- No 0009 opened. The general satisfiability of T8's four requirements remains unresolved; 0008 is not evidence that the intersection is empty.
+- Synced and read Steward D-031/MSG-0019, Adversary MSG-0019, and Builder MSG-0013. D-031 freezes new gates and requires 0009 to use an irreducible operator or a mathematical no-go proof; NC-1b bans textbook mashups. No candidate thread is opened before the mandated `/tmp` check.
+- Corrected 0008's post-mortem: Adversary's formal grounds are R5 (ordinary REINFORCE/eligibility), a corrected float32 ledger (θ+eligibility+registers = 41,088 bits before M), and unbounded `EMIT` output state. The earlier 33,600-bit pointer bound is encoding-specific, not universal.
+- Recorded Builder Part 16 B2 n=400 rows: dense-key learned/oracle 100/100%; opaque-key learned 69.50%, direct-map oracle 84.00% (with measured sampling SDs). Opaque is canonical under AMEND-004; no old projected 100%/0% T6 claim is retained as fact.
+- Ran an untracked `/tmp/doob_identity.py` exhaustive toy check: for all 65,536 binary terminal reward tables at horizon 4, exact adapted conditionally-mean-zero additive credit is uniquely the Doob/conditional-expectation increment. This is a known critic, and the result only covers that restricted class; it does **not** prove all T8 carriers impossible or satisfy the build-ready toy-learning checks.
 
 ## Not claimed
-- No experiment or implementation. 0008 is DEAD as specified, not CLEARED.
-- No T4 verdict on n=400 until Builder publishes exact oracle/learned rows and noise floor.
-- No new carrier, novelty claim, or charter change adopted locally.
+- No 0009 mechanism, novelty claim, full T8 impossibility proof, or candidate score yet.
+- The scratch result is not certified benchmark evidence and is not cited as a complete no-go theorem.
+- No code or candidate thread was created before the required checks.
 
 ## Baton
-→ ADVERSARY: 0008 veto accepted; please record the final verdict if required by the round protocol.
-→ BUILDER: publish exact B2 GET2 n=400 rows and noise floor when scheduled; no 0008 build.
-→ STEWARD: status/post-mortem are recorded; the T8 task-level intersection remains an open research question, not a claim of impossibility.
+→ STEWARD: preliminary Doob uniqueness is narrower than D-031's global alternative; please rule whether the exact additive unbiased martingale class is an acceptable no-go scope, or keep the mandate at a build-ready novel carrier.
+→ ADVERSARY: 0008's formal veto accepted; no appeal.
+→ BUILDER: no 0008 build; MSG-0013 surfaces are recorded.
 
-Would change my view: a different, pre-registered carrier that is dense, action-relevant, local, and new, with a complete all-in budget and measured matched baselines. Do not retrofit 0008.
+Would change my view: an irreducible H that is dense, action-relevant, local, and demonstrably new, with bounded state, oracle expressivity, and a successful untracked toy test—or a complete theorem covering the stated terminal-only task class rather than only Doob decompositions.

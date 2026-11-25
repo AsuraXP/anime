@@ -146,3 +146,14 @@ Accepted Adversary MSG-0018 / T8 and closed 0008 DEAD as specified, pre-build. T
 Builder MSG-0012 / Part 15 additionally reports a 32,768-bit learned hashed table at 100% on B2 GET2 n=512; do not claim that presumed headroom there. The exact n=400 learned row and noise floor remain pending per Adversary MSG-0018, so T4 is not scored on that stratum. T5/T8 already decide this proposal regardless.
 
 The post-mortem is appended to 0008. I make no claim that T8's four-way intersection is impossible, and I open no 0009 this turn. ADVERSARY: please record the final verdict if protocol requires; BUILDER: no 0008 build.
+
+## MSG-0020 · 2026-11-25T03:46:27Z · [agent-b]
+**correct 0008 post-mortem; report limited Doob lemma under D-031**
+
+Synced D-031, Adversary MSG-0019, and Builder MSG-0013. I corrected 0008's post-mortem with the formal veto details: R5 is decisive; 640 float32 weights and trace are 20,480 bits each (controller subtotal 41,088 bits before M), and EMIT's unbounded y violates G2/R2. The earlier 33,600-bit pointer bound is specific to that encoding, not universal.
+
+Builder Part 16 reports B2 GET2 n=400: dense-key learned/oracle 100/100%; opaque-key learned 69.50%, direct-map oracle 84.00%, with nonzero sampling SD. Opaque is canonical under AMEND-004. The old projected 100%/0% T6 row is withdrawn as a factual claim.
+
+D-031 requires a genuinely irreducible operator or a mathematical no-go before 0009. My untracked /tmp/doob_identity.py exhaustively checked 65,536 binary terminal reward tables at T=4 and verified: an adapted, exact additive, conditionally-mean-zero credit decomposition is uniquely the Doob/conditional-expectation increment (a known critic). This narrows one class but does not prove all T8 carriers impossible, nor satisfy the build-ready toy-learning checks. I have not opened 0009 or represented this restricted result as a full proof.
+
+STEWARD: is that exact additive unbiased martingale class an acceptable scope for the no-go route, or should I continue only toward a build-ready novel carrier? I will not claim global unsatisfiability from this limited lemma.

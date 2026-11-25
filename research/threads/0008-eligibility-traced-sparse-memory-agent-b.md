@@ -2,7 +2,7 @@ this is dead if any preregistered AMEND-009 test fails (`T2` gain survives a fai
 
 # 0008 — eligibility-traced sparse-memory controller
 
-**Status:** DEAD — Inventor accepts Adversary MSG-0018/T8 pre-build veto; no implementation or candidate measurements. Do not revive or build.
+**Status:** DEAD — Inventor accepts Adversary MSG-0019's formal pre-build veto; no implementation or candidate measurements. Do not revive or build.
 **Owner:** agent-b (INVENTOR)
 **Target:** CHARTER §4; AMEND-002/003/004/005/006/007/008/009. One unmodified raw-byte `(F,G,H)` on A2 and B2.
 
@@ -10,7 +10,7 @@ this is dead if any preregistered AMEND-009 test fails (`T2` gain survives a fai
 
 **Closure (`python3 research/bench/closure.py`, Builder MSG-0008 / Steward D-029):** Task A2 is bounded Dyck-2 with `D_max=64`; `M(32)=8,589,934,591` states / 33 bits and `M(64)=36,893,488,147,419,103,231` / 65 bits, both **VIABLE** at the declared envelope. Score only depth-pinned OOD cells `D∈{32,64}`; never average in `D<30` diagnostics. Task B2 is the stream-binding family with `GET2` and edit; its relevant challenge is composing two raw retrievals, not the saturated one-hop `m/n` row.
 
-**Budget:** fixed `B=32,768 bits = 4,096 bytes` total per episode, including `|s_t|`, learned `|θ|`, eligibility trace `|e_t|`, every allocated byte of `M_t`, pointer/address widths, hash metadata, and temporary state. B2 uses fixed 16-bit key + 16-bit value cells. T6 is `n=400` two-hop chains (`800` bindings). A sparse linked cell therefore needs at least `16 key + 16 value + 10 next-pointer = 42 bits`; the binding lower bound alone is `800×42=33,600 bits`, already **832 bits over B before any controller or trace**. This design has no compliant ledger: the requested experiment is a pre-build budget falsifier, not permission to omit pointer bits. Unless Adversary identifies a legal lossless packing that preserves raw-byte generic access and O(1)-traffic links, this proposal is expected to fail T5 and must not be built. No budget scales with L.
+**Budget (post-veto correction):** fixed `B=32,768 bits = 4,096 bytes` total per episode. The original ledger below misread 640 float32 parameters and eligibility entries as 2,560 bits each; each is actually 20,480 bits. Thus `|θ|+|e_t|+128` register bits is 41,088 bits before memory, already above B. The literal output buffer also grows O(T). The earlier linked-cell lower bound (`800×42=33,600` bits) is only specific to that proposed representation, not a lower bound for every legal store. No candidate measurement or build occurred; no budget scales with L.
 
 **Matched rows (source and status):** Builder MSG-0011 reports A2 learned rows at 32,768 bits: hashed six-symbol table 51.00% / 51.25% and hashed-feature perceptron 50.75% / 49.38% at `D=32/64`; the 69-bit hand-coded stack is **ORACLE PARSER**, 100%. For B2, MSG-0011 reports the `n=10,000` GET2 row (oracle 1.07%, learned table 0.03%) but does **not** include the required seeded-bijection opaque-byte `n=400` row. Steward D-029 reports that row as 100% oracle / ~0% learned; Adversary MSG-0017 says it is absent from the Builder artifact. Treat it as **PENDING**, not as a certified baseline. Do not score 0008 until Builder prints both rows and noise/re-run floors at the actual `n=400` stratum.
 
@@ -22,7 +22,7 @@ this is dead if any preregistered AMEND-009 test fails (`T2` gain survives a fai
 
 The proposal is a **critic-free score-function eligibility trace** attached to a generic byte-addressed episodic store. The controller equations are specified, but the B2 store is currently only a lower-bound design: no compliant linked-cell encoding has been supplied, so the whole candidate is not yet implementable under B. It uses no task ID, parser state, oracle action trace, or task-specific opcodes. `F` chooses generic `READ(address)`, `WRITE(address,byte)`, `ADVANCE(address,offset)`, `EMIT(byte)`, or `NOP` actions from raw bytes, a bounded controller register, and bounded store responses. There is no `PUSH`, `POP`, `SET`, `GET`, or `EDIT` action. The same learned policy handles opaque-permuted A2 and B2 bytes. The policy may learn a stack-like access pattern on A2, but that behavior must arise from examples and reward, not from a hand-coded stack instruction.
 
-Use a 128-component sparse context `z_t=φ(s_{t-1},x_t,r_{t-1})` and a five-operation policy over generic `READ`, `WRITE`, `ADVANCE`, `EMIT`, and `NOP` (not task opcodes), with `W∈R^(5×128)` (640 float32 weights = 2,560 bits). The operation arguments are only the current bounded address register `p_t` and current raw byte `x_t`; there is no learned task-specific argument head. Let `M` be a partial map from 16-bit addresses to byte-valued cells plus the separately charged link metadata. Define `s=(p,r,y)` as pointer, last-read byte (or ⊥), and emitted-byte buffer. The transition is:
+Use a 128-component sparse context `z_t=φ(s_{t-1},x_t,r_{t-1})` and a five-operation policy over generic `READ`, `WRITE`, `ADVANCE`, `EMIT`, and `NOP` (not task opcodes), with `W∈R^(5×128)` (640 float32 weights = 20,480 bits). The original 2,560-bit figure was an 8× unit error (`640×32=20,480` bits, not bytes). The operation arguments are only the current bounded address register `p_t` and current raw byte `x_t`; there is no learned task-specific argument head. Let `M` be a partial map from 16-bit addresses to byte-valued cells plus the separately charged link metadata. Define `s=(p,r,y)` as pointer, last-read byte (or ⊥), and emitted-byte buffer. The transition is:
 
 ```text
 F((p,r,y), M, x, READ)       = ((p, M[p] or ⊥, y), M)
@@ -45,17 +45,17 @@ H: W ← W + η R_T e_T                         # credit to every earlier action
 
 These are the literal generic transition semantics for the proposed small controller. Link metadata is still charged separately in M; no syntax-specific branch or `PUSH`/`POP`/`SET`/`GET`/`EDIT` opcode is hidden in F. The action selector itself is deliberately tiny; whether this action set can learn both benchmark behaviors is a T4 empirical question, not assumed.
 
-All intermediate terms are defined without action labels. `e_t` is a 5×128 float32 matrix (2,560 bits). The fixed budget ledger is:
+All intermediate terms are defined without action labels. `e_t` is a 5×128 float32 matrix (20,480 bits). **Corrected ledger after Adversary MSG-0019:**
 
-| component | bits |
+| component | corrected bits |
 |---|---:|
-| policy `W` (`θ`) | 2,560 |
-| eligibility trace `e_t` (part of working state) | 2,560 |
-| controller/address registers `s_t` | 128 |
-| nominal remainder for episodic cells `M_t`, including all indexing/metadata | 27,520 |
-| **total envelope** | **32,768** |
+| policy `W` (`θ`) | 20,480 |
+| eligibility trace `e_t` (part of working state) | 20,480 |
+| controller/address registers `s_t` (excluding output buffer) | 128 |
+| residual `M_t` capacity at `B=32,768` | −8,320 (impossible) |
+| **controller subtotal before memory/output** | **41,088** |
 
-Even the 800 32-bit key/value payloads consume 25,600 bits, leaving only 1,920 bits in the nominal M budget. The required 10-bit next pointers add 8,000 bits, yielding 33,600 bits for payload+links, exceeding the *entire* B by 832 bits before θ, eligibility, or registers. Thus the exact ledger is `|θ|=2,560; |s_t|=|controller registers|+|e_t|=128+2,560=2,688; |M_t|≥33,600; total≥38,848 bits`, a minimum 6,080-bit overrun. This uses the Steward's T5 convention `|s_t|+|θ|+|M_t|≤B`; the eligibility trace is explicitly included inside `s_t`, not added outside the budget. This is a proved T5 failure for the literal linked-cell design. All traffic including index reads/writes would be counted; target gate is ≤4 KiB read+write bytes/token and flat ratio ≤1.10 across declared stream lengths. No measurement exists.
+Even the 800 32-bit key/value payloads consume 25,600 bits, and the 10-bit next-pointer implementation would need 8,000 more, but that pointer lower bound applies only to this chosen encoding, not all legal stores. The decisive corrected T5 calculation is `|θ|=20,480; |s_t|≥20,480+128=20,608` (eligibility plus registers); `|θ|+|s_t|=41,088 > B` before `M_t`. Further, `y` in the literal F/G equations is an unbounded emitted-byte buffer, so `|s_t|=O(T)` as written; at A2 D=64 its maximum output of 128 bytes alone is 1,024 bits, not included above. Thus 0008 fails the all-in budget independently of memory encoding and also violates bounded-state G2/R2. All traffic including index reads/writes would be counted; no measurement exists.
 
 ### Pre-registered predictions against Adversary T1–T3
 
@@ -69,7 +69,7 @@ No dense next-byte objective or auxiliary loss is included: it would survive the
 ## 3. T4/T5/T6 and benchmark outputs
 
 - **T4:** report separately the 100% Oracle Parser/Opcode ceilings and the ≥32,768-bit Learned Raw-Byte baselines. The registered target is ≥99% on A2 `D=32,64` and B2 `GET2,n=400` without hardcoded opcodes, materially exceeding learned rows; the current linked-cell ledger proves the B2 target cannot be claimed feasible. A perfect oracle is an upper bound, not a number the candidate can exceed. This follows D-029's corrected pass region.
-- **T5:** the cap is `|s_t|+|θ|+|M_t|≤32,768` bits. The literal design ledger is ≥38,848 bits, so it fails T5; no waiver or build. The named carrier is `e_t`; it is established REINFORCE/eligibility-trace prior art, not claimed new by naming it. There is no measured architectural delta, so R5 is **not passed**.
+- **T5:** the cap is `|s_t|+|θ|+|M_t|≤32,768` bits. Corrected controller state/parameters alone total ≥41,088 bits, excluding the unbounded output buffer and M_t; it fails T5. The named carrier is `e_t`; it is established REINFORCE/eligibility-trace prior art, so R5 fails independently. No waiver or build.
 - **T6:** run the seeded-bijection raw-byte `GET2` at `n=400` chains / 800 bindings; oracle ceiling 100% fits B; the learned floor must be measured on precisely this split. Do not substitute one-hop or `n=10,000` results.
 
 ## 4. NC-1–NC-3 and prior-art risk
@@ -87,7 +87,7 @@ No dense next-byte objective or auxiliary loss is included: it would survive the
 | Differentiable Neural Computer | fixed controller + growing memory | approximate | memory/controller dependent | gradient-trained; known lineage |
 | deterministic PDA/RAM | bounded controller + episodic store | exact on hand-coded grammar | O(1) stack/RAM ops | no learning; oracle ceiling only |
 | same-size Transformer | grows KV with sequence | not guaranteed exact | history-dependent | backprop |
-| **0008 proposal** | 5,248 fixed controller/trace bits before M (2,560 W + 2,560 trace + 128 registers) | unmeasured | target O(1) reads/actions | critic-free eligibility; **novelty unproven** |
+| **0008 proposal** | 41,088 fixed controller/trace bits before M (20,480 W + 20,480 trace + 128 registers) | unmeasured | target O(1) reads/actions | critic-free eligibility; **novelty unproven** |
 
 The only proposed delta is a critic-free eligibility carrier attached to a fixed-budget exact sparse byte store and shared across A2/B2. This is not asserted novel. A six-system prior-art audit plus measured comparison against REINFORCE/e-prop/TD(λ) is required before any novelty claim or build.
 
@@ -98,6 +98,6 @@ The only proposed delta is a critic-free eligibility carrier attached to a fixed
 
 ## 5. Post-mortem — DEAD before build
 
-Inventor accepts Adversary MSG-0018 / T8. The proposed terminal-only score-function eligibility trace fails **T8(a) dense** (the learning signal is a terminal reward merely propagated through a decaying trace) and **T8(d) new** (it is established REINFORCE/eligibility-trace prior art). T2/T3 equations do not cure either failure; the proposed carrier is local, but it is not the required dense-and-new carrier. Independently, the sparse linked-cell lower bound is 33,600 bits for M alone, making the full declared footprint ≥38,848 bits and violating T5. Therefore 0008 is DEAD as specified, with no experiment and no build.
+Inventor accepts Adversary MSG-0019's formal veto. The decisive R5 failure is non-contingent: `e_t` is ordinary score-function REINFORCE/eligibility-trace prior art, irrespective of any packing. The byte ledger also had an 8× unit error: 640 float32 weights are 20,480 bits, not 2,560; policy plus trace and registers total 41,088 bits before memory, already 1.25× B. The emitted output buffer `y` grows O(T), violating bounded-state G2/R2. The earlier 33,600-bit linked-cell lower bound applies only to that representation, not all legal stores. T1–T3 do not rescue the mechanism. 0008 is DEAD as specified; no experiment or build occurred.
 
-Builder MSG-0012 / Part 15 further reports that a 32,768-bit learned hashed table scores 100% on B2 GET2 at n=512, so the presumed large B2 learned-baseline headroom is absent at that measured stratum. Do not claim n=400 as measured: Adversary MSG-0018 says its exact rows and noise floor are still pending, and T4 remains UNSCORABLE until they exist. This pending row does not change the T5/T8 veto. The general question of whether T8's four requirements are jointly satisfiable is **unresolved**; 0008 is not evidence that the intersection is empty. No 0009 is opened in this turn.
+Builder MSG-0012 / Part 15 reported a learned hashed table at 100% on B2 GET2 n=512. Builder MSG-0013 / Part 16 now reports the exact n=400 rows: dense keys learned/oracle both 100%; opaque keys learned 69.50% / direct-map oracle 84.00%, with ~2.433 / 1.583 percentage-point standard deviations respectively. Under AMEND-004, opaque keys are canonical; the old 100%-oracle / ~0%-learned T6 prediction was wrong for this instrument. Report the architecture-specific opaque rows and uncertainty; do not treat the direct-map result as a universal ceiling or score a candidate from the former projection. T4 interpretation is for the Steward under the frozen rules (no new gate is added here). The T8 dense prong was scored ambiguous by Adversary MSG-0019 (dense assignment vs one-bit information), not adopted as an independent veto ground. T8 novelty/R5, controller budget, and unbounded output state independently kill 0008. Whether a different carrier can meet the four-way standard remains unresolved; 0008 is not proof of impossibility.
