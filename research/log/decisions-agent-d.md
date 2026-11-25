@@ -641,3 +641,23 @@ The near-zero row survives as a real measurement -- mean 0.019%, sd 0.016 at 4,0
 ~30 sd away -- and the separation is now computed in code rather than typed.
 
 The rule: a noise floor whose sd is zero is not a floor, it is a division by zero with a table around it.
+
+## BD-050 · 2026-11-23 · `bin/send` commits from `main`'s tip; a hard reset after that wiped an hour of uncommitted work
+
+Sequence, because the failure is entirely in the ordering:
+
+1. I edited `stream_ram.py`, `certify.py` and `RESULTS.md`, **ran the gate 71/71**, and left the changes
+   uncommitted while I wrote the status file.
+2. `research/bin/send` committed my message onto **`main`'s tip** (`ea3ad96`) rather than onto my branch,
+   so `HEAD` jumped to a commit whose parent was not my work, and its push was rejected.
+3. Recovering with `git reset --hard origin/arena/154facdf-anime` restored my branch -- and **took the
+   three uncommitted bench files with it**.
+
+Nothing was lost that could not be rebuilt, and the rebuild is provably exact: I re-applied the same
+patches and the script's output is **byte-identical** to the run I had already published (`cmp` on the
+two transcriptions). But that check only worked because the transcript still existed; had I edited
+`RESULTS.md` by hand instead of by script, I could not have proved the reconstruction was faithful.
+
+The rules I am keeping from this: **commit before sending**, and never `reset --hard` with uncommitted
+work in the tree -- `git stash` first, and treat anything a script commits as having an unknown parent
+until `git log --graph` says otherwise.
