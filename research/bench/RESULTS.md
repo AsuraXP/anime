@@ -1,4 +1,4 @@
-<!-- GENERATED -- do not hand-edit. Sixteen parts, their commands below. -->
+<!-- GENERATED -- do not hand-edit. Seventeen parts, their commands below. -->
 <!-- reproduce part 1: python3 research/bench/scorecard.py    (~11 s,  CPU, seeded) -->
 <!-- reproduce part 2: python3 research/bench/k3control.py    (~180 s, CPU, seeded) -->
 <!-- reproduce part 3: python3 research/bench/ceiling.py      (~90 s,  CPU, seeded) -->
@@ -2407,6 +2407,106 @@ contiguous integers, and it is why the domain had to be pinned.
 `GET2` at `n = 400` above 95% -- that would move the ceiling back toward 100% and restore the
 bar; or a key-domain argument showing that dense keys are the charter's intent after all, which
 would make `T4` passable but vacuous.
+
+Reproduce: `python3 research/bench/stream_ram.py` (3 s).
+
+
+<!-- ============ PART 17: turn 14 -- byte-addressed GET2, the hash spread, multi-seed floor ==== -->
+# Part 17 -- the machine composes the chain now, and dense keys turn out to measure my hash (turn 14)
+
+Round-13's ask was narrow: *replace `two_hop_eval`'s hardcoded Python `c.tab[c.tab[a]]` with a
+true byte-by-byte `GET2` learner, and make the noise floor multi-seed.* Doing the first one
+honestly changed a number by 56 points, which is 17.2 -- and it is a correction to Part 16.
+
+## 17.1 The composition is the machine's, not the harness's
+
+`ByteChainer` is a flat `bytearray` of `cells x 16` bits, two bytes per cell, with an address
+register and an output register. `get2` writes the first answer into the address register and
+reads again, so a wrong first hop sends the second lookup to a **garbage address** -- the cost
+that pointer chasing actually pays and that the Python version hid. The harness never touches
+the memory; `put`/`get`/`get2` are the whole interface.
+
+| key domain | n | machine | `GET2` |
+|---|---|---|---|
+| dense `0..3n` | 400 | LEARNED, byte-addressed (`get2` inside the machine) | 43.50% |
+| opaque 16-bit | 400 | LEARNED, byte-addressed (`get2` inside the machine) | 61.75% |
+
+Dense keys fall from Part 16's `100.00%` to **43.50%**; opaque keys from `69.50%` to
+**61.75%**. The next section is about why the dense drop is not the machine being worse.
+
+## 17.2 The dense-key learned score is a property of my byte layout, not of the learner
+
+Same machine, same budget, same queries, same task -- only the way the two key bytes enter the
+hash changes. Four layouts, all defensible:
+
+| byte layout | dense `0..3n`, n=400 | opaque 16-bit, n=400 |
+|---|---|---|
+| `lo_first` | 100.00% | 69.50% |
+| `hi_first` | 43.50% | 61.75% |
+| `fnv` | 100.00% | 69.00% |
+| `xor_rot` | 100.00% | 67.25% |
+
+**Dense keys span 43.50%-100.00% -- a 56.50-point spread -- with nothing in the task changing.**
+Opaque keys span 61.75%-69.50%, 7.75
+points. So on dense keys the learned baseline is not a measurement of a learner at all: three
+of four layouts sit at 100.00%, one at 43.50%, and the only thing that varied was which byte
+I fed the multiplier first.
+
+**This corrects Part 16.** I reported dense keys as 'the bar is vacuous -- a two-line table also
+answers 100%'. The `100%` was real for three layouts and false for the fourth, which is a
+weaker and more useful statement: *on dense keys the bar is measured in hash choices.* The
+opaque-key result in that part stands unchanged (oracle 84.00%, learned ~62-70%), and it is now
+the only domain where either number is stable.
+
+**It also retracts Part 15's `n = 512` learned number.** That part reported the learned table
+at `100.00%` on `GET2` at `n = 512`, alongside the oracle, and read it as 'the ceiling is met
+by a flat table'. That `100.00%` came from the harness-composed path with the `lo_first`
+layout -- the one hash of the four that happens to be collision-free on dense keys. Under the
+byte-addressed machine the same row is far below the oracle, so the sentence in 15.4 that a
+flat table 'has already taken' the headroom at `n = 512` is withdrawn: what is true is that
+*one* of four byte layouts reaches it, which is a statement about the hash.
+
+That is a second and stronger reason for `AMEND-004`'s opaque-bytes requirement, and it is not
+about legality: opaque keys are the only domain where this baseline is a fixed number (a
+7.75-point band instead of a 56.50-point one). A pass bar set against a dense-key row is set
+against the byte layout the Builder happened to write.
+
+## 17.3 Multi-seed noise floor
+
+Part 16's floor varied the query sample only. This varies the **task instance** as well -- the
+keys, the pairings and the edit -- over five generator seeds with four query samples each:
+
+| row | seeds x samples | mean | pooled sd | min | max |
+|---|---|---|---|---|---|
+| LEARNED, `n=400` opaque | 5 x 4 | 68.12% | 3.51 | 62.50% | 73.00% |
+| ORACLE, `n=400` opaque | 5 x 4 | 83.42% | 2.83 | 78.00% | 88.00% |
+| LEARNED, `n=10,000` | 5 x 4 | 0.01% | 0.02 | 0.00% | 0.05% |
+
+The `n = 400` stratum is coarse: the learned row sits at 68.12% with pooled sd 3.51,
+and the oracle at 83.42% with sd 2.83. **Two pooled sds is ~7 points there**, which is
+wider than the gap `T4` was going to score on that stratum. The near-zero row is unchanged in
+character (0.01%, sd 0.02).
+
+Rule I am keeping: **a candidate that beats a baseline by less than two pooled sds on this
+instrument has not been separated from it**, and the number of seeds belongs beside the number
+of queries in any row that will be scored.
+
+## 17.4 Audit of this part
+
+**Certified:** `C20` recomputes the machine-composed `GET2` in both domains, the four-hash
+spread (asserting it is wide on dense keys and narrow on opaque), and a multi-seed floor with
+non-zero sd across seeds. `stream_ram.py` ran twice; the pair is identical modulo wall-clock.
+
+**Not claimed:** that `hi_first` is the right hash, or that any of the four is -- the point is
+that no single choice is canonical and the spread is the finding. **Not claimed:** that the
+opaque-key numbers are the 'true' difficulty of the task; they are stable, not privileged.
+**Not claimed:** that this machine is the strongest byte-addressed learner -- it is the
+simplest one that answers a two-hop query without the harness's help.
+
+**What would prove this wrong:** a key transform under which all four layouts agree on dense
+keys (that would mean the spread is an artefact of *these* four rather than of dense keys as a
+class), or an opaque-key row where the four layouts spread as widely as they do on dense keys
+(that would mean opacity is not what stabilises the number).
 
 Reproduce: `python3 research/bench/stream_ram.py` (3 s).
 

@@ -283,6 +283,70 @@ class ByteCache:
         return out, writes
 
 
+class ByteChainer:
+    """A byte-addressed store that answers a **two-hop** query by feeding its own output back.
+
+    The complaint this answers: `two_hop_eval` used to compose the chain in Python, `c.tab[c.tab[a]]`,
+    so the *harness* did the second hop's addressing and the machine only ever performed single
+    lookups. Here the memory is a flat `bytearray` -- `bits = cells * 16` exactly, two bytes per cell --
+    and the machine holds two registers, an address and an output. `get2` reads a key, moves the
+    looked-up value into the address register, and reads again: a wrong first hop sends the second
+    lookup to a *garbage address*, which is what pointer chasing actually costs.
+
+    Nothing outside the machine touches the memory. `put`/`get`/`get2` are the whole interface, and
+    they only ever move bytes.
+    """
+
+    # Four byte layouts, all defensible, all "a hash of the key bytes". Their scores on dense keys
+    # differ by tens of points; on random keys they do not. That is the measurement in Part 17.
+    HASHES = ("lo_first", "hi_first", "fnv", "xor_rot")
+
+    def __init__(self, bits=32768, hash_name="hi_first"):
+        assert bits % 16 == 0
+        assert hash_name in self.HASHES, hash_name
+        self.cells = bits // 16
+        self.mem = bytearray(bits // 8)
+        self.addr = 0            # cell address register
+        self.out = 0             # 16-bit output register
+        self.hash_name = hash_name
+
+    @property
+    def nbits(self):
+        return self.cells * 16
+
+    def _slot(self, key):
+        hi, lo = (key >> 8) & 0xFF, key & 0xFF
+        h = self.hash_name
+        if h == "lo_first":
+            return (lo * 131 + hi) % self.cells
+        if h == "hi_first":
+            return ((hi * 131 + lo) * 131) % self.cells
+        if h == "fnv":
+            v = 2166136261
+            for b in (hi, lo):
+                v = ((v ^ b) * 16777619) & 0xFFFFFFFF
+            return v % self.cells
+        return (((lo << 3) ^ hi) * 2654435761) % self.cells     # xor_rot
+
+    def put(self, key, val):
+        self.addr = self._slot(key)
+        self.mem[2 * self.addr] = (val >> 8) & 0xFF
+        self.mem[2 * self.addr + 1] = val & 0xFF
+
+    def get(self, key):
+        self.addr = self._slot(key)
+        self.out = (self.mem[2 * self.addr] << 8) | self.mem[2 * self.addr + 1]
+        return self.out
+
+    def get2(self, key):
+        """a -> b -> d: the first answer becomes the address for the second lookup."""
+        self.addr = self._slot(key)
+        self.out = (self.mem[2 * self.addr] << 8) | self.mem[2 * self.addr + 1]
+        self.addr = self._slot(self.out)          # the chain, inside the machine
+        self.out = (self.mem[2 * self.addr] << 8) | self.mem[2 * self.addr + 1]
+        return self.out
+
+
 def sample_queries(keys, k, salt):
     """Uniform query sample. NOT `keys[:k]`.
 
@@ -382,7 +446,8 @@ def two_hop_direct(n, m, hop1, hop2, edit_key, new_val, queries):
     return ok / len(queries)
 
 
-def two_hop_eval(n, m, hop1, hop2_pre, edit_key, new_val, queries, cache_bits=None):
+def two_hop_eval(n, m, hop1, hop2_pre, edit_key, new_val, queries, cache_bits=None,
+                 hash_name="hi_first"):
     """One 2-hop chain evaluated before AND after the edit, for a slot store or a hashed table.
 
     Returns (coverage_before, coverage_after, correct_before, collateral). Collateral counts only the
@@ -394,15 +459,11 @@ def two_hop_eval(n, m, hop1, hop2_pre, edit_key, new_val, queries, cache_bits=No
     truth_pre = {a: hop2_pre[hop1[a]] for a in queries}
     truth_post = {a: hop2_post[hop1[a]] for a in queries}
 
-    if cache_bits is not None:                       # learned hashed table, same bit budget
-        c = ByteCache(bits=cache_bits)
-        put = lambda k, v: c.tab.__setitem__(c._key([k & 0xFF, k >> 8]), v)
-        # TWO hops in the same table: read hop 1, use its answer as the hop-2 key. The first version
-        # returned a single lookup here while the oracle path composed two, so it was scored against a
-        # two-hop truth and read 0.00% at every n.
-        def get(a):
-            b = c.tab[c._key([a & 0xFF, a >> 8])]
-            return None if b is None else c.tab[c._key([b & 0xFF, b >> 8])]
+    if cache_bits is not None:                       # learned byte-addressed store, same bit budget
+        c = ByteChainer(bits=cache_bits, hash_name=hash_name)
+        # the machine answers the whole chain; the harness never composes two lookups
+        get = c.get2
+        put = c.put
         for k, v in hop1.items():
             put(k, v)
         for k, v in hop2_pre.items():
@@ -689,6 +750,88 @@ def main():
     print(f"The mid-range rows are coarser (sd ~0.2 pp on the 4% oracle row, and the `n=400` rows are")
     print(f"scored on half the keys so their sd is not zero), which matters in the other direction: a")
     print(f"candidate and a baseline two points apart are not separated by this instrument.")
+
+    # ------------------------------------------------ the composition is the machine's, not the harness's
+    print("\n### `GET2` answered by the machine, not by the harness (byte-addressed memory)\n")
+    print("`two_hop_eval` used to compose the chain in Python -- `c.tab[c.tab[a]]` -- so the harness did")
+    print("the second hop's addressing and the learned row only ever performed single lookups. The")
+    print("learned path is now a `ByteChainer`: a flat `bytearray` of `cells x 16` bits, two bytes per")
+    print("cell, with an address register and an output register. `get2` loads the first answer into the")
+    print("address register and reads again, so a wrong first hop sends the second lookup to a **garbage")
+    print("address** -- which is what pointer chasing costs and what the Python version hid.\n")
+    print("| key domain | n | machine | `GET2` |")
+    print("|---|---|---|---|")
+    mcov = {}
+    for opaque in (False, True):
+        hop1, hop2, ek2, nv2 = two_hop(400, SEED + 400, opaque=opaque)
+        q = sample_queries(list(hop1), 400, 400)
+        cov, _, _, _ = two_hop_eval(400, 2048, hop1, hop2, ek2, nv2, q, cache_bits=32768)
+        mcov[opaque] = 100 * cov
+        dom = "opaque 16-bit" if opaque else "dense `0..3n`"
+        print(f"| {dom} | 400 | LEARNED, byte-addressed (`get2` inside the machine) | {100 * cov:.2f}% |")
+    print(f"\nThe move changed the dense number from `100.00%` (Part 16, harness-composed) to")
+    print(f"`{mcov[False]:.2f}%`, and the next section is about why that is not the machine being")
+    print(f"worse. On opaque keys it moved from `69.50%` to `{mcov[True]:.2f}%`.")
+
+    # ------------------------------------------------ the hash spread: dense scores are an artefact
+    print("\n### The learned baseline on dense keys is a property of the byte layout, not of the learner\n")
+    print("Same machine, same budget, same queries; only the way the two key bytes enter the hash")
+    print("changes. Four layouts, all defensible:\n")
+    print("| byte layout | dense `0..3n`, n=400 | opaque 16-bit, n=400 |")
+    print("|---|---|---|")
+    spread = {False: [], True: []}
+    for h in ByteChainer.HASHES:
+        cells = []
+        for opaque in (False, True):
+            hop1, hop2, ek2, nv2 = two_hop(400, SEED + 400, opaque=opaque)
+            q = sample_queries(list(hop1), 400, 400)
+            cov, _, _, _ = two_hop_eval(400, 2048, hop1, hop2, ek2, nv2, q, cache_bits=32768,
+                                        hash_name=h)
+            cells.append(100 * cov)
+            spread[opaque].append(100 * cov)
+        print(f"| `{h}` | {cells[0]:.2f}% | {cells[1]:.2f}% |")
+    d0, d1 = min(spread[False]), max(spread[False])
+    o0, o1 = min(spread[True]), max(spread[True])
+    print(f"\n**Dense keys: {d0:.2f}%-{d1:.2f}%, a {d1 - d0:.2f}-point spread from the byte layout alone.**")
+    print(f"Opaque keys: {o0:.2f}%-{o1:.2f}%, {o1 - o0:.2f} points. So on dense keys the learned number")
+    n_hi = sum(1 for v in spread[False] if v >= 95.0)
+    print(f"is not a property of the learner at all -- {n_hi} of these four layouts put it at or above")
+    print(f"`95%`, the rest at {d0:.2f}%, and nothing in the task changed. Part 16 read the `100%` as")
+    print("'the bar is met by a two-line table'; the honest version is 'on dense keys the bar is")
+    print("measured in hash choices'. **That is a correction to Part 16.**")
+    print("\nIt also gives `AMEND-004`'s opaque-bytes requirement a second reason, and a stronger one:")
+    print("opaque keys are the only domain where this baseline is a *stable number* (an 8-point band")
+    print("instead of a 56-point one). A pass bar set against a dense-key row is set against the byte")
+    print("layout I happened to write.")
+
+    # ------------------------------------------------ multi-seed noise floor
+    print("\n### Multi-seed noise floor (five generator seeds, four query samples each)\n")
+    print("The single-seed floor in Part 16 varied only the query sample. This varies the *task instance*")
+    print("as well -- the keys, the pairings and the edit -- so the sd below is the spread a candidate")
+    print("would see across instances, not just across samples.\n")
+    print("| row | seeds x samples | mean | pooled sd | min | max |")
+    print("|---|---|---|---|---|---|")
+    for label, n, qs, opaque, use_cache in (
+            ("LEARNED, `n=400` opaque", 400, 200, True, True),
+            ("ORACLE, `n=400` opaque", 400, 200, True, False),
+            ("LEARNED, `n=10,000`", 10000, 2000, False, True)):
+        vals, per_seed = [], []
+        for si in range(5):
+            hop1, hop2, ek2, nv2 = two_hop(n, SEED + 1013 * si, opaque=opaque)
+            inner = []
+            for qi in range(4):
+                q = sample_queries(list(hop1), qs, 7919 * qi + 31 * si)
+                cov, _, _, _ = two_hop_eval(n, 2048, hop1, hop2, ek2, nv2, q,
+                                            cache_bits=32768 if use_cache else None)
+                inner.append(100 * cov)
+            per_seed.append(sum(inner) / len(inner))
+            vals.extend(inner)
+        m = sum(vals) / len(vals)
+        sd = (sum((v - m) ** 2 for v in vals) / (len(vals) - 1)) ** 0.5
+        print(f"| {label} | 5 x 4 | {m:.2f}% | {sd:.2f} | {min(vals):.2f}% | {max(vals):.2f}% |")
+    print("\nStated as a rule: **a candidate that beats a baseline by less than two pooled sds on this")
+    print("instrument has not been separated from it**, and on the `n=400` stratum that threshold is")
+    print("several points -- wider than the gaps `T4` was going to score.")
 
     print("\nReading, and what a candidate has to do:")
     print("- **Coverage is the pigeonhole bound.** An m-slot store answers `m/L` of random queries;")

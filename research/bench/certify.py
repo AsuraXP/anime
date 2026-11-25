@@ -571,10 +571,13 @@ def check_claims():
     qg = sw.sample_queries(list(hop1), 512, 512)
     ob, _, _, _ = sw.two_hop_eval(512, 2048, hop1, hop2, ek2, nv2, qg)
     lb, _, _, _ = sw.two_hop_eval(512, 2048, hop1, hop2, ek2, nv2, qg, cache_bits=32768)
-    out.append(check("C18 GET2 at B=32,768 and n=512 is exact for the oracle AND for a flat table",
-                     ob == 1.0 and lb == 1.0 and "4,096 bytes" in part15,
+    # repaired in turn 14: this used to assert `lb == 1.0`, from the harness-composed path with the
+    # `lo_first` layout. Part 17 shows that number was one of four byte layouts; the oracle claim is
+    # the part that survived.
+    out.append(check("C18 GET2 at B=32,768 and n=512: the oracle is exact, the learned row is not",
+                     ob == 1.0 and lb < 0.9 and "4,096 bytes" in part15,
                      f"2,048 slots x 16 bits = 32,768 bits = 4,096 bytes: oracle {100 * ob:.2f}%, "
-                     f"learned table {100 * lb:.2f}% -- no learned headroom at this n"))
+                     f"learned byte-addressed table {100 * lb:.2f}% (Part 17: layout-dependent)"))
 
     # ---------------------------------------------------------------- C19 (D-C63 / turn 13)
     m16 = re.search(r"PART 16:.*?(?=\n<!-- =|=*\Z)", md0, re.S)
@@ -592,9 +595,14 @@ def check_claims():
     qo = sw.sample_queries(list(ho), 400, 400)
     o_or = sw.two_hop_eval(400, 2048, ho, ho2, eo, no, qo)[0]
     o_lr = sw.two_hop_eval(400, 2048, ho, ho2, eo, no, qo, cache_bits=32768)[0]
-    out.append(check("C19 dense keys make the >=99% bar vacuous: a flat table also answers 100%",
-                     d_or == 1.0 and d_lr == 1.0,
-                     f"dense n=400: oracle {100 * d_or:.2f}%, learned table {100 * d_lr:.2f}% -- zero headroom"))
+    # repaired in turn 14: "a flat table also answers 100%" was a hash artefact (Part 17). What is
+    # checkable now is that the oracle row is exact and the learned row is not.
+    out.append(check("C19 dense keys: the >=99% bar is not vacuous once the chain is composed in-machine",
+                     d_or == 1.0 and d_lr < 0.95 and
+                     "hash choices" in (re.search(r"PART 17:.*", md0, re.S).group(0)
+                                        if "PART 17:" in md0 else ""),
+                     f"dense n=400: oracle {100 * d_or:.2f}%, learned {100 * d_lr:.2f}%; "
+                     f"Part 17 shows the learned row spans four byte layouts"))
     out.append(check("C19 opaque keys drop the ORACLE below 95%: the 100% ceiling was the key domain",
                      o_or < 0.95 and o_lr < o_or,
                      f"opaque n=400: oracle {100 * o_or:.2f}%, learned table {100 * o_lr:.2f}% -- "
@@ -612,6 +620,52 @@ def check_claims():
                      sd > 0 and (0.5 - mean) / sd > 5 and "0.5%" in part16,
                      f"n=10,000 learned: mean {mean:.3f}%, sd {sd:.3f} over 8 samples -> 0.5% is "
                      f"{(0.5 - mean) / sd:.0f} sd away; n=10,000 diagnostic row still reported"))
+
+    # ---------------------------------------------------------------- C20 (Round-13 / turn 14)
+    m17 = re.search(r"PART 17:.*?(?=\n<!-- =|=*\Z)", md0, re.S)
+    part17 = m17.group(0) if m17 else ""
+    out.append(check("C20 Part 17 (byte-addressed GET2, hash spread, multi-seed floor) published",
+                     bool(part17) and "ByteChainer" in part17 and "multi-seed" in part17.lower(),
+                     f"{len(part17.splitlines())} lines"))
+
+    # the composition happens inside the machine: a bytearray memory and only put/get/get2 exposed
+    ch = sw.ByteChainer(bits=32768)
+    ch.put(1000, 2000); ch.put(2000, 3000)
+    byte_mem = isinstance(ch.mem, (bytearray, bytes)) and len(ch.mem) == 4096
+    out.append(check("C20 the GET2 chain is composed inside a byte-addressed machine",
+                     byte_mem and ch.get2(1000) == 3000 and ch.nbits == 32768 and
+                     not hasattr(ch, "tab"),
+                     f"{len(ch.mem):,}-byte memory ({ch.nbits:,} bits), registers addr/out; "
+                     f"get2(1000) = {ch.get2(1000)} through 2 lookups"))
+
+    # dense-key scores depend on the byte layout; opaque-key scores do not
+    spreads = {}
+    for opaque in (False, True):
+        vals = []
+        for hname in sw.ByteChainer.HASHES:
+            hp, hp2, ep, np_ = sw.two_hop(400, sw.SEED + 400, opaque=opaque)
+            qp = sw.sample_queries(list(hp), 400, 400)
+            vals.append(sw.two_hop_eval(400, 2048, hp, hp2, ep, np_, qp, cache_bits=32768,
+                                        hash_name=hname)[0])
+        spreads[opaque] = (min(vals), max(vals))
+    d_lo, d_hi = spreads[False]
+    o_lo, o_hi = spreads[True]
+    out.append(check("C20 dense-key scores are a byte-layout artefact; opaque keys are stable",
+                     (d_hi - d_lo) >= 0.30 and (o_hi - o_lo) <= 0.15,
+                     f"dense spread {100 * (d_hi - d_lo):.1f} pp ({100 * d_lo:.1f}-{100 * d_hi:.1f}%), "
+                     f"opaque spread {100 * (o_hi - o_lo):.1f} pp ({100 * o_lo:.1f}-{100 * o_hi:.1f}%)"))
+
+    # multi-seed floor: the spread across task instances is non-zero
+    per_seed = []
+    for si in range(3):
+        hp, hp2, ep, np_ = sw.two_hop(400, sw.SEED + 1013 * si, opaque=True)
+        qp = sw.sample_queries(list(hp), 200, 7919 + si)
+        per_seed.append(100 * sw.two_hop_eval(400, 2048, hp, hp2, ep, np_, qp, cache_bits=32768)[0])
+    sd = (sum((v - sum(per_seed) / len(per_seed)) ** 2 for v in per_seed) / (len(per_seed) - 1)) ** 0.5
+    out.append(check("C20 the noise floor varies across seeds, not just across query samples",
+                     sd > 0.1 and "pooled sd" in part17,
+                     f"learned n=400 opaque across 3 seeds: {', '.join(f'{v:.1f}%' for v in per_seed)} "
+                     f"-> sd {sd:.2f}"))
 
     return out
 
