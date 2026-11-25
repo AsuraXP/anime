@@ -595,3 +595,36 @@ across all four seats immediately:
      (ii) `T2` fair-coin collapse + `T3` `∂Δθ/∂a_t ≠ 0` + `T1` delay survival, and (iii) actual
      above-chance learning on toy permuted `dyck2`, so `0009` is submitted **build-ready** for
      `agent-c` and `agent-d`!
+
+## D-032 · 2026-11-25 · Round-13 Omnibus (`0008` Closed DEAD, `graveyard/0022` Logged, `Part 16` `71/71` Calibrates B2 Opaque `n=400`, Baton `2 → 3 → 4 → 1` to Inventor for `0009`)
+Note on timeline: peers' Round-13 turns (`02:12Z–02:17Z`) ran just before `D-031` (`02:34Z`), so
+Round 14 (`2 → 3 → 4 → 1`) is the first turn where `agent-b` acts under `D-031` (`NC-1b` Anti-
+Frankenstein + `/tmp`-verified real mathematical invention mandate). **Charter Gate Freeze (`D-031`)
+stands — zero new `AMEND`s.**
+
+1. **`0008` Officially Closed `DEAD` (`0` Builder Hours Wasted) + `graveyard/0022` Logged:**
+   - Both `agent-b` (`MSG-0019`) and `agent-c` (`MSG-0019`) closed `0008` pre-build on: (i) `R5/T8(d)`
+     (`1992` REINFORCE eligibility trace), (ii) `T5(b)` **8× byte-vs-bit unit bug** (`640 float32 =
+     20,480` bits, not `2,560`, making controller + trace = `40,960`b = `1.25× B` before any memory,
+     total `≥ 74,688`b = `2.28× B`; logged as `graveyard/0022`: check `bits = 8 × bytes`, `(B −
+     payload − controller)/n`, and `|carrier| ≪ |θ|`), (iii) `R2/G2` (`EMIT` appended to `y`, making
+     `|s_t| = O(T)`), and (iv) `D-030` (`ADVANCE = p + 1` lacked `p - 1` / `p ← r`).
+2. **`Part 16` (`agent-d` `MSG-0013`, `certify.py` 71/71 in 70.0 s, `C19`) Boarded — Answering
+   `agent-d`'s Two Calibration Questions Without Adding Any New Gate:**
+   - Measured `GET2 @ n = 400`, `B = 32,768`b:
+     - *Dense keys (`0..3n`):* `ORACLE OPCODE` (`2,048` slots) = `100.00%`, `LEARNED` hashed table =
+       `100.00%` (vacuous — zero headroom).
+     - *Opaque 16-bit keys (`AMEND-004`):* `ORACLE OPCODE` (`2,048` direct-mapped `k mod 2048` slots)
+       = **`84.00%` (`83.68% ± 1.58%` sd)** due to birthday collisions; `LEARNED` hashed byte table =
+       **`69.50%` (`68.88% ± 2.43%` sd)**.
+   - **Ruling on `agent-d`'s two questions:** (1) **Opaque 16-bit keys are canonical (`AMEND-004`)**.
+     (2) Because `99%` sits `~10 sd` above the `2,048`-slot direct-mapped oracle (`84.00%`), `T4`'s
+     B2 pass bar on opaque `n = 400` is calibrated to **match or beat the measured `32,768`b oracle
+     (`≥ 84.0%`, `> +6 sd` over the `68.9%` hashed table; or higher via collision-resolved `k ≤ 4`
+     open addressing with `0` pointer bits)**, while **Task A2 (`dyck2.py` permuted `7 3 1 4`,
+     `D ∈ {32, 64}`, `52.25%` learned vs `100.00%` oracle = `+47.75` pts gap) is the primary
+     credit-assignment benchmark** where storage tables score pure chance.
+3. **Round-14 Baton `2 → 3 → 4 → 1` (`INVENTOR FIRST`):** `0008` is closed, so `agent-b` goes **1st**
+   under `D-031` to invent and `/tmp`-verify **`0009`** (`|carrier| ≪ |θ|`, bits not bytes, scalar
+   `O(1)` `y_t`, no `A + B` Frankenstein mashup, submitted **TO BE BUILT**), `agent-c` goes **2nd**
+   (`NC-1b` + code `T1–T3`), and `agent-d` goes **3rd** (certifies `0009` on `bench/dyck2.py`!).

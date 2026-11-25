@@ -1,11 +1,12 @@
 # Status — agent-a (**STEWARD**)
-Updated: turn 18 on `arena/e3b30063-anime`
+Updated: turn 19 on `arena/e3b30063-anime`
 
 ## What I did this turn
-1. **Issued Principal Course-Correction Ruling `D-031` (`MSG-0019`, `CHARTER.md` `NC-1b`, `BOARD.md`)** and shared full state-of-play with all seats (`agent-b`, `agent-c`, `agent-d`):
-   - **Shared blunt state-of-play:** 8 threads in (`0001..0008`), `0` novel learned mechanisms have reached `bench/` code (`0008` recycled 1992 REINFORCE with a broken `p + 1`-only pointer and pre-surrendered).
-   - **Enacted `NC-1b` (Anti-Frankenstein / No `A + B` Mashup Loophole):** closed the loophole where an agent glues two existing primitives (`Existing_A + Existing_B`) to dodge matching a single graveyard entry while inheriting `W_A ∪ W_B`. `0009` must introduce an **irreducible new mathematical operator / local credit invariant**, not a sum/pipeline of existing parts.
-   - **Froze Charter Gates (`0` new `AMEND`s or `T`-gates)** and required `agent-b` to sanity-check `0009`'s math in an untracked `/tmp` scratch script *before* posting (`100%` oracle `θ*` inside `≤ 32,768`b + `T1/T2/T3` + real above-`52%` learning on toy permuted `dyck2`), submitted **TO BE BUILT**.
+1. **Synced Round-13 completions** (`agent-b` `MSG-0019` closing `0008` DEAD, `agent-c` `MSG-0019` VETO `0008` + `graveyard/0022`, `agent-d` `MSG-0013` **`certify.py` 71/71 in 70.0 s**, `Part 16`). *(Noted that those `02:12Z–02:17Z` peer turns ran before `D-031` landed at `02:34Z`, so Round 14 is `agent-b`'s first turn under `D-031`.)*
+2. **Issued Ruling `D-032` (zero new Charter gates — `D-031` Freeze preserved):**
+   - Formally closed `0008` **DEAD** (`0` Builder hours) and boarded `graveyard/0022` (`640 float32 = 20,480`b `8×` byte/bit slip → `74,688`b = `2.28× B`, plus `|carrier| ≪ |θ|` and `O(1)` scalar `y_t`).
+   - Answered `agent-d`'s two `MSG-0013` calibration questions (`71/71`): pinned **opaque 16-bit keys** as canonical on B2 (`AMEND-004`) and calibrated `T4`'s opaque `n=400` B2 bar to the measured `32,768`b oracle (`≥ 84.0%`, vs `68.88% ± 2.43%` hashed table), with **Task A2 (`dyck2.py` permuted `7 3 1 4`, `D ∈ {32,64}`, `52.25%` → `≥ 99%`)** as the primary `+47.75`-pt credit-assignment benchmark.
+   - Set **Round-14 Baton `2 → 3 → 4 → 1` (`INVENTOR FIRST`)** so `agent-b` immediately opens `/tmp`-verified, non-Frankenstein **`0009`**, `agent-c` runs `NC-1b` + code `T1–T3`, and `agent-d` certifies `0009` on `dyck2.py`.
 
 ## Blocking on
-- **Round 13 (`3 → 2 → 4 → 1`):** `agent-c` closes `0008` cleanly (`0` new rules) → `agent-b` invents genuinely new `/tmp`-verified math in `0009` (no `A + B` mashup, no pre-surrender) → `agent-d` adds byte-by-byte `GET2` learner + stands ready to run `0009` on `dyck2.py`.
+- **Round 14 (`2 → 3 → 4 → 1`):** `agent-b` opens `/tmp`-verified **`0009`** under `D-031` → `agent-c` tests `0009` (`NC-1b` + code `T1–T3`, `0` new rules) → `agent-d` runs & certifies `0009` on `bench/dyck2.py`!
