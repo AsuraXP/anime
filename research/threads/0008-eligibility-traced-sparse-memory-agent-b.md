@@ -2,7 +2,7 @@ this is dead if any preregistered AMEND-009 test fails (`T2` gain survives a fai
 
 # 0008 — eligibility-traced sparse-memory controller
 
-**Status:** PROPOSED, with an explicit pre-build T5 infeasibility — request Adversary ruling; no implementation or candidate measurements. This is not a request to build.
+**Status:** DEAD — Inventor accepts Adversary MSG-0018/T8 pre-build veto; no implementation or candidate measurements. Do not revive or build.
 **Owner:** agent-b (INVENTOR)
 **Target:** CHARTER §4; AMEND-002/003/004/005/006/007/008/009. One unmodified raw-byte `(F,G,H)` on A2 and B2.
 
@@ -69,7 +69,7 @@ No dense next-byte objective or auxiliary loss is included: it would survive the
 ## 3. T4/T5/T6 and benchmark outputs
 
 - **T4:** report separately the 100% Oracle Parser/Opcode ceilings and the ≥32,768-bit Learned Raw-Byte baselines. The registered target is ≥99% on A2 `D=32,64` and B2 `GET2,n=400` without hardcoded opcodes, materially exceeding learned rows; the current linked-cell ledger proves the B2 target cannot be claimed feasible. A perfect oracle is an upper bound, not a number the candidate can exceed. This follows D-029's corrected pass region.
-- **T5:** `|s_t|+|θ|+|M_t|=32,768` bits exactly; publish the ledger and an NC-3 delta against REINFORCE/eligibility traces, e-prop, and actor-critic/TD(λ). The named carrier is `e_t`; it is established REINFORCE/eligibility-trace prior art, not claimed new by naming it. There is no measured architectural delta, so R5 is **not passed**; Adversary should veto unless a real delta is identified and measured later.
+- **T5:** the cap is `|s_t|+|θ|+|M_t|≤32,768` bits. The literal design ledger is ≥38,848 bits, so it fails T5; no waiver or build. The named carrier is `e_t`; it is established REINFORCE/eligibility-trace prior art, not claimed new by naming it. There is no measured architectural delta, so R5 is **not passed**.
 - **T6:** run the seeded-bijection raw-byte `GET2` at `n=400` chains / 800 bindings; oracle ceiling 100% fits B; the learned floor must be measured on precisely this split. Do not substitute one-hop or `n=10,000` results.
 
 ## 4. NC-1–NC-3 and prior-art risk
@@ -87,7 +87,7 @@ No dense next-byte objective or auxiliary loss is included: it would survive the
 | Differentiable Neural Computer | fixed controller + growing memory | approximate | memory/controller dependent | gradient-trained; known lineage |
 | deterministic PDA/RAM | bounded controller + episodic store | exact on hand-coded grammar | O(1) stack/RAM ops | no learning; oracle ceiling only |
 | same-size Transformer | grows KV with sequence | not guaranteed exact | history-dependent | backprop |
-| **0008 proposal** | 4,224 fixed controller/trace bits + M within B | unmeasured | target O(1) reads/actions | critic-free eligibility; **novelty unproven** |
+| **0008 proposal** | 5,248 fixed controller/trace bits before M (2,560 W + 2,560 trace + 128 registers) | unmeasured | target O(1) reads/actions | critic-free eligibility; **novelty unproven** |
 
 The only proposed delta is a critic-free eligibility carrier attached to a fixed-budget exact sparse byte store and shared across A2/B2. This is not asserted novel. A six-system prior-art audit plus measured comparison against REINFORCE/e-prop/TD(λ) is required before any novelty claim or build.
 
@@ -95,3 +95,9 @@ The only proposed delta is a critic-free eligibility carrier attached to a fixed
 → **BUILDER:** no build before clearance. First certify B2 `n=400`, 800 bindings, seeded-bijection rows and the complete 32,768-bit ledger; then implement T1–T6 only if cleared.
 
 **Would prove this candidate wrong (several failures are already analytic):** the explicit B2 linked-cell lower bound exceeds B; coin-reward performance above the no-error control; zero counterfactual update difference; a delay curve other than the stated λ decay; >1% OOD error; failure to reach 99% against the learned-baseline split; >4 KiB/token; or a prior-art comparison showing no novel delta over REINFORCE with eligibility traces. The linked-cell budget failure is not waived by the performance goals.
+
+## 5. Post-mortem — DEAD before build
+
+Inventor accepts Adversary MSG-0018 / T8. The proposed terminal-only score-function eligibility trace fails **T8(a) dense** (the learning signal is a terminal reward merely propagated through a decaying trace) and **T8(d) new** (it is established REINFORCE/eligibility-trace prior art). T2/T3 equations do not cure either failure; the proposed carrier is local, but it is not the required dense-and-new carrier. Independently, the sparse linked-cell lower bound is 33,600 bits for M alone, making the full declared footprint ≥38,848 bits and violating T5. Therefore 0008 is DEAD as specified, with no experiment and no build.
+
+Builder MSG-0012 / Part 15 further reports that a 32,768-bit learned hashed table scores 100% on B2 GET2 at n=512, so the presumed large B2 learned-baseline headroom is absent at that measured stratum. Do not claim n=400 as measured: Adversary MSG-0018 says its exact rows and noise floor are still pending, and T4 remains UNSCORABLE until they exist. This pending row does not change the T5/T8 veto. The general question of whether T8's four requirements are jointly satisfiable is **unresolved**; 0008 is not evidence that the intersection is empty. No 0009 is opened in this turn.
