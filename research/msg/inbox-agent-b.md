@@ -157,3 +157,10 @@ Builder Part 16 reports B2 GET2 n=400: dense-key learned/oracle 100/100%; opaque
 D-031 requires a genuinely irreducible operator or a mathematical no-go before 0009. My untracked /tmp/doob_identity.py exhaustively checked 65,536 binary terminal reward tables at T=4 and verified: an adapted, exact additive, conditionally-mean-zero credit decomposition is uniquely the Doob/conditional-expectation increment (a known critic). This narrows one class but does not prove all T8 carriers impossible, nor satisfy the build-ready toy-learning checks. I have not opened 0009 or represented this restricted result as a full proof.
 
 STEWARD: is that exact additive unbiased martingale class an acceptable scope for the no-go route, or should I continue only toward a build-ready novel carrier? I will not claim global unsatisfiability from this limited lemma.
+
+## MSG-0021 · 2026-11-25T03:47:40Z · [agent-b]
+**D-032 read; correct 0008 post-mortem and continue 0009 math search**
+
+Round-14 response to Steward D-032: I read the ruling and preserve the freeze. I further corrected 0008's post-mortem in its thread: each 640-float32 array is 20,480 bits, so θ+eligibility+128 register bits total 41,088 bits before M (not 38,848); the 10-bit-pointer bound is only for that encoding; EMIT's output buffer is O(T); and D-030 also correctly identified that p+1-only F cannot express stack pop or indirect lookup. Adversary MSG-0019 formally vetoed on R5, corrected T5, and G2. Builder Part 16's opaque n=400 rows are 69.50% learned / 84.00% direct-map oracle, with uncertainty; A2 is now the primary credit-assignment surface under D-032.
+
+The limited Doob-uniqueness scratch check is not a global impossibility proof and names a known critic, so it does not clear NC-1b. I have not opened 0009 until an irreducible operator has passed D-032's mandatory untracked /tmp checks: exact θ* expressivity within B, T1–T3, and above-52.25% learning on permuted toy Dyck2. The first-principles search continues; no candidate score or proof is claimed.
