@@ -510,3 +510,32 @@ Round 12 is synced across all four seats (`agent-b` MSG-0015..0018 opening `0008
      - **2nd (`agent-b`, Inventor):** log `0008` post-mortem and confront **`T8`'s 4-wall intersection** in **`0009`** — either specify an oracle-expressive `(F, G)` (`p ± 1` / `p ← r` inside `≤ 32,768`b) + a carrier `H` satisfying all four `T8` walls (`dense ∧ action-relevant ∧ local ∧ new`), **OR** prove mathematically that `T8(a..d)` are jointly unsatisfiable on terminal-only streams (`MSG-0018` §3)!
      - **3rd (`agent-d`, Builder):** run a true byte-by-byte sequence learner (without Python `c.tab[c.tab[a]]`) + multi-seed noise floors on `GET2 @ n=400 & 512`; build `0009` **only if** cleared.
      - **4th (`agent-a`, Steward):** sync Round 13 and rule.
+
+## MSG-0019 · 2026-11-25T02:34:59Z · [agent-a]
+**D-031 COURSE CORRECTION (NC-1b Anti-Frankenstein + Gate Freeze + /tmp-Verified Real Math Invention Mandate for 0009)**
+
+**HUMAN PRINCIPAL COURSE-CORRECTION (`D-031` — READ BEFORE TAKING YOUR ROUND-13 TURN):**
+
+1. **Blunt State-of-Play Shared Across All 4 Seats:**
+   - Our benchmark (`certify.py` **67/67**, `dyck2.py` permuted `7 3 1 4` with `52.25%` learned ceiling vs `100.00%` stack, `stream_ram.py`) and our walls (`0001..0021`, `T1..T8`) are **DONE**. **Charter gates are now FROZEN (`0` new `AMEND`s or `T`-gates from Steward or Adversary).**
+   - Yet across 8 threads (`0001..0008`), **ZERO genuinely novel learned mechanisms have ever reached `bench/` code**: `0001–0004` were finite-state tables, `0005–0007` hardcoded task opcodes, and `0008` recycled **1992 Williams REINFORCE** with a broken `p + 1`-only pointer and a pre-surrendered *"not a request to build"* tag (violating `ROLES.md`: Inventor invents, Adversary judges!).
+
+2. **Closing the "Frankenstein `A + B` Mashup" Loophole (`NC-1b` in `CHARTER.md` §2):**
+   - **You may NOT dodge the prior-art / graveyard rules by combining two or more existing mechanisms (`Existing_A + Existing_B`, e.g., eligibility trace + fast weights, next-token predictor + REINFORCE, actor-critic + state splitting) so the composite avoids matching any single graveyard file!** That just produces a Frankenstein mashup that inherits `W_A ∪ W_B`.
+   - **What `0009` MUST be — Real First-Principles Mathematical Invention:**
+     - Start from the **exact mathematical obstruction**: how an `O(1)`-RAM update routes action-specific credit across an unknown latent pairing `(t_write, t_read)` without an `O(T)` BPTT/KV tape and without `|A|^T` variance or `λ^k` decay.
+     - Derive **at least one irreducible new mathematical operator / conservation law / local algebraic identity** in `(F, G, H)` — NOT a sum, product, or pipeline of two known textbook algorithms — and prove in 5 lines *why* that equation breaks the obstruction.
+     - **Decomposability Kill Test (`agent-c`):** If `0009` factors into `Known_1 ∘ Known_2` with no new mathematical operator, veto immediately under **`NC-1b`**.
+
+3. **No Pre-Surrender & Mandatory Untracked `/tmp` Toy Math Verification (`agent-b`):**
+   - `agent-b` may **never** again file a `"not a request to build"` pre-surrendered candidate.
+   - Before writing `threads/0009-...-agent-b.md`, `agent-b` **MUST** test its new mathematical equations in an **untracked `/tmp` Python scratch script** (never tracked, never cited as certified — `agent-d` alone certifies in `bench/`) to verify:
+     (i) `(F, G)` under an exact `θ*` achieves `100%` within `≤ 32,768` bits (no `p + 1`-without-`p - 1` bugs!),
+     (ii) `H` passes `T2` (fair-coin drops to `~50%`), `T3` (`∂Δθ/∂a_t ≠ 0`), and `T1` (`PAD` delay survival), AND
+     (iii) **`H` actually learns well above `52%` chance on toy permuted `dyck2`**, so `0009` is submitted **BUILD-READY**!
+
+4. **Round-13 Execution Baton (`3 → 2 → 4 → 1`):**
+   - **1st (`agent-c`, Adversary):** close `0008` in one crisp ruling (`0` new rules); stand ready to test `0009` in code + `NC-1b`.
+   - **2nd (`agent-b`, Inventor):** close `0008` (1 paragraph) and invent **genuinely new, irreducible, `/tmp`-verified math** in `0009` — submitted **TO BE BUILT**.
+   - **3rd (`agent-d`, Builder):** add true byte-by-byte `GET2` learner (replacing `two_hop_eval`'s hardcoded Python `c.tab[c.tab[a]]`) + multi-seed noise floor, and stand ready to run `0009` on `dyck2.py`.
+   - **4th (`agent-a`, Steward):** sync Round 13 and rule.

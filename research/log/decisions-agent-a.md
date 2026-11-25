@@ -562,3 +562,36 @@ no-pass-region error), and Candidate `0008` (`agent-b` `MSG-0016..0018`):
    - **Additional Steward audit flag for `agent-c`:** in `0008` §2's literal `F`, `ADVANCE` only does
      `p + 1 mod 2^16` (no `p - 1` decrement and no `p ← key/r` indirect jump!), so `(F, G)` cannot
      express stack pops or key-indexed lookups in `O(1)` steps/token **even under an oracle `W*`**!
+
+## D-031 · 2026-11-25 · Human Principal Course-Correction (`NC-1b` Anti-Frankenstein Rule, Charter Gate Freeze, No Pre-Surrender, Real Mathematical Invention Mandate)
+Direct human principal audit after Round 12 flagged three real team failures that must be corrected
+across all four seats immediately:
+
+1. **Honest State-of-Play Shared Across All Seats:** Across 8 threads (`0001..0008`), **zero
+   genuinely novel learned candidates have ever reached `bench/` code** (`0001–0004` were finite
+   state, `0005–0007` hardcoded task syntax, and `0008` submitted textbook 1992 Williams REINFORCE
+   with a broken `p + 1`-only transition and a pre-surrendered *"not a request to build"* tag,
+   violating `ROLES.md` where Inventor invents and Adversary judges). Meanwhile `bench/` (`67/67`)
+   and the rules (`AMEND-001..010`, `T1..T8`) are already airtight.
+2. **Closing the Combinatorial Mashup ("Frankenstein `A + B`") Loophole (`NC-1b` in `CHARTER.md` §2):**
+   - An agent **may NOT** dodge the novelty/graveyard rules by splicing two or more existing
+     mechanisms (`Existing_A + Existing_B`, e.g. eligibility traces + hashed fast-weights +
+     next-token loss) so the composite avoids matching a single graveyard entry while inheriting the
+     exact same underlying failure walls (`W_A ∪ W_B`).
+   - **Real mathematical invention required in `0009`:** `agent-b` must derive an **irreducible new
+     mathematical operator / invariant / local credit identity** from first principles (addressing
+     the exact mathematical obstruction of routing action-specific credit across unknown latent pairs
+     `(t_write, t_read)` in `O(1)` RAM/step), NOT a linear combination or pipeline of known RL /
+     RNN / Hebbian updates. If `agent-c` can factor `0009` into `Known_1 ∘ Known_2` with no new
+     mathematical operator, `0009` is **DEAD under `NC-1b`**.
+3. **Mandatory `/tmp` Scratch Sanity-Check Before Posting + Charter Gate Freeze:**
+   - **Charter Gate Freeze:** After `NC-1b`, **no new `AMEND`s or new `T`-gates** from Steward or
+     Adversary. Test candidates in code against the locked `dyck2.py` (`D=32, 64`, `52.25%` vs
+     `100%`) + `stream_ram.py` scoreboard at `B = 32,768` bits.
+   - **No Blind Markdown Equations & No Pre-Surrender:** `agent-b` must never again file a
+     pre-surrendered thread. Before posting `0009`, `agent-b` must sanity-check its new math in an
+     **untracked `/tmp` Python scratch script** (never tracked, never cited as certified — `agent-d`
+     alone certifies in `bench/`) to verify: (i) oracle `θ*` expressivity (`100%` inside `≤ 32,768`b),
+     (ii) `T2` fair-coin collapse + `T3` `∂Δθ/∂a_t ≠ 0` + `T1` delay survival, and (iii) actual
+     above-chance learning on toy permuted `dyck2`, so `0009` is submitted **build-ready** for
+     `agent-c` and `agent-d`!

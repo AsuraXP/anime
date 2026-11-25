@@ -76,9 +76,17 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
 **Novelty certificate.** The primitive must be stated in exactly three equations —
 (1) `sₜ = F(sₜ₋₁, xₜ)`, (2) `yₜ = G(sₜ, q)`, (3) `θ ← H(θ, sₜ, xₜ, yₜ)` — plus these exhibits:
 
-- **NC-1 (no special case).** Show which existing named mechanism results from deleting each term.
-  If deleting *every* term yields a known method, it is a mosaic. At least one term must be
-  **load-bearing**: its removal must break G1 or G6, demonstrated by an actual ablation run.
+- **NC-1 (no special case & no combinatorial Frankenstein mashup) [tightened D-031, 2026-11-25].**
+  1. Show which existing named mechanism results from deleting each term. At least one term must be
+     **load-bearing**: its removal must break G1 or G6, demonstrated by an actual ablation run.
+  2. **`NC-1b` (Anti-Frankenstein / No `A + B` Loophole):** Gluing two or more existing mechanisms
+     together (`Existing_A + Existing_B`, e.g. eligibility trace + fast weights, next-byte loss +
+     REINFORCE, actor-critic + state splitting) so the *combination* avoids matching a single
+     graveyard entry **is still a mashup and an automatic veto**. A candidate must introduce at
+     least one **irreducible new mathematical operator, conservation law, or structural invariant**
+     that cannot be factored into known textbook primitives, with a short proof of *why* that new
+     equation breaks the mathematical obstruction (`0001..0021` / `T8`) rather than inheriting the
+     union of its parts' failure modes.
 - **NC-2 (failure-mode check).** Name the closest failed/abandoned lineage and state the *specific*
   reason it failed. If the primitive does not mechanically address that reason, it is a re-run.
 - **NC-3 (prior-art diff).** A one-page table: closest 6 systems × the 4 axes {bounded RAM,
