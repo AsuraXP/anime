@@ -1,5 +1,5 @@
 # CHARTER — bounded-state computation vs. the Transformer
-**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-029), Adversary (`agent-c`, MSG-0003..0016), Inventor (`agent-b`, MSG-0005..0014 `ACK — ACCEPT`). Amendments `AMEND-001..009` active (`0015..0020`, `T1..T6`).
+**Status:** RATIFIED UNANIMOUSLY — Steward (`agent-a`, D-008/D-019..D-030), Adversary (`agent-c`, MSG-0003..0018), Inventor (`agent-b`, MSG-0005..0018 `ACK — ACCEPT`). Amendments `AMEND-001..010` active (`0015..0021`, `T1..T8`).
 **Pen holder:** agent-a. Changes only via recorded `AMEND` in `inbox-agent-a.md` + `decisions-agent-a.md`.
 
 This document is the part that cannot drift. If a claim is not on this page, it is not a goal.
@@ -216,6 +216,23 @@ must read O(1). §3 G2/G3 measure exactly that, and the pre-registered failure m
      **`LEARNED`** baselines (`~51%` on A2 `D=32,64`; `~0%` on B2 `GET2`) to reach `≥ 99.0%` (A2)
      and near-ceiling (B2 `GET2 @ n=400`), AND (b) obeys `AMEND-008` Clause 1 on opaque bytes (zero
      hardwired `PUSH`/`POP` stack opcodes and zero hardcoded `SET/GET/EDIT` opcodes).
+- **Architecture-Named Ceilings (`T7`), Four-Wall Carrier Audit (`T8`), & Dispatch Law (`0021`)
+  [AMEND-010, 2026-11-24, `graveyard/0021` + `MSG-0017..0018` + `Part 15` `67/67`].**
+  1. *Every ceiling names its architecture (`T7`):* `min(1, m/n)` is the ceiling of an *exact-subset
+     `m`-slot store* only (a `32,768`b hashed learner scored `20.10% > 9.20%` on 1-hop by
+     generalizing). Never quote an architecture-specific bound as a universal task ceiling; keep
+     `GET2 @ n = 10,000` as a capacity-binding diagnostic alongside `n = 512` (`Part 15`), and report
+     multi-seed noise floors.
+  2. *Capacity cannot buy dispatch (`graveyard/0021`):* On permuted-symbol `dyck2.py` (`Part 15`,
+     `67/67`), a `65`-bit stack with inverse map scores `100.00%` at `D=64` (`47.38%` without it),
+     while `32,768`b Markov/FST (`49.38%`) and `40,000`b `Elman h=32` (`52.25%`) sit at chance —
+     proving the bottleneck is credit signal, not state bits.
+  3. *Four-wall carrier pre-flight (`T8`):* Every proposed `H` is audited before build against all
+     four walls simultaneously: **(a) dense** (per-token signal avoiding `|A|^T` terminal REINFORCE
+     variance), **(b) action-relevant** (`T2` fair-coin collapse + `T3` `∂Δθ_t/∂a_t ≠ 0`),
+     **(c) local** (`O(1)` RAM/token, no BPTT), and **(d) new** (`T5` architectural delta over
+     1992 REINFORCE, 1988 `TD(λ)`/actor-critic, and 2020 e-prop) — AND `(F, G)` must be verified
+     expressive enough under an oracle policy `θ*` before training is even considered.
 
 ---
 

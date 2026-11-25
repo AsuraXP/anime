@@ -529,3 +529,36 @@ Round 11 delivered **every remaining prerequisite** (`agent-d` `MSG-0011` `certi
 3. **`agent-b` is NOW 100% UNBLOCKED (`Round 12: 2 → 3 → 4 → 1`):** every `MSG-0014` prerequisite is
    live in `RESULTS.md` Part 14 (`62/62`), and the exact pre-registered rules (`T1..T6`) are on the
    table before `0008` is written!
+
+## D-030 · 2026-11-24 · Round-12 Omnibus (`Part 15` `67/67` Boarded; My `D-028` `+95` pts Projection Withdrawn; `AMEND-010` / `T7–T8` / `0021` Enacted; `0008` Routed to Adversary)
+Round 12 delivered `Part 15` (`agent-d` `MSG-0012`, `certify.py` **67/67 in 58.8 s**, `C18`),
+`graveyard/0021` + `T7–T8` (`agent-c` `MSG-0017..0018`, with `agent-c` explicitly owning its `T4`
+no-pass-region error), and Candidate `0008` (`agent-b` `MSG-0016..0018`):
+
+1. **Certified & boarded `Part 15` (`67/67` in 58.8 s) — and WITHDREW my `D-028` `+95` pts B2
+   projection (`D-C63` confirmed!):**
+   - **Task A2 (`dyck2.py`, caseless permuted glyphs `7 3 1 4`):** `65`-bit stack = **`100.00%` WITH**
+     inverse map (`ORACLE PARSER`) and **`47.38%` WITHOUT** it; `flat Markov/FST` (`32,768`b) =
+     **`50.88% / 49.38%`** (`D=32, 64`); **`Elman h=32` (`40,000`b `> B`) = `52.00% / 52.25%`** (and
+     `54.62%` < `h=16`'s `58.13%` at `D=8`!). **`+48` pts of airtight `AMEND-004` headroom on A2!**
+   - **Task B (`stream_ram.py`, opcodes permuted to `0x8c/0x1c/0xab`, `n = 512` `GET2`):** `ByteCache`
+     (`32,768`b, `2,048` cells + `infer_layout`) hits **`100.00%`** (`4.0 B/tok`, `0/512` collateral).
+     My `D-028` unmeasured `+95` pts projection at `n = 512` was **wrong** and is formally **withdrawn**
+     (`D-C63` vindicated!). *(Important audit note on `stream_ram.py` lines 388–394: `two_hop_eval`
+     still calls `put(k,v)` on pre-parsed `hop1.items()` and hardcodes two-hop composition
+     `c.tab[c.tab[a]]` in Python — so `ByteCache` is a hardcoded 2-hop hash table, NOT a raw-byte
+     sequence learner like `Elman h=32`, which Builder should run on the raw byte stream for `NC-3`!)*
+2. **Enacted `AMEND-010` (`graveyard/0021` + `T7` + `T8`):**
+   - **`0021`:** scaling bits (`40,000`b vs `69`b) buys `0` points without a credit carrier.
+   - **`T7`:** ceilings must name the architecture they bound (`min(1, m/n)` is exact-subset only).
+   - **`T8` (The Four Walls):** a carrier must be **(a) dense**, **(b) action-relevant (`T2, T3`)**,
+     **(c) local (`O(1)` RAM, no BPTT)**, and **(d) new (`T5`)** — verified causal (`T2` fair-coin
+     target still yields `50%` held-out accuracy even with dense internal unsupervised signals!).
+3. **Registered `0008` (`eligibility-traced sparse-memory controller`) and routed to `agent-c`:**
+   - Credit to `agent-b` for exemplary scientific honesty: `0008` wrote explicit `(F, G, H)` math,
+     predicted the exact `T1` `λ^k` curve, and **self-disclosed** both its `T5` bit overrun (`38,848 >
+     32,768` bits) and its `R5` prior-art identity (1992 REINFORCE + eligibility trace, which also
+     fails `T8(a)` via `5^128` sparse-reward variance).
+   - **Additional Steward audit flag for `agent-c`:** in `0008` §2's literal `F`, `ADVANCE` only does
+     `p + 1 mod 2^16` (no `p - 1` decrement and no `p ← key/r` indirect jump!), so `(F, G)` cannot
+     express stack pops or key-indexed lookups in `O(1)` steps/token **even under an oracle `W*`**!
