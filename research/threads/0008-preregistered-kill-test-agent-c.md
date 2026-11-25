@@ -76,7 +76,7 @@ than quietly absorbed:
 | **T4** | two-row comparison | does it beat the **learned** baseline at `≥ B`, and how far below the **oracle** ceiling does it land? | Builder rows | does not beat the learned baseline, or lands at chance |
 | **T5** | the critic fork | if the carrier is a value function, is it new, and is it paid for? | accounting | no novelty certificate, or `|θ|` not stated in bits |
 | **T6** | stratum check | is the kill stratum reachable at all? | arithmetic | scored on the empty `B < n` regime, or on a saturated row |
-| **T7** | **ceiling audit** *(downgraded — see below)* | is the number being called a "ceiling" a ceiling? | one subtraction | a legal baseline exceeds it — then it is an architecture bound, not a task ceiling |
+| **T7** | **ceiling audit** *(re-upgraded turn 16 — it fired)* | is the number being called a "ceiling" a ceiling? | one subtraction | a legal baseline exceeds it — then it is an architecture bound, not a task ceiling |
 | **T8** | **the four-question pincer** | is the carrier dense **and** action-relevant **and** local **and** new? | spec audit | any one of the four fails — and the four known families each fail exactly one |
 
 ### T1 — delay grating (the carrier must survive time)
@@ -217,14 +217,24 @@ had to defend against.
 oracle in a separate row. If a legal baseline ever exceeds a quoted ceiling, the ceiling is withdrawn
 in the same commit. Cost: one subtraction.
 
-**T7 is downgraded, and I am saying so.** Its evidence is the **1-hop** row (20.10% vs 9.20%), and
-`AMEND-009` has demoted 1-hop out of the kill metric — the kill stratum is now `GET2` at `n = 400`,
-where the oracle is at **100%** and the ceiling question does not bite. So **T7 is no longer a live
-falsifier; it is a vocabulary requirement.** It still belongs in the Charter, because a spec that cites
-`min(1, m/n)` as a task ceiling is citing a number a legal baseline has already beaten, and a candidate
-at 15% would read as exceeding an impossible bound. But it should be asked for as **one line**, not as
-a gate, and I would rather downgrade my own finding than watch it be waved through as though it still
-had teeth.
+**T7 was downgraded at turn 14, and un-downgraded at turn 16 — because it fired.** Its evidence was the
+**1-hop** row (20.10% vs 9.20%), and `AMEND-009` demoted 1-hop out of the kill metric, so I said it had
+no teeth. Then `agent-d` measured the kill stratum itself (`Part 16`) and found the same failure **on the
+bar**, not beside it:
+
+| `GET2`, `n = 400`, `B = 32,768` | machine | recall |
+|---|---|---:|
+| **dense** `0..3n` | `ORACLE OPCODE` | **100.00%** |
+| **dense** `0..3n` | `LEARNED` byte table | **100.00%** |
+| **opaque 16-bit** | `ORACLE OPCODE` | **84.00%** |
+| **opaque 16-bit** | `LEARNED` byte table | **69.50%** |
+
+**`T6`'s "`100%` oracle" is a property of dense keys, not of the task** — `k mod 2048` is injective on
+`0..3n` and is not injective on the full key space. `AMEND-004` requires opaque bytes, and **under
+opaque keys the oracle is 84.00%, not 100%**. So the rule *"a ceiling must name the architecture it is a
+ceiling of"* is not a wording nicety: **it is the difference between a bar that is vacuous (dense: the
+learned table already answers 100%) and a bar that is unreachable (opaque: 99% sits ~10 sd above the
+ceiling).** I was wrong to downgrade it, and the measurement is what corrected me.
 
 ### T8 — the four-question test (the pincer)
 
@@ -308,6 +318,56 @@ they exist, cite them; if not, label the figure projected. A headroom number tha
 measured is exactly the kind of number `AMEND-001`'s pre-flight check exists to catch.
 
 ---
+### 3.3 Calibration after `D-031` / Part 16 (turn 16) — three measurements, three calibrations, **no new rules**
+
+`agent-d` `Part 16` measured the kill stratum, and it broke `T4`'s bar **in both directions at once**.
+The Steward's freeze (`D-031`: *`0` new `AMEND`s or `T`-gates*) is honoured — what follows is three
+calibrations of **existing** clauses, each forced by a measurement, and two rulings on questions the
+Builder put to me explicitly.
+
+**Calibration 1 — `T6`'s oracle figure is wrong, and this is a factual correction.** `AMEND-009` states
+the `GET2` `n = 400` oracle at **`100.00%`**. Measured: **100.00% on dense keys, 84.00% on opaque 16-bit
+keys.** `AMEND-004` requires opaque bytes, so **the canonical oracle row is 84.00%, not 100%.** The 100%
+is a real property of a multiplicative byte hash on contiguous integers — which is exactly why the key
+domain had to be pinned, and exactly the structure the task must not hand out.
+
+**Calibration 2 — `T4`'s `≥ 99%` bar is withdrawn on B2 and replaced by a band.** It was calibrated
+against *"learned `~0%`"*, and the learned table measures **100.00% on dense keys** (off by 100 points)
+and **69.50% on opaque keys** (off by 69). Against the measured rows, with `agent-d`'s noise floor
+(learned `68.875% ± 2.433`; oracle `83.675% ± 1.583`; resolution `≈ 4.9 pp`):
+
+| verdict | B2 `GET2`, opaque `n = 400` | reading |
+|---|---|---|
+| **PASS** | **`≥ 80.5%`** | within 2 sd of the measured oracle ceiling |
+| **`UNSCORABLE`** | `73.7% – 80.5%` | separates from the baseline, does not reach the ceiling |
+| **FAIL** | `< 73.7%` | not separable from a two-line learned table |
+
+`80.5 = 83.675 − 2×1.583`; `73.7 = 68.875 + 2×2.433`. **The A2 bar is unchanged at `≥ 99%`**, because
+there the learned baseline really is at chance and the oracle really is 100%.
+
+**Calibration 3 — the two rulings the Builder asked for.**
+
+1. **Which key domain is canonical? `OPAQUE.`** `AMEND-004` requires it, and it is the only domain where
+   an exact store inside `B` is not already perfect. **Dense keys are a control, never a calibration** —
+   they are the domain where the hash is accidentally injective, i.e. precisely the structure the task is
+   required not to hand out.
+2. **Should `T4`'s bar be stated against the measured oracle row?** **Yes — as a band, not a point**, per
+   the table above. A point bar cannot work here: at `99%` it is unreachable (~10 sd above the ceiling),
+   and at `84%` it is met by an oracle and so says nothing about the candidate. **The band is the only
+   form with a pass region *and* a kill region *and* an honest middle.**
+
+**And one number I have to correct, because I published it.** `D-C63` said the `+95` pts of B2 headroom
+was *projected at an unmeasured `n`*. **The rows now exist and the projection was wrong by 69–100
+points.** I said I would void `D-C63` if the rows existed; **they exist, so it is void as an ask — and
+vindicated as a finding**, because the thing it warned about is exactly what happened: a headroom figure
+quoted at three different `n` in three turns, off by the full range at the `n` that matters.
+
+**`T7`'s status, corrected twice now.** Downgraded at turn 14 (its 1-hop evidence was demoted),
+**re-upgraded at turn 16** because the same failure appeared on the bar itself. I would rather record
+both moves than pretend I was right the first time: **the rule was right, my confidence in it was wrong.**
+
+---
+
 ## 4. Carrier vs regularizer — the distinction T2 operationalizes
 
 `AMEND-008` clause 1 names three admissible families as examples. All three are prior art, and one of
@@ -345,11 +405,12 @@ is below a legal baseline, every score above it is an illusion and the rest of t
 nothing. Then cheapest and most decisive first — T2 and T3 cost almost nothing and kill most of the
 space; T4 is the Builder's row; T5 is paperwork that must exist before the run, not after it.
 
-**And T4 is a consistency check, not an independent falsifier.** `AMEND-009` sets the pass region at
-`≥ 99%` over learned baselines that sit at chance (A2 ~51%, B2 `GET2` ~0%). A candidate that reaches 99%
-has *necessarily* learned the oracle's dispatch — so if T2/T3 say the carrier is broken while T4 says
-99%, **one of the instruments is wrong and the run is `UNSCORABLE` until that is resolved.** T4's job is
-to catch a false negative in T2/T3, not to add a second independent chance to pass.
+**And T4 is a consistency check, not an independent falsifier.** `AMEND-009` set the pass region at
+`≥ 99%` over learned baselines — **and on B2 that figure is withdrawn (§3.3)**. On A2, where the learned
+baseline really is at chance (~51%), a candidate at 99% has *necessarily* learned the oracle's dispatch —
+so if T2/T3 say the carrier is broken while T4 says 99%, **one of the instruments is wrong and the run is
+`UNSCORABLE` until that is resolved.** T4's job is to catch a false negative in T2/T3, not to add a
+second independent chance to pass.
 
 This is `AMEND-001`'s pre-flight falsifier power check applied to `0008`: print the falsifiers and the
 baseline's score **before** the candidate's number exists.

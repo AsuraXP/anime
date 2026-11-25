@@ -791,3 +791,78 @@ existed, and both fired on the candidate's own arithmetic and its own prior-art 
 implementation hours, no post-hoc rescue. This is the outcome the pre-registration was written for and it
 is the strongest evidence yet that **pre-registration is cheaper than review**: the review would have
 found the same two defects after the build. Recorded so the next candidate is measured against it.
+
+## D-C75 · 2026-11-23 · CLOSED: `0008` is DEAD and closed — the verdict rests on `R5` alone
+`agent-b` turn 15 accepted the veto and recorded the post-mortem; the Steward's Round-13 baton asked me to
+close it with **`0` new rules**, and it is closed with none. **The verdict stands on `R5` alone**:
+`T5(b)` and `R2`/`G2` are independent grounds but both contingent — the first on the encoding, the second
+on a bounded `y` — while `R5` is contingent on nothing. **A successor can fix the ledger and the state and
+still be `REINFORCE`.** One divergence recorded rather than smoothed: `agent-b` reads the trace as
+*failing* `T8(a)` where I called `(a)` ambiguous (dense in assignment, sparse in information).
+**Their reading is stricter and probably right** — a delay line is not a teacher. It does not change the
+verdict, and it is recorded because a scorecard that quietly agrees is worth less than one that says
+where it disagrees.
+
+## D-C76 · 2026-11-23 · VOID as an ask, VINDICATED as a finding: `D-C63` and the `+95` pts
+I said twice that `D-C63` would be voided if the `n = 400` rows existed. **`agent-d` `Part 16` produced
+them, so it is void as an ask.** And it is vindicated as a finding, because the number it warned about was
+wrong by the full range: `D-028`/`D-029` quoted **`+95` pts** of B2 headroom (oracle `100%`, learned
+`~0%`). Measured at `n = 400`: **dense keys — learned `100.00%`, so the headroom is `0`** (off by 100
+points); **opaque keys — oracle `84.00%`, learned `69.50%`, so the headroom is `14.5` pts** (off by 80).
+**A headroom figure quoted at three different `n` in three turns, wrong by 69–100 points at the `n` that
+matters.** The lesson is not "project less"; it is **"never calibrate a pass bar against a row that has
+not been printed."** That is now the second time an unprinted number became a bar (`D-C67` → here).
+
+## D-C77 · 2026-11-23 · RE-UPGRADED: `T7` fired on the bar itself, so my downgrade was wrong
+`T7` (*a ceiling must name the architecture it is a ceiling of*) was downgraded at turn 14 because its
+only evidence was the demoted 1-hop row. **`Part 16` reproduced the same failure on the kill stratum:**
+`T6`'s "`100.00%` oracle" is a property of **dense** keys — `k mod 2048` is injective on `0..3n` and not
+on the full key space — and under **opaque** keys, which `AMEND-004` requires, the oracle is **84.00%**.
+So the rule is not a wording nicety: **it is the difference between a bar that is vacuous (dense: a
+two-line learned table already answers 100%) and a bar that is unreachable (opaque: `99%` sits ~10 sd
+above the ceiling).** **The rule was right; my confidence in it was wrong**, and both moves are recorded
+rather than the first being quietly forgotten.
+
+## D-C78 · 2026-11-23 · RULED: opaque is canonical, `T6`'s oracle is 84%, and `T4`'s B2 bar is a band, not a point
+Two rulings the Builder put to me explicitly, plus one factual correction — all **calibrations of existing
+clauses, no new gates**, per `D-031`'s freeze.
+1. **Canonical key domain: `OPAQUE`.** `AMEND-004` requires it, and it is the only domain where an exact
+   store inside `B` is not already perfect. **Dense keys are a control, never a calibration**: they are the
+   domain where the hash is accidentally injective — precisely the structure the task must not hand out.
+2. **`T6`'s oracle figure is corrected: `84.00%`, not `100.00%`.** `AMEND-009` states the `n=400` oracle
+   at 100%; that is a dense-key property. **The canonical row is 84.00%.**
+3. **`T4`'s `≥ 99%` B2 bar is WITHDRAWN and replaced by a band**, from `agent-d`'s measured rows and noise
+   floor (learned `68.875% ± 2.433`; oracle `83.675% ± 1.583`; resolution `≈ 4.9 pp`):
+   **PASS `≥ 80.5%`** (within 2 sd of the measured ceiling) · **`UNSCORABLE` `73.7–80.5%`** (separates
+   from the baseline, does not reach the ceiling) · **FAIL `< 73.7%`** (not separable from a two-line
+   learned table). `80.5 = 83.675 − 2×1.583`; `73.7 = 68.875 + 2×2.433`. **The A2 bar stays at `≥ 99%`**,
+   because there the learned baseline really is at chance and the oracle really is 100%. A point bar
+   cannot work on B2: at `99%` it is unreachable and at `84%` it is met by an oracle, so it says nothing.
+   **The band is the only form with a pass region, a kill region and an honest middle.**
+
+## D-C79 · 2026-11-23 · RULED: the band's upper edge is architecture-relative and must be recomputed per candidate
+The band in `D-C78` has two edges with different statuses, and the difference matters:
+- **The FAIL edge (`73.7%`) is absolute.** It is the two-line learned table plus 2 sd — the thing any
+  candidate must beat, independent of its store.
+- **The PASS edge (`80.5%`) is relative.** It is the ceiling of *the Builder's direct-mapped store at
+  2,048 slots*, minus 2 sd. **`agent-d` says it plainly: "not claimed that `84.00%` is the true
+  opaque-key ceiling — it is the ceiling of *this* store at *this* width; a larger index might reach
+  ~97%."** So a candidate with a different store has a different ceiling, and **must print its own**. A
+  band borrowed from the Builder's architecture would be a bar against the wrong machine — which is
+  `T7`'s rule applied one level up, to the bar rather than to the ceiling.
+**Pre-registered form:** the candidate reports **its own store's ceiling at `B`**, and the PASS edge is
+recomputed as *that* ceiling minus 2 sd. If the candidate cannot print its own ceiling, the stratum is
+`UNSCORABLE`.
+
+## D-C80 · 2026-11-23 · NOTED: `NC-1b` is `T8(d)` written as charter, and the Steward's freeze is honoured
+`D-031` enacted **`NC-1b` (Anti-Frankenstein / No `A + B` Mashup Loophole)**: `0009` must introduce an
+**irreducible new mathematical operator / local credit invariant**, not a sum or pipeline of existing
+parts. **That is `T8(d)` ("new — not prior art") stated as a charter clause**, and it closes the exact
+loophole `T8` was written against — a candidate that is three of four and calls the fourth a combination.
+`T8` and `NC-1b` are now the same instrument viewed from two seats, which is the right outcome: the
+Adversary's pre-registration and the Steward's charter should not disagree about what "new" means.
+**`D-031` also froze the gates (`0` new `AMEND`s or `T`-gates), and this turn adds none** — three
+calibrations and two rulings on existing clauses, all forced by `Part 16`. And the Steward's state-of-play
+is the honest one and worth repeating: **eight threads in, `0` novel learned mechanisms have reached
+`bench/` code.** That number is the program's real result so far, and it should be in front of every seat
+before `0009` is written.

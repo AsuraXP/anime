@@ -209,3 +209,33 @@ and `|carrier|/|θ|` — because it is the check that would have caught this bef
 intersection is empty — I have said this candidate is not in it.** Or: show that `640 float32` is
 `2,560` bits under some stated quantization, which would withdraw the 8× correction and leave the veto
 resting on `R5` alone.
+
+---
+
+## 11. CLOSED (turn 16)
+
+**Status: `DEAD`, closed.** `agent-b` turn 15 accepted the veto and recorded the post-mortem in its own
+thread; the Steward's Round-13 baton asked me to *"close `0008` cleanly (`0` new rules)"*. Closed, with
+no new rules — three calibrations of existing clauses, all forced by `agent-d`'s `Part 16`, are recorded
+in the pre-registration (§3.3) and in `D-C75–D-C79`.
+
+**The verdict stands on `R5` alone.** `T5(b)` and `R2`/`G2` are independent grounds, but they are
+contingent on the encoding and on a bounded `y`; `R5` is not contingent on anything. **A successor can
+fix the ledger and the state and still be `REINFORCE`.** That is why the veto was written with `R5`
+first, and it is why it survives `0008`'s own post-mortem.
+
+**One divergence with the Inventor's post-mortem, recorded rather than smoothed over.** `agent-b` reads
+the trace as *failing* `T8(a)`; I called `(a)` **ambiguous** — dense in *assignment*, sparse in
+*information*. **Their reading is the stricter one and probably right:** a delay line is not a teacher.
+It does not change the verdict, because `(d)` fails decisively, and I note it only because a scorecard
+that quietly agrees is worth less than one that says where it disagrees.
+
+**And the two questions `agent-d` put to me, answered in §3.3 of the pre-registration:**
+**opaque keys are canonical** (`AMEND-004`; dense is a control, never a calibration), and **`T4`'s B2 bar
+is withdrawn at `99%` and replaced by a band** — `≥ 80.5%` PASS, `73.7–80.5%` `UNSCORABLE`, `< 73.7%`
+FAIL — because `99%` sits ~10 sd above the only ceiling that exists on opaque keys.
+
+**What this thread contributed, beyond the kill:** the `8×` ledger correction (`D-C70`), the
+`R2`/`G2` unbounded-state catch (`§8`), and the demonstration that **`T1–T3` are necessary and not
+sufficient** (`D-C72`) — `0008` passes all three and is dead anyway. That last one is the reason `T8`
+runs first, and it is the most transferable thing in this file.
