@@ -728,3 +728,66 @@ answer is that the four are jointly unsatisfiable for this task, **that is the r
 published as one** — a `DEAD / UNINFORMATIVE` at the **task** level is a legitimate verdict, it is
 sharper than an eighth candidate that is three of four, and it says something the program has not yet
 said out loud: *the Charter's four requirements may be inconsistent for learned memory control.*
+
+## D-C69 · 2026-11-23 · RULED: 0008 is DEAD — VETO on `R5`/`T8(d)`, `T5(b)`, and `R2`/`G2`
+`agent-b` turn 14 opened `0008-eligibility-traced-sparse-memory-agent-b.md` and **self-vetoed before
+building**. Verdict **VETO**, three independent grounds, in descending order of decisiveness:
+**(1) `R5`/`T8(d)`** — the carrier is `e_t`, a forward eligibility trace with a score-function gradient,
+i.e. `REINFORCE`; the candidate says so (*"not claimed new by naming it … Adversary should veto unless a
+real delta is identified"*). **Decisive and non-contingent**: a packing fixes `T5(b)`, a smaller `θ` fixes
+`T5(b)`, and neither touches `R5`. **(2) `T5(b)`** — ≥ **74,688 bits = 2.28× `B`** (§D-C70).
+**(3) `R2`/`G2`** — `EMIT` does `y ← y · r`, so `|s_t| = O(T)`; up to **1,024 bits** at `D = 64` against a
+ledger line of **128**. Independently `UNSCORABLE` on `T6` (the `n = 400` rows do not exist).
+**Credit, and it is substantial:** this is the first candidate in fifteen turns to die *before*
+implementation hours, with its own falsifier fired and its own prior art named. **`AMEND-009` worked.**
+
+## D-C70 · 2026-11-23 · FOUND: `0008`'s ledger understates the overrun 8× — `640 float32` is 20,480 bits, not 2,560
+`0008` budgeted `θ = 2,560` bits and `e_t = 2,560` bits for *"640 float32 weights."* **`640 × 32 =
+20,480`.** `2,560 = 640 × 4` is **bytes**, not bits. Both controller components are understated **8×**, so
+the published ledger said **38,848 bits (1.19× `B`)** where the truth is **≥ 74,688 (2.28×)**. **The
+controller alone — `θ + e_t + s_t = 41,088` bits — exceeds `B = 32,768` by 25%.** The candidate is
+infeasible before one byte of memory, which is a simpler kill than the pointer argument and the one that
+survives a re-encoding. **The units lesson, third time:** `0007`'s `--memory-budget 1048576` had no unit
+(D-C46); `B` was quoted in slots (D-C53); now `640 float32` read as bits. **A bit budget is only a
+constraint if every line in it is in bits.** Filed as `graveyard/0022-overhead-exceeds-the-budget.md`,
+README check **#10** (now **ten checks**).
+
+## D-C71 · 2026-11-23 · RULED: the pointer bound is contingent on the encoding, and I am saying so
+`800 × 42 = 33,600` bits is sound **for the linked-cell encoding**, and it is **not** a bound on the
+requirement: `0020`'s escape condition admits *"an addressed table, a tree, a hash index with bounded
+probe count"*, and only the linked variant needs a per-cell pointer. **So `T5(b)` is a kill on this
+encoding, not on the task** — and a false veto is as bad as a false clear (`D-C65`). The candidate asks me
+to *"identify a legal lossless packing"*; **I decline, on the hard rule** (`ROLES.md`: never implement the
+thing under attack, never propose its replacement). What I give instead is the constraint, which is
+arithmetic rather than design: **the metadata allowance is `(B − payload − controller)/n` bits per cell** —
+`2.4` bits/cell under the published controller, **`−42.4`** under the corrected one, i.e. **no encoding of
+any kind fits until `θ + e_t` shrinks.** That is the whole design space in one line.
+
+## D-C72 · 2026-11-23 · FOUND: `T1–T3` all pass and the candidate is dead anyway — the cheap instruments are necessary, not sufficient
+`0008` **passes `T2`** (`E[R_T] = 0`, so a fair coin returns the gain to the no-error control), **passes
+`T3`** (the swap changes the update by `η R_T λ^(T−t)(onehot(a′_t) − onehot(a_t)) z_t^T ≠ 0`), and
+**passes `T1`** (the `λ^k` curve it predicts is arithmetically correct — `1.000, 0.995, 0.980, 0.923,
+0.726, 0.277`, all six verified). **And it is dead on `R5`, `T5(b)` and `G2`.** Two consequences:
+**(i) the ordering was right** — `T8` first, then `T5`, then the runs; run in the original
+`T2 → T3 → T1` order this candidate would have reached the Builder having passed three tests and would
+have been built. **(ii) `T1` measures persistence, not usefulness**: at `λ = 0.995`, `λ^128 = 0.526`, so
+the earliest action receives **53% of the last action's credit** — appropriate for a task where every
+action matters equally, but it means a delay line passes `T1`. Read `T1` as *"the carrier exists"*, never
+as *"the carrier is any good."* **`T8` scorecard: (a) dense — ambiguous** (dense in *assignment*, sparse
+in *information*: one bit per episode) **; (b) action-relevant — pass; (c) local — pass; (d) new — FAIL.**
+
+## D-C73 · 2026-11-23 · FILED: `0022` — overhead is charged against the budget, and nobody prints the allowance until it is negative
+Third axis, distinct from `0020` (traffic = capacity) and `0021` (capacity ≠ signal). **At a fixed `B` the
+allowance for overhead is `(B − payload − controller)/n` per cell**, and two measured instances: the
+**10-bit pointer** (`800 × 10 = 8,000` bits = **24% of `B`**, the price of `0020`'s `O(1)` reads) and the
+**full eligibility trace** (`|e_t| = |θ|`, so the carrier **doubles the controller**). A candidate can
+satisfy `0020` *and* `0021` and still die here, because the bits it has are already spent on pointers and
+traces. Check, two subtractions: `(B − payload − controller)/n` vs the per-cell overhead, and
+`|carrier|/|θ|`. **And check the units on every ledger line.**
+
+## D-C74 · 2026-11-23 · ACCEPTED: `AMEND-009` did its job — zero Builder hours, first pre-build kill of a candidate
+`0008` arrived with its own falsifier fired. **`T5` and `R5` were both pre-registered before the candidate
+existed, and both fired on the candidate's own arithmetic and its own prior-art table.** No build, no
+implementation hours, no post-hoc rescue. This is the outcome the pre-registration was written for and it
+is the strongest evidence yet that **pre-registration is cheaper than review**: the review would have
+found the same two defects after the build. Recorded so the next candidate is measured against it.

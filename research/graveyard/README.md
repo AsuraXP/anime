@@ -56,6 +56,7 @@ An entry that only says "this is hard" is not an entry. It must name the mechani
 | `0019-terminal-only-supervision.md` | a **local** update rule with a **terminal** target, asked to learn a sequential policy | the error exists only at the last token, so intermediate memory actions get **zero signal**; a local rule with terminal reward is a **contextual bandit** and cannot learn delayed-value actions. `0007` §4.1 names the symptom and calls it an uncertainty; it is a fork with every prong closed | **any "learned controller over external memory"** — ask where the error at token `t<T` comes from and what carries it back |
 | `0020-capacity-is-the-budget.md` | superposed / holographic / fast-weight stores (any read that touches every element) | capacity `∝ d` and bytes/token `∝ d` are the **same proportionality**, so a traffic gate is a capacity gate. Measured: at 16,384 bits a table holds **1,024 bindings** and a `d=1024` vector holds **~9** — **114× at equal bits**; `d=2048` blows the 4 KiB budget | **any superposition / VSA / fast-weight proposal** — print capacity and bytes/token against the same parameter; if both are `Θ(d)`, the gate fixes the score |
 | `0021-capacity-cannot-buy-the-dispatch.md` | "scale the learned controller" — NTM / DNC / neural-RAM lineage, and every "give it a bigger `B`" repair | the bit count is not the binding constraint. Measured: a **69-bit** hand-coded syntax test scores **100.00%** at `D=64` while a **32,768-bit** learned table scores **chance** — **475× the bits for zero gain**; on one-hop the learned machine *beats* the exact store (**20.10% vs 9.20%**) by generalizing, not by bits; on `GET2` both collapse | **any proposal whose repair for a low score is more state** — print the oracle's bits and the best legal learned score at `≥10×` those bits; if it is at chance, the constraint is signal, not capacity |
+| `0022-overhead-exceeds-the-budget.md` | "sparse linked cells at a fixed `B`" and "a full eligibility trace as the carrier" | overhead is charged against the same `B` as the payload, and nobody prints the allowance until it is negative. Measured: `800 × 42` = **33,600 bits** before any controller (a **10-bit pointer is 24% of `B`**); and a full trace costs **exactly `|θ|`**, so `0008`'s controller alone was **1.25× `B`** — while its ledger said `1.19×` because it read `640 float32` as `2,560` **bits** instead of **20,480** (bytes, not bits: 8×) | **any sparse/pointer/trace design** — print `(B − payload − controller)/n` against the per-cell overhead, and `|e_t|` against `|θ|`, before the payload |
 
 **Superseded:** `0001-operand-coverage.md` — measurement certified, escape condition refuted (the
 "repair" is a 200/200 hand-written adder). Superseded by `0002` + `0007` + `0012`.
@@ -97,7 +98,7 @@ then `0004`/`0009` (does the index contain the thing you are testing?), then `00
 the bits and what is the capacity), then `0011` (is the gap a curve or a point?), then
 `0005`/`0006`/`0008`/`0010` (is the fix a constant, a trainer, or a store you are not admitting to).
 
-**The nine checks that have killed every thread so far, all under a second:**
+**The ten checks that have killed every thread so far, all under a second:**
 1. **State-space check (`0013`).** Enumerate the composites reachable from the generators. If
    `|states| / |Σ|^depth` ≈ 0, it is a finite automaton and the thread is dead.
 2. **Envelope check (`0015`).** Count the states **at the declared envelope**, not at the enumeration
@@ -126,6 +127,12 @@ the bits and what is the capacity), then `0011` (is the gap a curve or a point?)
    baseline's score at `≥ 10×` those bits, at the same `B`. If the learned machine is at chance, the
    binding constraint is **signal, not capacity** — and no larger `B` will move the score. `0007`'s
    `B = 1,024` slots against a 69-bit oracle is the case in point: 475× the state, zero points.
+10. **Overhead check (`0022`).** Print **`(B − payload − controller) / n`** and compare it with the
+    per-cell overhead the encoding needs (pointer, tag, hash metadata). Then print **`|carrier| / |θ|`**.
+    `0008`: **2.4 bits/cell** available against **10** needed, and a carrier costing **`1.0 × |θ|`** —
+    dead by arithmetic, twice, before a line was written. **And check the units on every ledger line**:
+    `640 float32` is **20,480 bits**, not `2,560`, and that single bytes/bits slip understated the
+    overrun 8×.
 
 **The cheapest check of all, and it killed two numbers in this repo:** compute the **analytic
 ceiling** of the harness before reading the score. If measured == ceiling, the experiment had zero
