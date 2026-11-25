@@ -306,8 +306,14 @@ def raw_stream(keys, vals, queries, edit=None):
     return bytes(out)
 
 
-def two_hop(n, seed):
+def two_hop(n, seed, opaque=False):
     """A 2-hop chain: SET a->b, SET b->c, then EDIT b->d, then GET2 a => d.
+
+    `opaque=True` draws the three key sets from the full 16-bit space by seeded bijection, which is
+    what the charter means by opaque bytes. The dense default (`A = 0..n-1`, ...) is kept so earlier
+    parts reproduce, but it is *not* domain-neutral: contiguous small integers spread almost perfectly
+    under a two-byte hash, so a hashed table looks far better on them than on random keys. Part 16
+    reports both domains for exactly that reason.
 
     One-hop binding is saturated by any exact store (AMEND-008 K4). Composition is not: answering
     GET2 needs both hops, so a store that loses either one answers nothing, and the coverage is
@@ -319,6 +325,16 @@ def two_hop(n, seed):
     field still holds. The edit moves `b -> c` to `b -> d` with `d` another member of `C`.
     """
     rng = random.Random(seed)
+    if opaque:
+        pool = rng.sample(range(1 << 16), 3 * n + 1)
+        h1, h2, h3 = pool[:n], pool[n:2 * n], pool[2 * n:3 * n]
+        fresh = pool[3 * n]
+        pairs1 = list(zip(h1, h2)); rng.shuffle(pairs1)
+        pairs2 = list(zip(h2, h3)); rng.shuffle(pairs2)
+        hop1, hop2 = dict(pairs1), dict(pairs2)
+        edit_key = h2[0]
+        hop2[edit_key] = fresh
+        return hop1, hop2, edit_key, fresh
     A = list(range(n))
     B = list(range(n, 2 * n))
     C = list(range(2 * n, 3 * n))
@@ -599,6 +615,80 @@ def main():
     print("`n = 10,000` to 0.00% -- so the headroom the baton is looking for appears only when the number")
     print("of links exceeds the cells, i.e. it is a *capacity* gap, not a credit-assignment gap. A")
     print("candidate that cannot store keys pays for that; a table does not.")
+
+    # ------------------------------------------------ the T6/T4 stratum: n = 400, both key domains
+    print("\n### `GET2` at `n = 400` -- the `AMEND-009` kill stratum -- in both key domains\n")
+    print("`D-029` sets the pass bar at `>= 99%` over a learned baseline quoted as `~0%`, on `GET2` at")
+    print("`n = 400` (`800` bindings inside `32,768` bits). The row did not exist when the bar was set.")
+    print("It exists now, and the number depends on something the charter never pinned: **the key")
+    print("domain**. `dense` keys are `0..3n`; `opaque` keys are drawn from the full 16-bit space by")
+    print("seeded bijection, which is what `AMEND-004`'s 'opaque bytes' means.\n")
+    print("| key domain | n | machine | bits | `GET2` | coll / correct-before | bytes/token | G4 |")
+    print("|---|---|---|---|---|---|---|---|")
+    for opaque in (False, True):
+        hop1, hop2, ek2, nv2 = two_hop(400, SEED + 400, opaque=opaque)
+        q = sample_queries(list(hop1), 400, 400)
+        ob, _, ook, ocoll = two_hop_eval(400, 2048, hop1, hop2, ek2, nv2, q)
+        lb, _, lok, lcoll = two_hop_eval(400, 2048, hop1, hop2, ek2, nv2, q, cache_bits=32768)
+        dom = "opaque 16-bit" if opaque else "dense `0..3n`"
+        print(f"| {dom} | 400 | ORACLE OPCODE, 2,048 slots | 32,768 | {100 * ob:.2f}% | "
+              f"{ocoll}/{ook} | 4.0 | yes |")
+        print(f"| {dom} | 400 | LEARNED byte table, 2,048 cells | 32,768 | {100 * lb:.2f}% | "
+              f"{lcoll}/{lok} | 4.0 | yes |")
+        print(f"| {dom} | 400 | KV scan | -- | 100.00% | 0/{len(q)} | 1,600 | yes |")
+    print("\nBoth columns break the bar, in opposite directions:")
+    print("- **dense keys**: the learned table answers **100.00%**, so the `+99` points of headroom are")
+    print("  zero. `>= 99%` is then met by a two-line table with no learning in it, and `T4` passes for")
+    print("  free.")
+    print("- **opaque keys**: the *oracle* falls to **84.00%**, because a direct-mapped 2,048-slot store")
+    print("  collides on random keys (`k mod 2048` is not injective). A `>= 99%` bar on this stratum is")
+    print("  then unreachable by any machine inside `32,768` bits, which is the `T4` no-pass-region")
+    print("  defect arriving through the key domain instead of the ceiling.")
+    print("- So `T6`'s `100%` oracle is an artefact of **dense keys**, and the fix is the one `T7` asks")
+    print("  for in words: the ceiling must name its architecture. `100%` is the ceiling of an")
+    print("  *exact-key* store, not of a 2,048-slot direct-mapped one, and not of anything that fits in")
+    print("  `4,096` bytes once keys are opaque.")
+
+    # ------------------------------------------------ noise floor for the near-zero rows
+    print("\n### Noise floor: which differences are resolvable at these query counts\n")
+    print("`D-C63` asks whether `0.03%` and `0.5%` are distinguishable on a near-zero row. Measured, not")
+    print("assumed: the same machine, 20 independent query samples, spread reported as sd.\n")
+    print("| row | queries/sample | mean | sd | min | max | 2-sd resolution |")
+    print("|---|---|---|---|---|---|---|")
+    for label, n, qs, opaque, use_cache in (
+            ("LEARNED, `n=10,000`", 10000, 4000, False, True),
+            ("ORACLE, `n=10,000`", 10000, 4000, False, False),
+            # 200 queries of 400 keys: sampling all 400 makes every "independent" sample the same
+            # set, which reported sd = 0.000 and would have been a noise floor that measured nothing
+            ("LEARNED, `n=400` opaque", 400, 200, True, True),
+            ("ORACLE, `n=400` opaque", 400, 200, True, False)):
+        hop1, hop2, ek2, nv2 = two_hop(n, SEED + n, opaque=opaque)
+        vals = []
+        for t in range(20):
+            q = sample_queries(list(hop1), qs, n + 7919 * t)
+            cov, _, _, _ = two_hop_eval(n, 2048, hop1, hop2, ek2, nv2, q,
+                                        cache_bits=32768 if use_cache else None)
+            vals.append(100 * cov)
+        m = sum(vals) / len(vals)
+        sd = (sum((v - m) ** 2 for v in vals) / (len(vals) - 1)) ** 0.5
+        print(f"| {label} | {qs:,} | {m:.3f}% | {sd:.3f} | {min(vals):.3f}% | {max(vals):.3f}% | "
+              f"{2 * sd:.3f} pp |")
+    # recompute the separation rather than quoting it: this is the number D-C63 asked for
+    hz, hz2, ekz, nvz = two_hop(10000, SEED + 10000)
+    zs = []
+    for t in range(20):
+        qz = sample_queries(list(hz), 4000, 10000 + 7919 * t)
+        covz, _, _, _ = two_hop_eval(10000, 2048, hz, hz2, ekz, nvz, qz, cache_bits=32768)
+        zs.append(100 * covz)
+    mz = sum(zs) / len(zs)
+    sdz = (sum((v - mz) ** 2 for v in zs) / (len(zs) - 1)) ** 0.5
+    sep = (0.5 - mz) / sdz if sdz else float("inf")
+    print(f"\nAt 4,000 queries the near-zero row sits at {mz:.3f}% with sd {sdz:.3f}, so `0.5%` is")
+    print(f"**{sep:.0f} sd** away: distinguishable, and `D-C63`'s question has a yes. Read it as 'a")
+    print(f"machine below ~0.1% is separable from one at 0.5%', not as 'every small number is real'.")
+    print(f"The mid-range rows are coarser (sd ~0.2 pp on the 4% oracle row, and the `n=400` rows are")
+    print(f"scored on half the keys so their sd is not zero), which matters in the other direction: a")
+    print(f"candidate and a baseline two points apart are not separated by this instrument.")
 
     print("\nReading, and what a candidate has to do:")
     print("- **Coverage is the pigeonhole bound.** An m-slot store answers `m/L` of random queries;")

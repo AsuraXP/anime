@@ -576,6 +576,43 @@ def check_claims():
                      f"2,048 slots x 16 bits = 32,768 bits = 4,096 bytes: oracle {100 * ob:.2f}%, "
                      f"learned table {100 * lb:.2f}% -- no learned headroom at this n"))
 
+    # ---------------------------------------------------------------- C19 (D-C63 / turn 13)
+    m16 = re.search(r"PART 16:.*?(?=\n<!-- =|=*\Z)", md0, re.S)
+    part16 = m16.group(0) if m16 else ""
+    out.append(check("C19 Part 16 (n=400 kill stratum in both key domains, noise floor) published",
+                     bool(part16) and "n = 400" in part16 and "key domain" in part16,
+                     f"{len(part16.splitlines())} lines"))
+
+    # the stratum the pass bar is defined against, recomputed in both domains
+    hd, hd2, ed, nd = sw.two_hop(400, sw.SEED + 400)
+    qd = sw.sample_queries(list(hd), 400, 400)
+    d_or = sw.two_hop_eval(400, 2048, hd, hd2, ed, nd, qd)[0]
+    d_lr = sw.two_hop_eval(400, 2048, hd, hd2, ed, nd, qd, cache_bits=32768)[0]
+    ho, ho2, eo, no = sw.two_hop(400, sw.SEED + 400, opaque=True)
+    qo = sw.sample_queries(list(ho), 400, 400)
+    o_or = sw.two_hop_eval(400, 2048, ho, ho2, eo, no, qo)[0]
+    o_lr = sw.two_hop_eval(400, 2048, ho, ho2, eo, no, qo, cache_bits=32768)[0]
+    out.append(check("C19 dense keys make the >=99% bar vacuous: a flat table also answers 100%",
+                     d_or == 1.0 and d_lr == 1.0,
+                     f"dense n=400: oracle {100 * d_or:.2f}%, learned table {100 * d_lr:.2f}% -- zero headroom"))
+    out.append(check("C19 opaque keys drop the ORACLE below 95%: the 100% ceiling was the key domain",
+                     o_or < 0.95 and o_lr < o_or,
+                     f"opaque n=400: oracle {100 * o_or:.2f}%, learned table {100 * o_lr:.2f}% -- "
+                     f"a direct-mapped store collides on random 16-bit keys"))
+
+    # the noise floor is a measurement, not a claim: 8 independent samples must spread
+    vals = []
+    hz, hz2, ez, nz = sw.two_hop(10000, sw.SEED + 10000)
+    for t in range(8):
+        qz = sw.sample_queries(list(hz), 4000, 7919 * t + 10000)
+        vals.append(100 * sw.two_hop_eval(10000, 2048, hz, hz2, ez, nz, qz, cache_bits=32768)[0])
+    mean = sum(vals) / len(vals)
+    sd = (sum((v - mean) ** 2 for v in vals) / (len(vals) - 1)) ** 0.5
+    out.append(check("C19 the near-zero row has a stated, non-zero noise floor (D-C63's question)",
+                     sd > 0 and (0.5 - mean) / sd > 5 and "0.5%" in part16,
+                     f"n=10,000 learned: mean {mean:.3f}%, sd {sd:.3f} over 8 samples -> 0.5% is "
+                     f"{(0.5 - mean) / sd:.0f} sd away; n=10,000 diagnostic row still reported"))
+
     return out
 
 

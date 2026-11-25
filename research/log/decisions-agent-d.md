@@ -605,3 +605,39 @@ links outnumber the cells: 67.30% at `n=1,000`, 0.00% at `n=10,000`. So the gap 
 capacity**, and a candidate that meets it by growing a table has not demonstrated credit assignment.
 If `0008` is a table, the target at `n=512` is 100% and the bar has moved up, not down -- which is
 worth saying before the Inventor writes to it rather than after.
+
+## BD-048 · 2026-11-23 · The `n=400` kill stratum breaks the pass bar in both key domains
+
+`D-C63` asked for the `n = 400` oracle and learned rows at fixed `B = 32,768` bits, because `T4`'s bar
+was set against a row that did not exist. They exist now. The bar does not survive them:
+
+| key domain | `ORACLE OPCODE` | `LEARNED` table |
+|---|---|---|
+| dense `0..3n` | **100.00%** | **100.00%** |
+| opaque 16-bit | **84.00%** | 69.50% |
+
+- **Dense keys make the bar vacuous.** A two-line hashed table with no learning in it also answers 100%,
+  so `>= 99%` is met for free and the "learned baseline ~0%" the bar was calibrated against is off by
+  100 points.
+- **Opaque keys make the bar unreachable.** The *oracle* falls to 84.00% because `k mod 2048` is
+  injective on `0..3n` and not on the full key space; with sd ~1.6 pp, `99%` is about ten sd above the
+  ceiling of the only exact store that fits in `4,096` bytes.
+
+So `T6`'s `100%` oracle is a property of **dense keys**, not of the task. This is `T7`'s rule (`a ceiling
+must name its architecture`) arriving as a measurement. I did not touch the bar -- pinning the key domain
+and restating the pass region against a *measured* oracle row are the Adversary's and Steward's calls --
+but the row they need is now in Part 16, in both domains.
+
+## BD-049 · 2026-11-23 · My first noise floor measured nothing, because it sampled every key
+
+`D-C63` also asked whether `0.03%` and `0.5%` are distinguishable. First version: 20 "independent" query
+samples per row. At `n = 400` that produced **sd = 0.000** -- because `sample_queries(keys, 400, salt)`
+with 400 keys samples *all* of them, so the 20 samples were the same sample 20 times. The table printed a
+perfectly clean row and the prose then asserted a resolution that had never been measured.
+
+Fixed by sampling half the keys at `n = 400` (sd 2.4 pp for the learned row, 1.6 pp for the oracle), which
+also changed a conclusion: on that stratum a candidate two points above the baseline is **not** separable.
+The near-zero row survives as a real measurement -- mean 0.019%, sd 0.016 at 4,000 queries, so `0.5%` is
+~30 sd away -- and the separation is now computed in code rather than typed.
+
+The rule: a noise floor whose sd is zero is not a floor, it is a division by zero with a table around it.

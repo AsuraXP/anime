@@ -1,4 +1,4 @@
-<!-- GENERATED -- do not hand-edit. Fifteen parts, their commands below. -->
+<!-- GENERATED -- do not hand-edit. Sixteen parts, their commands below. -->
 <!-- reproduce part 1: python3 research/bench/scorecard.py    (~11 s,  CPU, seeded) -->
 <!-- reproduce part 2: python3 research/bench/k3control.py    (~180 s, CPU, seeded) -->
 <!-- reproduce part 3: python3 research/bench/ceiling.py      (~90 s,  CPU, seeded) -->
@@ -2323,4 +2323,90 @@ budget. Or a `GET2` at `n=1,000` where the learned table beats 67.30%, which wou
 collision loss is recoverable without storing keys exactly.
 
 Reproduce: `python3 research/bench/stream_ram.py` (3 s), `python3 research/bench/dyck2.py` (~15 min).
+
+
+<!-- ============ PART 16: turn 13 -- the n=400 kill stratum, both key domains ============ -->
+# Part 16 -- the `n = 400` row exists now, and it breaks the pass bar in both directions (turn 13)
+
+`D-C63`'s ask was precise: *the `>= 99%` bar is well-defined only once the `n = 400` oracle row
+and the `n = 400` learned row both exist at fixed `B = 32,768` bits.* They did not exist. They
+exist now, in the two key domains that matter, and neither one supports the bar as written.
+
+## 16.1 The stratum, measured
+
+| key domain | n | machine | bits | `GET2` | coll / correct-before | bytes/token | G4 |
+|---|---|---|---|---|---|---|---|
+| dense `0..3n` | 400 | ORACLE OPCODE, 2,048 slots | 32,768 | 100.00% | 0/400 | 4.0 | yes |
+| dense `0..3n` | 400 | LEARNED byte table, 2,048 cells | 32,768 | 100.00% | 0/400 | 4.0 | yes |
+| dense `0..3n` | 400 | KV scan | -- | 100.00% | 0/400 | 1,600 | yes |
+| opaque 16-bit | 400 | ORACLE OPCODE, 2,048 slots | 32,768 | 84.00% | 0/336 | 4.0 | yes |
+| opaque 16-bit | 400 | LEARNED byte table, 2,048 cells | 32,768 | 69.50% | 0/278 | 4.0 | yes |
+| opaque 16-bit | 400 | KV scan | -- | 100.00% | 0/400 | 1,600 | yes |
+
+**Dense keys make the bar vacuous.** The learned table answers 100.00% -- the same as the
+oracle (100.00%) -- so the headroom is zero and `>= 99%` is met by a two-line table with no
+learning in it. `T4` would pass for free, which is the no-pass-region defect in the *other*
+direction: a bar that everything clears.
+
+**Opaque keys make the bar unreachable.** The *oracle* falls to 84.00% (and the learned
+table to 69.50%), because a direct-mapped 2,048-slot store collides on random 16-bit keys:
+`k mod 2048` is injective on `0..3n` and is not injective on the full key space. The noise floor
+in 16.2 puts that oracle row's sd at ~1.6 pp, so `99%` is roughly ten standard deviations above
+the ceiling of the only exact store that fits in `4,096` bytes. Nothing inside `B` can pass.
+
+So `T6`'s `100%` oracle is not a property of the task -- it is a property of **dense keys**.
+This is `T7`'s wording rule arriving as a measurement rather than a rule: a ceiling must name
+the architecture it is a ceiling of. `100%` is the ceiling of an *exact-key* store. It is not
+the ceiling of a 2,048-slot direct-mapped store on opaque bytes, and `AMEND-004` requires opaque
+bytes.
+
+## 16.2 Noise floor: what this instrument can resolve
+
+`D-C63` asked whether `0.03%` and `0.5%` are distinguishable on a near-zero row. The same
+machine, 20 independent query samples:
+
+| row | queries/sample | mean | sd | min | max | 2-sd resolution |
+|---|---|---|---|---|---|---|
+| LEARNED, `n=10,000` | 4,000 | 0.019% | 0.016 | 0.000% | 0.050% | 0.032 pp |
+| ORACLE, `n=10,000` | 4,000 | 4.265% | 0.184 | 3.975% | 4.725% | 0.367 pp |
+| LEARNED, `n=400` opaque | 200 | 68.875% | 2.433 | 64.500% | 73.000% | 4.865 pp |
+| ORACLE, `n=400` opaque | 200 | 83.675% | 1.583 | 80.500% | 87.500% | 3.167 pp |
+
+The near-zero row sits at 0.019% with sd 0.016, so `0.5%` is ~30 sd away -- a
+**yes**, with the caveat that this means *below ~0.1% is separable from 0.5%*, not that every
+small number is real. The `n = 10,000` oracle row (4.265%) resolves to
+0.367 pp, and the `n = 400` rows are coarser still (~4.9 pp for the learned row), so a
+candidate and a baseline two points apart on that stratum are **not** separated by this
+instrument. Any `T4` comparison at `n = 400` should quote the sd beside the gap, or use more
+queries and more keys.
+
+## 16.3 What I am not doing with this
+
+I am not redefining `T4`, `T6` or the pass bar: the bar is the Adversary's and the Steward's to
+set, and my job is to report that the row they were set against did not exist and does not read
+the way it was expected to. Two things follow that are theirs to decide, and I am flagging them
+rather than acting on them: (i) which key domain is canonical -- `AMEND-004` says opaque, and
+opaque is the only domain where an exact store inside `B` is not already perfect; (ii) whether
+`T4`'s bar should be stated against the *measured* oracle row in that domain (84.00%) rather
+than against 100%.
+
+## 16.4 Audit of this part
+
+**Certified:** `C19` recomputes both `n = 400` rows in both domains, asserts the dense/opaque
+split (100%/100% dense, oracle < 95% and learned < oracle on opaque), recomputes a noise floor
+over 8 independent samples and checks it is non-zero, and confirms the `n = 10,000` diagnostic
+row is still reported. `stream_ram.py` ran twice; the pair is identical modulo wall-clock.
+
+**Not claimed:** that `84.00%` is the true ceiling on opaque keys -- it is the ceiling of *this*
+store at *this* width. A 3,200-bit larger index might reach ~97%; the point is that the number
+must be measured per architecture, not assumed to be 100%. **Not claimed:** that the dense-key
+100% is a bug in the learned table -- it is a real property of a multiplicative byte hash on
+contiguous integers, and it is why the domain had to be pinned.
+
+**What would prove this wrong:** an exact store inside `4,096` bytes that answers opaque-key
+`GET2` at `n = 400` above 95% -- that would move the ceiling back toward 100% and restore the
+bar; or a key-domain argument showing that dense keys are the charter's intent after all, which
+would make `T4` passable but vacuous.
+
+Reproduce: `python3 research/bench/stream_ram.py` (3 s).
 
