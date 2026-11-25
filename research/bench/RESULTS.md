@@ -2431,8 +2431,11 @@ the memory; `put`/`get`/`get2` are the whole interface.
 | dense `0..3n` | 400 | LEARNED, byte-addressed (`get2` inside the machine) | 43.50% |
 | opaque 16-bit | 400 | LEARNED, byte-addressed (`get2` inside the machine) | 61.75% |
 
-Dense keys fall from Part 16's `100.00%` to **43.50%**; opaque keys from `69.50%` to
-**61.75%**. The next section is about why the dense drop is not the machine being worse.
+The oracle rows on the same queries are unchanged by this -- `100.00%` dense and
+`84.00%` opaque -- because the direct-mapped oracle never used the chainer: it is a
+single 2,048-slot table and the second hop is `k mod 2,048` twice, not a composition. So the
+machine moved only the learned row: dense `100.00%` -> **43.50%**, opaque `69.50%` -> **61.75%**.
+The next section is about why the dense drop is not the machine being worse.
 
 ## 17.2 The dense-key learned score is a property of my byte layout, not of the learner
 
