@@ -1,53 +1,64 @@
 # status — agent-c (ADVERSARY)
 _Overwritten every turn. One screen. Always mergeable._
 
-**Turn:** 14 — `AMEND-009` accepted; **my `T4` had no pass region and I have owned it**; `T8` states the
-four walls
+**Turn:** 15 — **`0008` VETOED**, and it self-vetoed first: `R5` (the carrier is REINFORCE), `T5(b)`
+(the ledger is 8× wrong), and `R2`/`G2` (`s_t` is unbounded)
 **Branch:** `arena/5691ad68-anime`
-**State:** `0007` **DEAD**, closed. `0008` **UNBLOCKED** (`D-029`) — Inventor moves first. Pre-registration
-is now charter (`T1–T6`), with `T8` added as the cheapest veto.
+**State:** `0007` DEAD · `0008` **VETOED** (first pre-build kill of a candidate; zero Builder hours). No
+live candidate. `AMEND-009` did its job.
 
 ## Did
-- **Accepted `AMEND-009`** — `T1–T6` ratified, pass region at `≥ 99%` over the 32,768-bit learned rows.
-- **Owned the `T4` defect (`D-C65`).** The original `T4` read *"if it ties → dead; if it loses → dead."*
-  **Both branches are death** — a falsifier with no reachable pass region is a verdict wearing a test's
-  clothes, and it violates the graveyard's own check #8, which I wrote. `D-029` fixed it; my turn-13
-  amendment had converged on the same fix from the other direction. **A pre-registration that cannot fail
-  is worse than none: it launders a verdict as a test.** Same lesson as `D-C61`, opposite direction —
-  every clause should be read once for a false positive and once for a false negative.
-- **Downgraded my own `T7` (`D-C66`).** Its evidence is the 1-hop row (20.10% vs 9.20%), and `AMEND-009`
-  moved the kill metric to `GET2` at `n=400` where the oracle is 100%. **So `T7` has no teeth now**; it
-  survives as a one-line wording rule, not a gate.
-- **Sharpened `D-C63` (`D-C67`).** The headroom has been quoted at **three different `n`** (512, 10,000,
-  400) and the `n=400` row is assigned to `agent-d`'s **next** turn — **so the bar is defined against a
-  row that does not exist.** `T4` is `UNSCORABLE` until it does.
-- **Added `T8` — the four walls (`D-C68`).** A carrier must be **(a) dense**, **(b) action-relevant**,
-  **(c) local**, **(d) new** — and the four known families each fail exactly one: terminal-only trace
-  fails (a)+(d); dense self-prediction fails (b); BPTT fails (c); hand-coded dispatch fails (d).
-  **Any three is a known failure, which is why there are seven dead candidates.** Not a proof, not a
-  design — a map with four walls and an explicit invitation.
-- **Noted the structural consequence (`D-C68` / §4 of the file).** A2 and B2@`n=400` are **the same
-  experiment in two costumes** (both 100% oracle, ~0% learned). So **`T4` is a consistency check on
-  `T2`/`T3`, not an independent falsifier** — and the two tasks corroborate but do not triangulate.
-- **Credited the `n=400` move (`D-C62` resolved).** At `n=400` the ceiling is 100%, not 1.05%, so the
-  dynamic-range problem disappears. The trade is real: it tests **learning**, not
-  composition-under-capacity, and `n=10,000` should stay as a reported diagnostic.
+- **Ruled `0008` VETO** on three independent grounds, in descending order of decisiveness:
+  **(1) `R5`/`T8(d)`** — the carrier `e_t` is a forward eligibility trace with a score-function gradient,
+  i.e. `REINFORCE`, and the candidate says so (*"Adversary should veto unless a real delta is
+  identified"*). **Decisive and non-contingent** — a packing or a smaller `θ` fixes `T5(b)` and leaves
+  this untouched.
+  **(2) `T5(b)`** — ≥ **74,688 bits = 2.28× `B`**.
+  **(3) `R2`/`G2`** — `EMIT` does `y ← y · r`, so `|s_t| = O(T)` (up to **1,024 bits** at `D=64`) against
+  a ledger line of **128**. A fourth ground that survives a correct ledger *and* a novel carrier.
+  Independently `UNSCORABLE` on `T6` (the `n=400` rows do not exist).
+- **Found the ledger is wrong by 8× (`D-C70`).** `0008` budgeted `2,560` bits for *"640 float32
+  weights"* — that is `640 × 4`, **bytes**. Correct: **20,480 bits** each for `θ` and `e_t`, so
+  **`θ + e_t + s_t = 41,088` bits = 1.25× `B`** — the controller alone exceeds the budget before one byte
+  of memory. Published overrun **1.19×**; real **2.28×**. Filed as `graveyard/0022`, README check **#10**
+  (now **ten checks**).
+- **Said plainly that the pointer bound is contingent (`D-C71`).** `800 × 42 = 33,600` is sound **for the
+  linked-cell encoding**, not for the requirement — `0020` admits a hash index with bounded probes, which
+  needs no per-cell pointer. **A false veto is as bad as a false clear (`D-C65`).** The candidate asks me
+  to *"identify a legal lossless packing"*; **I declined on the hard rule** — whether a pointer-free
+  encoding is legal is the Inventor's question. What I gave is the constraint:
+  **metadata allowance = `(B − payload − controller)/n`** — `2.4` bits/cell published, **`−42.4`**
+  corrected, i.e. **no encoding fits until `θ + e_t` shrinks.**
+- **Found `T1–T3` all pass and the candidate is dead anyway (`D-C72`).** Verified all six `λ^k` values
+  (`1.000, 0.995, 0.980, 0.923, 0.726, 0.277`) and the `T3` algebra — both correct. **The ordering was
+  right**: run as `T2 → T3 → T1`, this candidate would have reached the Builder having passed three tests
+  and would have been built. **`T1` measures persistence, not usefulness** (`λ^128 = 0.526`, so the
+  earliest action gets 53% of the last's credit — appropriate for this task, but a delay line passes it).
+- **Filed `0022-overhead-exceeds-the-budget.md`** (`D-C73`) — the third axis: `0020` traffic, `0021`
+  signal, `0022` **bookkeeping**. A candidate can satisfy both and still die here.
+- **Recorded the meta-result (`D-C74`):** `0008` is the first candidate to die *before* implementation,
+  with its own falsifier fired and its own prior art named. **Pre-registration is cheaper than review.**
 
 ## Not claimed
-- `AMEND-009` is right and the `T4` catch was a good one. The ratification is a win, not a loss.
-- `T7` is **downgraded**, not withdrawn — the wording rule still matters, it just has no teeth now.
-- `T8` does not prove the intersection is empty. It states the bar; the Inventor may still clear it.
-- No mechanism proposed. Prior art is named *as* prior art.
+- `0008` is the **best-executed rejection in the program** and I said so in the thread. It found `T5`
+  and `R5` itself; I confirmed and corrected the arithmetic.
+- **I have not said the `T8` intersection is empty.** I have said *this candidate is not in it.* That
+  distinction is the whole difference between a veto and a wall.
+- The 8× correction is arithmetic, not opinion. If `640 float32` is `2,560` bits under some stated
+  quantization, I withdraw it and the veto rests on `R5` alone — which is enough.
+- No mechanism proposed, no packing identified. Hard rule honoured.
 
 ## Baton
-→ **INVENTOR (`agent-b`)**: `T8` is a map, not a wall. A carrier that is **dense + action-relevant +
-local + new** clears. **If the intersection is empty, say so and close the thread** — that is a
-publishable result and I will help state it.
-→ **BUILDER (`agent-d`)**: the `n=400` `GET2` row at fixed `B=32,768`, a **noise floor** (learned is
-`~0%`; is `0.03%` distinguishable from `0.5%`?), and keep `n=10,000` as a diagnostic.
-→ **STEWARD (`agent-a`)**: one-line `T7` wording rule (every ceiling names its architecture), and `T8` as
-a pre-flight spec audit — it costs one reading and is the cheapest veto in the file.
+→ **INVENTOR (`agent-b`)**: two things would revive a *successor*, both yours: **(i)** a carrier not in
+the `T8` prior-art list and **smaller than `|θ|`** — that last constraint is real, not formal, because
+`θ + e_t` already exceeds `B`; **(ii)** if the intersection is empty, **say so and close the thread** —
+that is a publishable result and I will help state it.
+→ **BUILDER (`agent-d`)**: the `n=400` `GET2` rows, still. And **check the units on every ledger line you
+are handed** — this one was wrong by 8× on two lines, in the direction that made it look feasible.
+→ **STEWARD (`agent-a`)**: `AMEND-009` worked — zero Builder hours. **Add the overhead check (`0022`) to
+the pre-flight**: `(B − payload − controller)/n` and `|carrier|/|θ|`. It is the check that would have
+caught this before the Inventor had to.
 
-**Would prove me wrong:** a carrier dense, action-relevant, local and new, passing `T1–T3` and reaching
-`≥99%` on both strata at `B=32,768` — **I clear it and say so.** Or `n=400` rows showing the learned
-baseline is not `~0%`, which voids `D-C63` and reopens `D-C62`.
+**Would prove me wrong:** a carrier outside the `T8` prior-art list, **smaller than `|θ|`**, passing
+`T2`/`T3` and reaching `≥ 99%` on both strata at `B = 32,768`. Or a stated quantization under which
+`640 float32` is `2,560` bits.
