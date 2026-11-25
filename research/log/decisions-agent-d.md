@@ -661,3 +661,67 @@ two transcriptions). But that check only worked because the transcript still exi
 The rules I am keeping from this: **commit before sending**, and never `reset --hard` with uncommitted
 work in the tree -- `git stash` first, and treat anything a script commits as having an unknown parent
 until `git log --graph` says otherwise.
+
+## BD-051 — The sandbox re-cloned under me; `HEAD` was the base commit and the tree was untracked
+
+Between turns the repository came back as a **fresh clone**: `git rev-parse HEAD` was `ea3ad96` (the
+branch's base), the reflog held only `clone` and the branch `checkout`, and `git ls-tree -r HEAD` had
+**43 files, none of them under `research/`**. `git status` showed `?? research/` — 2,500 lines of
+published work sitting on disk as untracked files, with `origin/arena/154facdf-anime` still correct at
+`c2afded`.
+
+The dangerous part is that this looks normal from the outside: `git log -1` prints a plausible commit,
+the files open, `RESULTS.md` still has Part 16. Only `git ls-tree -r HEAD | grep -c research` (0) and
+`git ls-files | wc -l` (43) show that the commit does not contain the work, and that a later
+`git add -A` would have re-added every file as new.
+
+Recovery, in this order and no other: `tar czf /tmp/research-backup.tgz research` **first** (a hard reset
+to a tree that contains `research/` will overwrite untracked files of the same name), then
+`git fetch`, then `git reset --hard origin/<branch>`, then untar the backup over the tree. Afterwards
+exactly the two files I had edited showed as modified (`RESULTS.md`, `stream_ram.py`) — the rest of the
+archive matched the commit, which is how I knew the archive and the commit were not in conflict.
+
+Rule: **before trusting that a commit contains my work, count the paths** (`git ls-tree -r HEAD --name-only | grep -c research`). Before any `reset --hard`, archive the untracked tree. The remote branch, not the local checkout, is the record of what I have published.
+
+## BD-052 — The dense-key learned number is a property of the hash: 56.5 points across four layouts
+
+Round 13's ask was to stop letting the harness do the machine's addressing. `two_hop_eval` composed the
+chain in Python (`c.tab[c.tab[a]]`), so the "learned" row never chained and a one-hop mechanism could
+never be told apart from a two-hop one. `ByteChainer` now holds a flat `bytearray` (two bytes per cell,
+`cells × 16` bits exactly), with `addr` and `out` registers; `get2` writes its own answer into `addr`, so
+a wrong first hop reads a **garbage address** instead of a correct second hop.
+
+The measurement that came out of it is a correction, not an improvement:
+
+| byte layout | dense `0..3n` | opaque 16-bit |
+|---|---|---|
+| `lo_first` | 100.00% | 69.50% |
+| `hi_first` | **43.50%** | 61.75% |
+| `fnv` | 100.00% | 69.00% |
+| `xor_rot` | 100.00% | 67.25% |
+
+Dense keys spread **56.50 points**; opaque keys **7.75 points**. So:
+
+- **Part 16's** "dense keys make the ≥99% bar vacuous — a flat table also answers 100%" is **withdrawn**:
+  three layouts answer 100%, one answers 43.50%, and the only thing that varied was which byte entered
+  the hash first. Correct statement: *on dense keys the bar is measured in hash choices.*
+- **Part 15's** `n = 512` learned `100.00%` is **retracted** for the same reason (it was the `lo_first`
+  layout via the harness-composed path).
+- The **reason** for `AMEND-004`'s opaque bytes gets stronger: opaque is the only domain where this
+  baseline is a stable number at all.
+
+Two `certify.py` checks failed on this correction (`C18` and `C19` both asserted `learned == 1.0`). I
+repaired the checks to the corrected claim and kept `C20` new — the gate failing on a correction is the
+gate working, and a check that pins a withdrawn sentence is a false certificate.
+
+## BD-053 — A pass bar's sd must include seed-to-seed variance, not just query sampling
+
+Part 16's sd came from resampling queries inside one task instance: learned `2.43`, oracle `1.58` at
+`n = 400`. Varying the **generator seed** as well (5 seeds × 4 query samples) gives learned `3.51` and
+oracle `2.83`. Pooled that is `≈ 3.2`, so the 14.50-point gap is `≈ 4.5 sd`, not the `≈ 6 sd` quoted.
+
+`D-032`'s bar itself is not affected — `≥ 84.0%` still means "matches the measured oracle" — but the
+justification has to be restated: **"beats the learned table by ≥ 2 pooled sds (≥ 6.4 pts) and matches or
+beats the 84.00% oracle row on the same store"**, with the candidate's own ceiling printed. A sampling-only
+sd overstates separation by roughly 2×, and it overstates it most at `n = 400`, which is exactly the
+stratum `T4` scores.

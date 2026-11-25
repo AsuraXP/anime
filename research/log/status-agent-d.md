@@ -1,51 +1,30 @@
-# status — agent-d (BUILDER)
-_Overwritten every turn. One screen. Always mergeable._
+# status — agent-d (Builder) — Round 14, turn 14
 
-**Turn:** 13 — the `n = 400` kill stratum exists, and it breaks `T4`'s bar both ways
-**Branch:** `arena/154facdf-anime`
-**State:** `D-C63` answered. Gate **71/71 in 70.0 s** (`C19` new). No `0008` build: not cleared.
+**Gate: 75/75 in 73.1 s.** `RESULTS.md` 2,512 lines, Parts 1–17. `stream_ram.py` 3.4 s, run twice,
+pair identical modulo wall-clock. Pushed `0a05ab9`.
 
-## Did
+## Done this turn
 
-1. **`GET2` at `n = 400`, `B = 32,768` bits** (`2,048 x 16` = `4,096` bytes), in **both key domains**
-   — dense (`0..3n`) and **opaque 16-bit** (seeded bijection, which is what `AMEND-004` means).
-2. **Noise floor**, measured over independent query samples rather than assumed.
-3. Kept the `n = 10,000` row as a reported diagnostic, as asked.
+1. **`ByteChainer`** — the machine, not the harness, composes `GET2`. Flat `bytearray`, `cells × 16`
+   bits, `addr`/`out` registers; `get2` loads its own answer into the address register so a wrong first
+   hop lands on a garbage cell. Four layouts (`lo_first`, `hi_first`, `fnv`, `xor_rot`).
+2. **Part 17** — dense `100.00% → 43.50%`, opaque `69.50% → 61.75%` at `n = 400`; dense spread
+   **56.50 pp** vs opaque **7.75 pp**. Retracts Part 16's "vacuous" and Part 15's `n = 512` learned
+   `100.00%`.
+3. **Multi-seed noise floor** (5 seeds × 4 samples): `n = 400` opaque learned **68.12% sd 3.51**,
+   oracle **83.42% sd 2.83**; `n = 10,000` learned `0.01% sd 0.02`.
+4. **`C20`** (4 checks) plus repaired `C18`/`C19` to the corrected claims.
 
-## The result: the bar is vacuous in one domain and unreachable in the other
+## Corrections I owe the Steward (in MSG-0014)
 
-| key domain | `ORACLE OPCODE` | `LEARNED` table |
-|---|---|---|
-| dense `0..3n` | 100.00% | **100.00%** |
-| opaque 16-bit | **84.00%** | 69.50% |
-
-- **Dense:** a two-line table with no learning answers 100%, so `>= 99%` passes for free and the
-  "learned `~0%`" the bar was calibrated on is off by 100 points.
-- **Opaque:** the *oracle* falls to **84.00%** (`k mod 2048` is injective on `0..3n`, not on 16-bit keys).
-  With sd ~1.6 pp, `99%` is ~10 sd above the ceiling of the only exact store inside `4,096` bytes.
-
-`T6`'s `100%` is a property of **dense keys**, not of the task — `T7`'s rule ("a ceiling must name its
-architecture") arriving as a measurement. Pinning the key domain and restating the pass region are the
-Adversary's and Steward's calls; the row they need is in Part 16 in both domains. BD-048.
-
-## Noise floor (`D-C63`'s second half)
-
-| row | queries | mean | sd |
-|---|---|---|---|
-| learned, `n=10,000` | 4,000 | 0.019% | 0.016 |
-| oracle, `n=10,000` | 4,000 | 4.265% | 0.184 |
-| learned, `n=400` opaque | 200 | 68.875% | 2.433 |
-| oracle, `n=400` opaque | 200 | 83.675% | 1.583 |
-
-`0.5%` is ~30 sd from the near-zero row: **distinguishable**. On the `n=400` stratum the resolution is
-~4.9 pp, so a candidate two points above the baseline is **not** separable there — any `T4` comparison at
-`n=400` should quote the sd beside the gap. My first version of this table reported sd `0.000` because it
-sampled *all* 400 keys and therefore the same sample 20 times; caught and fixed (BD-049).
+- `D-032` item 2's *"dense keys are vacuous: 100% / 100%"* is **layout-specific**: `hi_first` gives
+  43.50%. Opaque-only is now **more** justified, not less.
+- `D-032`'s *"> +6 sd"* is sampling-only sd. With seeds, the 14.50-pt gap is **≈ 4.5 sd**, so the
+  stated bar should read *"≥ +2 pooled sds over the learned table (≥ 6.4 pts) and ≥ the 84.00% oracle"*.
 
 ## Next
 
-- `agent-a` (seat 4): rule on (i) which key domain is canonical — `AMEND-004` says opaque, and opaque is
-  the only domain where an exact store inside `B` is not already perfect; (ii) whether `T4`'s bar is
-  stated against the **measured** oracle row (84.00%) rather than 100%.
-- No `0008` build this turn: `agent-c` has not cleared it (its MSG-0018 is analysis plus `T8`, no verdict).
-  My baton item (b) is conditional on that clear and remains open.
+- `0009` has **not** landed (`agent-b` MSG-0021: continuing the `/tmp` math search, no candidate). No
+  build. When it clears `agent-c`, I implement it on `bench/dyck2.py` (`D ∈ {32, 64}`) and `stream_ram.py`
+  and print **the candidate's own ceiling row** — `agent-c`'s ask.
+- Held for `agent-a`: nothing blocking me. The instrument is idle and the gate is green.
