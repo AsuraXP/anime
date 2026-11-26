@@ -866,3 +866,76 @@ calibrations and two rulings on existing clauses, all forced by `Part 16`. And t
 is the honest one and worth repeating: **eight threads in, `0` novel learned mechanisms have reached
 `bench/` code.** That number is the program's real result so far, and it should be in front of every seat
 before `0009` is written.
+
+## D-C81 · 2026-11-23 · RULED: `n = 400` is a SATURATED stratum — an exact store scores 100% for 39% of `B`
+`agent-d`'s `Part 17` correction (dense spread `56.50 pp`, opaque `7.75 pp`) is right about the *hash*
+and I am adopting it: **the dense-key learned row is a property of the byte layout, not of the learner**,
+and `AMEND-004`'s opaque-bytes requirement now has a second, stronger justification. But it stops one
+step short, and the step it omits is arithmetic I had not done either.
+**The opaque-key ceiling is also a hash artefact — it is just a narrower one.** A direct-mapped store at
+`B = 32,768` bits spends `16` bits per cell, so it has `2,048` cells and stores a `32`-bit
+`(key, value)` record as **two** cells (`a→b`, then `b→d`). Cell occupancy is therefore a birthday
+problem: `(1 − 1/2048)^399 = 0.8229`, i.e. a **`82.29%` ceiling at `n = 400`** — against `Part 17`'s
+measured `83.42% ± 2.83`, a **1.13 pp** model offset. **The "oracle" row is a collision count.**
+An exact-subset store packing `32` bits per record gets `1,024` records in the **same** `32,768` bits and
+has **no collisions at all** below `n = 1,024`. At `n = 400` it uses **`12,800` bits = `0.391 × B`**,
+leaves **`60.9%` of the budget spare**, and scores **`100.00%`**. Its read is `⌈log₂ 400⌉ = 9` probes
+of `16` bits ≈ `18` bytes, so a two-hop query is **`~36` bytes/token against `G4`'s `4,096` = `0.9%`**.
+**`G4` does not bind on this stratum and never did.**
+So `84.00%` is **`16.00` points below a sorted array that uses `39%` of `B`**. That is exactly what
+`AMEND-005` §2 forbids in its own words — *"the ceiling must not be reached by a feasible fixed-state
+table or trivial 1-line baseline at equal memory budget"* — and it is `graveyard/0012`'s
+**state-saturated** condition, the one the index says to refuse **before opening a thread**.
+`AMEND-007` §2.2 says the same thing numerically: its implied ceiling is `min(1, B/H_stream)`, and at
+`n = 400` `H_stream = 400 × 32 = 12,800` bits `= 0.39 × B`, so the clause's own formula gives
+**`100%`**. **The measured row is below its charter's ceiling formula**, and nobody noticed because the
+formula was applied to `n` in the `B < H_stream` regime only.
+**Corollary — and this is the part that costs me something: `T4` on `n = 400` is permanently
+`UNSCORABLE`, not merely miscalibrated.** A stratum with a `100%`-ceiling exact store can only report
+the difference between two hash functions. `T4` was written as a consistency check on `T2`/`T3`; on this
+stratum it is a comparison of packings. Filed as **`graveyard/0023`**.
+
+## D-C82 · 2026-11-23 · VOID as an ask, `D-C79`–`D-C80` band: both edges were calibrated to a packing
+`D-C79` split the band's edges into **absolute** (FAIL `73.7%`, the learned table + 2 sd) and
+**relative** (PASS `80.5%`, the Builder's store − 2 sd). `D-C81` shows **both edges are properties of
+Packing A**, so the split was half right and half wrong:
+- **FAIL edge: void.** `73.7%` was `68.875 + 2 × 2.433` on the **harness-composed** learned table. `Part
+  17` moved that same row to `61.75%` **by changing which byte entered the hash first** — a `7.75`-point
+  swing inside one packing. A kill threshold that moves `7.75` points with a layout choice is not a
+  floor. It can also be **met by degrading the store**: a *worse* hash lowers the learned row and
+  *widens* the band without the candidate changing at all.
+- **PASS edge: not relative enough.** `D-C79` was right that the candidate must print its own ceiling.
+  It was wrong to keep `80.5%` as a fallback: `80.5%` is **`2.5 pp` above the worst seed (`78.00%`) of a
+  store that never misses**. On five seeds the oracle ranges `78.00–88.00%`, so this edge **fails a
+  perfect store on roughly a sixth of runs** — a false negative manufactured by sampling, which is the
+  failure `D-C65` and `D-C72` both warned about in this same file.
+**Ruling, replacing the point band now that `T4` is dead on this stratum:** the only bar I will apply on
+any `B`-stratum is **`min(1, (B / (k_bits + v_bits)) / n)` printed beside the measured row**, and the
+denominator is the **higher** of that number and the measured row. Anything else is a bar against one
+hash function. **Third instance of the same class** (`D-C67` unprinted row, `D-C76` projection at the
+wrong `n`, `D-C82` bar calibrated to a packing) — and the recurrence is now itself a finding: **every
+one of my bad numbers came from calibrating against something that was not the thing being measured.**
+
+## D-C83 · 2026-11-23 · RULED: the strata with degrees of freedom are `n > 1,024`, and none of them is being scored
+If `n ≤ B/(k_bits + v_bits) = 1,024`, an exact store has a `100%` ceiling and the stratum cannot
+separate a learner from `bisect`. Every scored row so far (`n = 400`, `n = 512`) is in that range.
+Where both quantities are visible:
+
+| `n` | `H_stream` | exact-subset ceiling | direct-mapped ceiling | separation | status |
+|---|---|---|---|---|---|
+| `400` | `0.39 × B` | `100.00%` | `82.29%` | `17.71 pp` | **saturated** |
+| `512` | `0.50 × B` | `100.00%` | `77.91%` | `22.09 pp` | **saturated** |
+| `1,024` | `1.00 × B` | `100.00%` | `60.68%` | `39.32 pp` | **saturated — the boundary** |
+| `1,500` | `1.46 × B` | `68.27%` | `48.09%` | `20.18 pp` | capped |
+| `2,000` | `1.95 × B` | `51.20%` | `37.67%` | `13.53 pp` | capped |
+| `10,000` | `9.77 × B` | `10.24%` | `0.76%` | `9.48 pp` | capped |
+
+**Peak separation is not the criterion** — `1,024` has the widest gap and is the most saturated cell in
+the table. The criterion is `AMEND-005` §2: the ceiling must be **below** what a feasible fixed-state
+table reaches. **`n = 2,000` is the first stratum where the exact store is at `51%` rather than `100%`**,
+and it is where a learned carrier can be asked a question with a wrong answer available.
+**This is a task-level finding, not a calibration**, and it is the strongest argument yet for the verdict
+I flagged last turn: with `0` novel mechanisms in `bench/` and the scored strata all saturated, the
+honest output of this program so far is `DEAD / UNINFORMATIVE` on **Task B2 at `n = 400`** specifically —
+not on the program. **The `n = 2,000` stratum has never been run.** That is the one experiment I would
+spend the next round on, and it needs no new gate, no new `AMEND`, and no new candidate.
