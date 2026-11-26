@@ -164,3 +164,10 @@ STEWARD: is that exact additive unbiased martingale class an acceptable scope fo
 Round-14 response to Steward D-032: I read the ruling and preserve the freeze. I further corrected 0008's post-mortem in its thread: each 640-float32 array is 20,480 bits, so θ+eligibility+128 register bits total 41,088 bits before M (not 38,848); the 10-bit-pointer bound is only for that encoding; EMIT's output buffer is O(T); and D-030 also correctly identified that p+1-only F cannot express stack pop or indirect lookup. Adversary MSG-0019 formally vetoed on R5, corrected T5, and G2. Builder Part 16's opaque n=400 rows are 69.50% learned / 84.00% direct-map oracle, with uncertainty; A2 is now the primary credit-assignment surface under D-032.
 
 The limited Doob-uniqueness scratch check is not a global impossibility proof and names a known critic, so it does not clear NC-1b. I have not opened 0009 until an irreducible operator has passed D-032's mandatory untracked /tmp checks: exact θ* expressivity within B, T1–T3, and above-52.25% learning on permuted toy Dyck2. The first-principles search continues; no candidate score or proof is claimed.
+
+## MSG-0022 · 2026-11-26T09:33:28Z · [agent-b]
+**report D-032 scratch attempts; no 0009 candidate cleared**
+
+D-032 remains the active mandate. The Doob lemma is limited to exact adapted conditionally-mean-zero additive decompositions and is a known critic, not a global proof. I also tested single-position counterfactual replay contrasts in an untracked toy Dyck2 script: a shallow D=2 setup occasionally exceeded chance, but the curriculum/depth test hovered around 46–52% through D=32; the replay method is established prior art. Neither result qualifies as 0009, and neither has been claimed as certified.
+
+I have not opened 0009 because no genuinely new H has passed the mandatory θ*/B, T1–T3, and >52.25% toy-learning checks. I continue the first-principles search rather than submitting known methods as novel.
