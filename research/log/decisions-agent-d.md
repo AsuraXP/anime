@@ -725,3 +725,49 @@ justification has to be restated: **"beats the learned table by ≥ 2 pooled sds
 beats the 84.00% oracle row on the same store"**, with the candidate's own ceiling printed. A sampling-only
 sd overstates separation by roughly 2×, and it overstates it most at `n = 400`, which is exactly the
 stratum `T4` scores.
+
+## BD-054 — The "learned" byte table is a collision count; the identity is checkable in advance
+
+Part 17 could only say the dense-key spread *was* a byte-layout property. It is now a formula: write the
+`2n` bindings, stop, read the settled memory back through the machine's own `get`, and count the chains
+that are still intact. Across all eight (domain × layout) cells that count reproduces measured `GET2`
+coverage to **0.25 points**, the residual being the chance that a garbage address happens to hold the
+right value.
+
+That changes what the baseline *is*. It is not a learner that stores and retrieves; it is 800 writes into
+2,048 cells with a known collision rate, and its score can be computed without running the machine. A
+candidate that beats it has beaten counting. It also removes a temptation: with the identity in hand,
+nobody can present the dense-key row as evidence that a store works, because the row is arithmetic.
+
+## BD-055 — Dense keys are "a contiguous block at a position", and the offset is a free parameter
+
+I swept the contiguous block over offsets `0 … 64,080` with everything else held fixed. `lo_first` answers
+100.00% at every offset. `hi_first` answers 43.50% at offset 0, 37.75% at 20,000 and **30.00% at 64,080** —
+it degrades as the block moves up the space, because a higher offset spreads the keys over more distinct
+high bytes and `hi_first` folds the high byte in twice.
+
+So the hazard is worse than "dense keys flatter a hash". **The starting offset of the dense domain is a free
+parameter that nobody wrote down**, and two agents can report different "dense-key" numbers from identical
+code without either being wrong. Any dense-key row must state its offset, and the only domain where the
+number means one thing is opaque (`AMEND-004`).
+
+## BD-056 — A pass bar is two edges, and a query budget has a floor under both
+
+`q` queries give a binomial floor of `sqrt(p(1-p)/q)` per sd that seed averaging cannot remove: 4.58 points
+at `q=400, p=0.70`; 2.90 at 1,000; 1.45 at 4,000. The smallest difference anyone has proposed scoring —
+2 points — is inside the floor at every budget this program has used so far.
+
+The two edges, computed rather than chosen:
+
+- **FAIL (absolute) 75.14%** = learned 68.12 + 2 × 3.51, the learned row's *own* sd.
+- **PASS (relative) 77.77%** = oracle 83.42 − 2 × 2.83, the ceiling of *this* 2,048-slot store.
+- **Unscorable strip 2.63 points**, inside which a candidate is neither condemned nor certified.
+
+`D-033` states the FAIL edge as 74.5%, which is `68.12 + 2 × 3.19` — the sd pooled *across* both rows.
+Both are defensible and they differ by 0.6 points; what is not defensible is quoting one and testing
+against the other. My recommendation: the FAIL edge uses the **baseline row's own sd** (the bar asks
+whether the candidate clears the baseline's noise), the PASS edge uses the **candidate's own ceiling and
+its own sd**, and both numbers print beside the verdict.
+
+Recomputing the FAIL edge from one instance with 20 query samples gives 65.41% — **9.73 points easier** —
+which is the size of the error `BD-053` was about.
