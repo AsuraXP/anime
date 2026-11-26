@@ -667,6 +667,54 @@ def check_claims():
                      f"learned n=400 opaque across 3 seeds: {', '.join(f'{v:.1f}%' for v in per_seed)} "
                      f"-> sd {sd:.2f}"))
 
+    # ---------------------------------------------------------------- C21 (turn 15)
+    m18 = re.search(r"PART 18:.*?(?=\n<!-- =|=*\Z)", md0, re.S)
+    part18 = m18.group(0) if m18 else ""
+    out.append(check("C21 Part 18 (counting property, block offsets, hop attribution, resolution) published",
+                     bool(part18) and "chain intact" in part18 and "unscorable" in part18.lower(),
+                     f"{len(part18.splitlines())} lines"))
+
+    # the score is a collision count: chain-intact reproduces measured coverage
+    gaps = []
+    for opaque, hname in ((False, "hi_first"), (True, "lo_first")):
+        hp, hp2, ep, np_ = sw.two_hop(400, sw.SEED + 400, opaque=opaque)
+        qp = sw.sample_queries(list(hp), 400, 400)
+        _, _, ok, _, _ = sw.chain_state(hp, hp2, qp, hash_name=hname)
+        cov, _, _, _ = sw.two_hop_eval(400, 2048, hp, hp2, ep, np_, qp, cache_bits=32768,
+                                       hash_name=hname)
+        gaps.append(abs(cov - ok / len(qp)))
+    out.append(check("C21 chain-intact counts reproduce the measured GET2 coverage (no learning involved)",
+                     max(gaps) <= 0.01,
+                     f"max disagreement {100 * max(gaps):.2f} pts on dense/`hi_first` and opaque/`lo_first`"))
+
+    # the dense artefact follows the block, and gets worse higher up the space
+    lo_v, hi_v = [], []
+    for off in (0, 20000, 64080):
+        hp, hp2, _e, _n = sw.two_hop_block(400, sw.SEED + 400, off)
+        qp = sw.sample_queries(list(hp), 400, 400)
+        lo_v.append(sw.chain_state(hp, hp2, qp, hash_name="lo_first")[2] / len(qp))
+        hi_v.append(sw.chain_state(hp, hp2, qp, hash_name="hi_first")[2] / len(qp))
+    out.append(check("C21 the dense artefact follows the key block, it is not alignment at zero",
+                     min(lo_v) == 1.0 and max(hi_v) < 0.9 and hi_v[0] > hi_v[-1],
+                     f"`lo_first` {', '.join(f'{100 * v:.1f}%' for v in lo_v)} at off 0/20,000/64,080; "
+                     f"`hi_first` {', '.join(f'{100 * v:.1f}%' for v in hi_v)} (worse higher up)"))
+
+    # the band: two absolute edges with a non-empty unscorable strip, and the seed spread is most of the sd
+    hp, hp2, ep, np_ = sw.two_hop(400, sw.SEED + 400, opaque=True)
+    inner = [100 * sw.two_hop_eval(400, 2048, hp, hp2, ep, np_,
+                                   sw.sample_queries(list(hp), 200, 7919 * qi + 31),
+                                   cache_bits=32768)[0] for qi in range(20)]
+    m1 = sum(inner) / len(inner)
+    sd1 = (sum((v - m1) ** 2 for v in inner) / (len(inner) - 1)) ** 0.5
+    lr_m, lr_sd, _, _ = sw.noise_floor(seeds=5, samples=4, opaque=True, use_cache=True)
+    or_m, or_sd, _, _ = sw.noise_floor(seeds=5, samples=4, opaque=True, use_cache=False)
+    fail_edge, pass_edge = lr_m + 2 * lr_sd, or_m - 2 * or_sd
+    out.append(check("C21 the band has a non-empty unscorable strip and single-instance sd understates it",
+                     fail_edge < pass_edge and sd1 < lr_sd and "unscorable" in part18.lower(),
+                     f"FAIL {fail_edge:.2f}% < PASS {pass_edge:.2f}% (strip {pass_edge - fail_edge:.2f} pts); "
+                     f"one-instance sd {sd1:.2f} vs {lr_sd:.2f} across seeds -> "
+                     f"FAIL edge would read {m1 + 2 * sd1:.2f}%, {fail_edge - (m1 + 2 * sd1):.2f} pts easier"))
+
     return out
 
 

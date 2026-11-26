@@ -1,4 +1,4 @@
-<!-- GENERATED -- do not hand-edit. Seventeen parts, their commands below. -->
+<!-- GENERATED -- do not hand-edit. Eighteen parts, their commands below. -->
 <!-- reproduce part 1: python3 research/bench/scorecard.py    (~11 s,  CPU, seeded) -->
 <!-- reproduce part 2: python3 research/bench/k3control.py    (~180 s, CPU, seeded) -->
 <!-- reproduce part 3: python3 research/bench/ceiling.py      (~90 s,  CPU, seeded) -->
@@ -2512,4 +2512,134 @@ class), or an opaque-key row where the four layouts spread as widely as they do 
 (that would mean opacity is not what stabilises the number).
 
 Reproduce: `python3 research/bench/stream_ram.py` (3 s).
+
+
+<!-- ============ PART 18: turn 15 -- why the spread exists, and how finely the band can be measured -->
+# Part 18 -- the byte store's score is a collision count, and the band has two edges (turn 15)
+
+Part 17 left the dense-key spread unexplained: 'a property of the byte layout' is a place-holder,
+not a mechanism. This part names the mechanism, checks it on eight cells, and then uses it to
+state what a pass bar can and cannot resolve at the query budgets this program actually spends.
+
+No `0009` had landed when this was written, so this is instrument work only: nothing here scores
+a candidate, and nothing here is a mechanism proposal.
+
+## 18.1 The score is the number of bindings still in memory
+
+Write all `2n` bindings into the machine, stop, then read the memory back through the machine's own
+`get`. A binding is *surviving* if reading its key returns the value it wrote; a *chain* is intact
+if hop 1 still returns its key's partner **and** hop 2 still returns that partner's value. No
+learner is involved in either count.
+
+| key domain | byte layout | writes | surviving bindings | chain intact | measured `GET2` | gap |
+|---|---|---|---|---|---|---|
+| dense `0..3n` | `lo_first` | 800 | 800 (100.0%) | 100.00% | 100.00% | +0.00 pts |
+| dense `0..3n` | `hi_first` | 800 | 518 (64.8%) | 43.50% | 43.50% | +0.00 pts |
+| dense `0..3n` | `fnv` | 800 | 800 (100.0%) | 100.00% | 100.00% | +0.00 pts |
+| dense `0..3n` | `xor_rot` | 800 | 800 (100.0%) | 100.00% | 100.00% | +0.00 pts |
+| opaque 16-bit | `lo_first` | 800 | 667 (83.4%) | 69.25% | 69.50% | +0.25 pts |
+| opaque 16-bit | `hi_first` | 800 | 632 (79.0%) | 61.75% | 61.75% | +0.00 pts |
+| opaque 16-bit | `fnv` | 800 | 670 (83.8%) | 69.00% | 69.00% | +0.00 pts |
+| opaque 16-bit | `xor_rot` | 800 | 658 (82.2%) | 67.25% | 67.25% | +0.00 pts |
+
+**Largest disagreement between 'chain intact' and the measured `GET2`: 0.25 points across
+all eight cells.** So the byte-addressed baseline is not learning and not forgetting -- it is a
+collision count with a score attached, and every point of its score is one binding that stayed in
+memory. That is precisely what makes it usable as a floor: a candidate that beats it has beaten
+counting, and the number it must beat can be computed in advance rather than measured.
+
+It also settles what Part 16 was actually reporting. The 'learned' table never demonstrated
+storage-and-retrieval; it demonstrated that 800 writes into 2,048 cells lose nothing under three
+of four hashes and a third of their bindings under the fourth.
+
+## 18.2 The artefact follows the key block, it is not alignment at zero
+
+If dense keys were easy because they *start at zero*, moving the block would rescue `hi_first`.
+Same size, same pairings, same number of writes; only the offset of the contiguous block changes.
+
+| byte layout | off 0 | off 1 | off 1,000 | off 20,000 | off 40,000 | off 64,080 |
+|---|---|---|---|---|---|---|
+| `lo_first` | 100.00% | 100.00% | 100.00% | 100.00% | 100.00% | 100.00% |
+| `hi_first` | 43.50% | 43.75% | 42.25% | 37.75% | 32.25% | 30.00% |
+
+`lo_first` answers 100.00-100.00% at every offset. `hi_first` answers
+30.00-43.75% at every offset and **gets worse as the block moves up the space**
+(43.50% at offset 0 down to 30.00% at 64,080). The reason is arithmetic rather than
+semantic: a contiguous block of `n` keys has only a handful of distinct high bytes at the bottom of
+the space and many at the top, and `hi_first` folds the high byte in twice, so the number of
+collisions it suffers grows with the block's position.
+
+The consequence for scoring is sharper than Part 17's: a dense-domain number is not 'the dense
+domain's' number at all, it is *a block in a position under a hash*. Two agents reporting dense-key
+learned scores are not necessarily measuring the same thing even with identical code, because the
+default offset is a free parameter nobody wrote down.
+
+## 18.3 Half the failures are address failures
+
+The in-machine `GET2` makes the two failure modes separable: hop 1 can return the wrong partner
+(after which the second lookup reads a garbage address) or hop 1 can be right and hop 2's value
+lost to a collision. On the same `hi_first` machine, before the edit:
+
+| key domain | chains intact | broke at hop 1 (address) | broke at hop 2 (value) |
+|---|---|---|---|
+| dense `0..3n` | 174 / 400 | 138 | 88 |
+| opaque 16-bit | 247 / 400 | 120 | 33 |
+
+The address hop dominates in both domains (138 vs 88 dense, 120 vs
+33 opaque). This is the cost the Part 16 harness could not charge: `c.tab[c.tab[a]]`
+in Python fetched the *correct* value for a wrong address, so a broken first hop scored as if the
+chain had held. Only a machine that feeds its own output back into its address path can make that
+failure visible, and it is the majority of them.
+
+## 18.4 The resolution budget, and both edges of the band
+
+A coverage measured on `q` queries carries a binomial floor of `sqrt(p(1-p)/q)` per standard
+deviation that no amount of seed averaging removes. It decides which gaps are real at a budget:
+
+| queries | 1 sd at p=0.70 | 2 sd | 1 sd at p=0.85 | 2 sd |
+|---|---|---|---|---|
+| 200 | 3.24 pts | 6.48 pts | 2.52 pts | 5.05 pts |
+| 400 | 2.29 pts | 4.58 pts | 1.79 pts | 3.57 pts |
+| 1,000 | 1.45 pts | 2.90 pts | 1.13 pts | 2.26 pts |
+| 4,000 | 0.72 pts | 1.45 pts | 0.56 pts | 1.13 pts |
+| 10,000 | 0.46 pts | 0.92 pts | 0.36 pts | 0.71 pts |
+
+At `q = 400` and `p = 0.70` two sds is **4.58 pts** before any seed noise is added. The
+`n=400` learning gap in this file is 14.5 points, and the smallest difference anyone has proposed
+scoring is 2 points -- inside the floor at every budget below about 4,000 queries.
+
+With the multi-seed floor from Part 17, the two edges are:
+
+- **FAIL edge (absolute): 75.14%** = learned `68.12%` + 2 x `3.51`. Below this a
+  candidate has not beaten the two-line baseline, whatever it stores.
+- **PASS edge (relative): 77.77%** = oracle `83.42%` - 2 x `2.83`. This is the
+  ceiling of *this* store at 2,048 slots; a candidate with a different store prints its own ceiling
+  and the edge moves with it, which is `T7` applied to the bar rather than the ceiling.
+- **Unscorable strip: 2.63 points.** A candidate landing inside it is neither
+  condemned nor certified. Reporting it as either is the failure this section exists to prevent.
+
+And the sd has to include seeds: one instance with 20 query samples reads `60.38%` sd `2.52`,
+against `3.51` across instances. The single-instance sd would put the FAIL edge at
+`65.41%` -- **9.73 points easier to clear** -- from a number that only
+ever measured query sampling. The seed spread is not decoration on the sampling spread; it is most
+of it.
+
+## 18.5 Audit of this part
+
+**Certified:** `C21` recomputes the chain-intact identity on two cells, the block-offset sweep on
+three offsets, and both band edges from `noise_floor()` rather than from any constant written here.
+`stream_ram.py` runs twice identically modulo wall-clock.
+
+**Not claimed:** that `chain intact` explains *every* layout on *every* key set -- it explains these
+eight cells, and the mechanism (collisions) is general while the numbers are not. **Not claimed:**
+that the unscorable strip is narrow enough to be harmless; at `n = 400` it is 2.6 points wide and
+the strip is where an honest candidate most plausibly lands. **Not claimed:** that the FAIL edge is
+a fair bar for a store with different capacity -- it is a bar for beating *this* baseline.
+
+**What would prove this wrong:** a cell where chain-intact and measured coverage differ by more
+than a few points (that would mean the machine is losing chains the memory still holds), or a
+layout whose dense-key loss does not move with the offset (that would make the collision
+explanation arithmetic coincidence rather than structure).
+
+Reproduce: `python3 research/bench/stream_ram.py` (4 s).
 

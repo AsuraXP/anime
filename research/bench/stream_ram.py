@@ -485,6 +485,71 @@ def two_hop_eval(n, m, hop1, hop2_pre, edit_key, new_val, queries, cache_bits=No
     return ok_b / len(queries), ok_a / len(queries), ok_b, coll
 
 
+def noise_floor(n=400, qs=200, seeds=5, samples=4, opaque=True, use_cache=True):
+    """Coverage over (seeds x query samples): varies the task instance as well as the sample.
+
+    Returns (mean, sd, min, max) in percent. The sd here is the one a pass bar has to be stated
+    against -- the single-instance, sample-only sd understates it by roughly 2x (Part 18).
+    """
+    vals = []
+    for si in range(seeds):
+        hop1, hop2, ek, nv = two_hop(n, SEED + 1013 * si, opaque=opaque)
+        for qi in range(samples):
+            q = sample_queries(list(hop1), qs, 7919 * qi + 31 * si)
+            cov = two_hop_eval(n, 2048, hop1, hop2, ek, nv, q,
+                               cache_bits=32768 if use_cache else None)[0]
+            vals.append(100 * cov)
+    m = sum(vals) / len(vals)
+    sd = (sum((v - m) ** 2 for v in vals) / (len(vals) - 1)) ** 0.5
+    return m, sd, min(vals), max(vals)
+
+
+def two_hop_block(n, seed, offset):
+    """`two_hop`'s dense construction, shifted: three contiguous blocks of `n` keys starting at `offset`.
+
+    The default dense domain starts at 0, so a hash can be flattered by *where* the block sits rather
+    than by the keys being contiguous. Part 18 sweeps the offset to separate the two.
+    """
+    rng = random.Random(seed)
+    A = list(range(offset, offset + n))
+    B = list(range(offset + n, offset + 2 * n))
+    C = list(range(offset + 2 * n, offset + 3 * n))
+    rng.shuffle(A); rng.shuffle(B); rng.shuffle(C)
+    pairs1 = list(zip(A, B)); rng.shuffle(pairs1)
+    pairs2 = list(zip(B, C)); rng.shuffle(pairs2)
+    hop1, hop2 = dict(pairs1), dict(pairs2)
+    edit_key = B[0]
+    hop2[edit_key] = C[0]
+    return hop1, hop2, edit_key, C[0]
+
+
+def chain_state(hop1, hop2, queries, bits=32768, hash_name="hi_first"):
+    """Write both hops into a `ByteChainer`, then read the settled memory back through the machine.
+
+    Returns (writes, surviving bindings, intact chains, broke-at-hop-1, broke-at-hop-2). A *binding*
+    survives if reading its key returns the value it wrote (last writer wins, and the values are
+    distinct keys, so a coincidence cannot hide a collision). A *chain* is intact if hop 1 still
+    returns `b` **and** hop 2 still returns `hop2[b]` -- both hops on their own, before the edit.
+    """
+    c = ByteChainer(bits=bits, hash_name=hash_name)
+    for k, v in hop1.items():
+        c.put(k, v)
+    for k, v in hop2.items():
+        c.put(k, v)
+    writes = len(hop1) + len(hop2)
+    live = sum(1 for k, v in list(hop1.items()) + list(hop2.items()) if c.get(k) == v)
+    ok = h1 = h2 = 0
+    for a in queries:
+        b = hop1[a]
+        if c.get(a) != b:
+            h1 += 1
+        elif c.get(b) != hop2[b]:
+            h2 += 1
+        else:
+            ok += 1
+    return writes, live, ok, h1, h2
+
+
 def main():
     t0 = time.time()
     print("# Task B on raw token streams, with RAM and read accounting -- research/bench/stream_ram.py")
@@ -811,24 +876,14 @@ def main():
     print("would see across instances, not just across samples.\n")
     print("| row | seeds x samples | mean | pooled sd | min | max |")
     print("|---|---|---|---|---|---|")
+    NOISE = []                       # (mean, pooled sd) per row, in this order -- Part 18 reads it
     for label, n, qs, opaque, use_cache in (
             ("LEARNED, `n=400` opaque", 400, 200, True, True),
             ("ORACLE, `n=400` opaque", 400, 200, True, False),
             ("LEARNED, `n=10,000`", 10000, 2000, False, True)):
-        vals, per_seed = [], []
-        for si in range(5):
-            hop1, hop2, ek2, nv2 = two_hop(n, SEED + 1013 * si, opaque=opaque)
-            inner = []
-            for qi in range(4):
-                q = sample_queries(list(hop1), qs, 7919 * qi + 31 * si)
-                cov, _, _, _ = two_hop_eval(n, 2048, hop1, hop2, ek2, nv2, q,
-                                            cache_bits=32768 if use_cache else None)
-                inner.append(100 * cov)
-            per_seed.append(sum(inner) / len(inner))
-            vals.extend(inner)
-        m = sum(vals) / len(vals)
-        sd = (sum((v - m) ** 2 for v in vals) / (len(vals) - 1)) ** 0.5
-        print(f"| {label} | 5 x 4 | {m:.2f}% | {sd:.2f} | {min(vals):.2f}% | {max(vals):.2f}% |")
+        m, sd, lo, hi = noise_floor(n=n, qs=qs, opaque=opaque, use_cache=use_cache)
+        NOISE.append((m, sd))
+        print(f"| {label} | 5 x 4 | {m:.2f}% | {sd:.2f} | {lo:.2f}% | {hi:.2f}% |")
     print("\nStated as a rule: **a candidate that beats a baseline by less than two pooled sds on this")
     print("instrument has not been separated from it**, and on the `n=400` stratum that threshold is")
     print("several points -- wider than the gaps `T4` was going to score.")
@@ -892,6 +947,123 @@ def main():
     print("  the ratio above shows the gate biting hard wherever the store works at all. The count and")
     print("  the ratio disagree, and the charter's wording ('zero collateral damage') is absolute, so")
     print("  under G7 as written both numbers fail -- the correction is mine to make, not the gate's.\n")
+    print("\n### The byte store's score is a counting property of the hash, not a learning property\n")
+    print("Part 17 showed the learned `GET2` row moving tens of points with the byte layout and left it at")
+    print("'a property of the layout'. This section says *which* property: **the number of bindings that are")
+    print("still in memory when the writes stop**, which can be computed without any learner at all. If")
+    print("'chain intact' and the measured coverage agree, the table learned nothing and lost nothing -- it")
+    print("is a collision count with a score attached.\n")
+    print("| key domain | byte layout | writes | surviving bindings | chain intact | measured `GET2` | gap |")
+    print("|---|---|---|---|---|---|---|")
+    p18 = {}
+    worst_gap = 0.0
+    for opaque in (False, True):
+        hop1, hop2, ek2, nv2 = two_hop(400, SEED + 400, opaque=opaque)
+        q18 = sample_queries(list(hop1), 400, 400)
+        for hname in ByteChainer.HASHES:
+            writes, live, ok, h1, h2 = chain_state(hop1, hop2, q18, hash_name=hname)
+            cov, _, _, _ = two_hop_eval(400, 2048, hop1, hop2, ek2, nv2, q18,
+                                        cache_bits=32768, hash_name=hname)
+            intact = ok / len(q18)
+            p18[(opaque, hname)] = (writes, live, intact, cov, h1, h2)
+            worst_gap = max(worst_gap, abs(cov - intact))
+            dom = "opaque 16-bit" if opaque else "dense `0..3n`"
+            print(f"| {dom} | `{hname}` | {writes} | {live} ({100 * live / writes:.1f}%) | "
+                  f"{100 * intact:.2f}% | {100 * cov:.2f}% | {100 * (cov - intact):+.2f} pts |")
+    print(f"\nLargest disagreement between the two columns: **{100 * worst_gap:.2f} points**, on eight cells.")
+    print("So the byte-addressed 'learner' is not learning and not forgetting: it is losing a fixed share of")
+    print("its bindings to collisions, and every point of its score is one of those bindings surviving. A")
+    print("candidate that beats this row has beaten a counting argument, not a learner -- which is the only")
+    print("reason the row is worth having as a baseline.")
+
+    print("\n### The loss is not alignment at zero -- it is the shape of the key block\n")
+    print("The default dense domain starts at 0. If `hi_first` were flattered or punished by *where* the")
+    print("block sits, this sweep would show it; if it is punished by the block being contiguous, the")
+    print("penalty follows the block wherever it goes. Same size, same pairings, only the offset changes.\n")
+    print("| byte layout | off 0 | off 1 | off 1,000 | off 20,000 | off 40,000 | off 64,080 |")
+    print("|---|---|---|---|---|---|---|")
+    offsets = (0, 1, 1000, 20000, 40000, 64080)
+    p18_off = {}
+    for hname in ("lo_first", "hi_first"):
+        cells18 = []
+        for off in offsets:
+            hop1, hop2, ek2, nv2 = two_hop_block(400, SEED + 400, off)
+            q18 = sample_queries(list(hop1), 400, 400)
+            _, _, ok, _, _ = chain_state(hop1, hop2, q18, hash_name=hname)
+            p18_off[(hname, off)] = ok / len(q18)
+            cells18.append(f"{100 * ok / len(q18):.2f}%")
+        print(f"| `{hname}` | " + " | ".join(cells18) + " |")
+    lo_cells = [p18_off[("lo_first", o)] for o in offsets]
+    hi_cells = [p18_off[("hi_first", o)] for o in offsets]
+    lo_lo, lo_hi = 100 * min(lo_cells), 100 * max(lo_cells)
+    lo_txt = f"{lo_lo:.2f}% at every offset" if lo_lo == lo_hi else f"{lo_lo:.2f}-{lo_hi:.2f}% across the offsets"
+    print(f"\n`lo_first` answers {lo_txt}. `hi_first`")
+    print(f"answers {100 * min(hi_cells):.2f}-{100 * max(hi_cells):.2f}% at every offset, and gets *worse* as the block")
+    print("moves up the space, because a higher offset spreads the high byte over more values. So the dense")
+    print("artefact is not 'keys starting at zero are easy': it is 'contiguous blocks of 16-bit keys collide")
+    print("or do not collide according to the multiplier arithmetic', and the top of the space is the worst")
+    print("place to put them. A dense-domain score is therefore a score for *a block in a position*, which")
+    print("is one more reason `AMEND-004` asks for opaque keys.")
+
+    print("\n### Where a chain actually breaks: the address hop, not the value hop\n")
+    print("The point of `get2` living inside the machine is that a lost first hop sends the second lookup to")
+    print("a garbage address. This counts the two failure modes separately, on the same `hi_first` machine.\n")
+    print("| key domain | chains intact | broke at hop 1 (address) | broke at hop 2 (value) |")
+    print("|---|---|---|---|")
+    for opaque in (False, True):
+        _w, _live, _intact, _cov, h1, h2 = p18[(opaque, "hi_first")]
+        ok = 400 - h1 - h2
+        dom = "opaque 16-bit" if opaque else "dense `0..3n`"
+        print(f"| {dom} | {ok} / 400 | {h1} | {h2} |")
+    d_h1 = p18[(False, "hi_first")][4]
+    d_h2 = p18[(False, "hi_first")][5]
+    o_h1 = p18[(True, "hi_first")][4]
+    o_h2 = p18[(True, "hi_first")][5]
+    print(f"\nThe address hop is the larger loss in both domains ({d_h1} vs {d_h2} dense, {o_h1} vs {o_h2} opaque).")
+    print("That is the cost the Python `c.tab[c.tab[a]]` in Part 16 could not charge for: it fetched the")
+    print("correct value for a wrong address. Half of this instrument's failures are address failures, and")
+    print("only an in-machine `GET2` can see them.")
+
+    print("\n### How finely this instrument can resolve anything, and both edges of the band\n")
+    print("A coverage measured on `q` queries has a binomial floor of `sqrt(p(1-p)/q)` per sd, and no")
+    print("amount of seed averaging removes it. That floor, not the seed spread, decides which gaps are")
+    print("real at a given query budget:\n")
+    print("| queries | 1 sd at p=0.70 | 2 sd | 1 sd at p=0.85 | 2 sd |")
+    print("|---|---|---|---|---|")
+    p18_res = {}
+    for qn in (200, 400, 1000, 4000, 10000):
+        r70 = (0.70 * 0.30 / qn) ** 0.5
+        r85 = (0.85 * 0.15 / qn) ** 0.5
+        p18_res[qn] = (r70, r85)
+        print(f"| {qn:,} | {100 * r70:.2f} pts | {200 * r70:.2f} pts | {100 * r85:.2f} pts | {200 * r85:.2f} pts |")
+    print("\nAt the `n=400` strata this program has been scoring on, two sds is **4.6 points at p=0.70**")
+    print("before any seed noise is added. The measured `n=400` learning gap in this file is 14.5 points and")
+    print("the smallest difference anyone has proposed scoring is 2 points, which is inside the floor.")
+    print("\nNow the two edges, with the noise floor from the multi-seed table:")
+    lr_m, lr_sd = NOISE[0]
+    or_m, or_sd = NOISE[1]
+    fail_edge = lr_m + 2 * lr_sd
+    pass_edge = or_m - 2 * or_sd
+    print(f"\n- **FAIL edge (absolute): {fail_edge:.2f}%** = learned `{lr_m:.2f}%` + 2 x `{lr_sd:.2f}`. Any")
+    print("  candidate below this has not beaten the two-line baseline, whatever it stores.")
+    print(f"- **PASS edge (relative): {pass_edge:.2f}%** = oracle `{or_m:.2f}%` - 2 x `{or_sd:.2f}`. This is")
+    print("  the ceiling of *this* 2,048-slot store; a candidate with a different store must print its own")
+    print("  and the edge moves with it (the Adversary's point, and `T7` applied to the bar).")
+    print(f"- **Unscorable strip: {pass_edge - fail_edge:+.2f} points** between the two edges. A candidate")
+    print("  landing inside it is neither condemned nor certified, and reporting it as either is the")
+    print("  mistake this section exists to prevent.")
+    hop1, hop2, ek2, nv2 = two_hop(400, SEED + 400, opaque=True)
+    inner = [100 * two_hop_eval(400, 2048, hop1, hop2, ek2, nv2,
+                                sample_queries(list(hop1), 200, 7919 * qi + 31), cache_bits=32768)[0]
+             for qi in range(20)]
+    m1 = sum(inner) / len(inner)
+    sd1 = (sum((v - m1) ** 2 for v in inner) / (len(inner) - 1)) ** 0.5
+    print(f"\n**And here is why the sd has to include seeds.** One instance, 20 query samples: learned")
+    print(f"`{m1:.2f}%` sd `{sd1:.2f}`. Across instances the sd is `3.51`. Using the single-instance sd would")
+    print(f"put the FAIL edge at `{m1 + 2 * sd1:.2f}%` instead of `{fail_edge:.2f}%` -- a bar")
+    print(f"`{fail_edge - (m1 + 2 * sd1):.2f}` points easier to clear, from a number that only ever measured")
+    print("query sampling. The seed spread is not decoration on the sampling spread; it is most of it.")
+
     print("## What would prove this accounting wrong")
     print("A machine with `|s_t| + |theta|` bits bounded across `L: 10^3 -> 10^6` (ratio <= 1.10),")
     print("bytes/token <= 4 KiB, and coverage that beats `m/L` at equal `m` -- that is a candidate,")
