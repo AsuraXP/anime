@@ -57,6 +57,7 @@ An entry that only says "this is hard" is not an entry. It must name the mechani
 | `0020-capacity-is-the-budget.md` | superposed / holographic / fast-weight stores (any read that touches every element) | capacity `∝ d` and bytes/token `∝ d` are the **same proportionality**, so a traffic gate is a capacity gate. Measured: at 16,384 bits a table holds **1,024 bindings** and a `d=1024` vector holds **~9** — **114× at equal bits**; `d=2048` blows the 4 KiB budget | **any superposition / VSA / fast-weight proposal** — print capacity and bytes/token against the same parameter; if both are `Θ(d)`, the gate fixes the score |
 | `0021-capacity-cannot-buy-the-dispatch.md` | "scale the learned controller" — NTM / DNC / neural-RAM lineage, and every "give it a bigger `B`" repair | the bit count is not the binding constraint. Measured: a **69-bit** hand-coded syntax test scores **100.00%** at `D=64` while a **32,768-bit** learned table scores **chance** — **475× the bits for zero gain**; on one-hop the learned machine *beats* the exact store (**20.10% vs 9.20%**) by generalizing, not by bits; on `GET2` both collapse | **any proposal whose repair for a low score is more state** — print the oracle's bits and the best legal learned score at `≥10×` those bits; if it is at chance, the constraint is signal, not capacity |
 | `0022-overhead-exceeds-the-budget.md` | "sparse linked cells at a fixed `B`" and "a full eligibility trace as the carrier" | overhead is charged against the same `B` as the payload, and nobody prints the allowance until it is negative. Measured: `800 × 42` = **33,600 bits** before any controller (a **10-bit pointer is 24% of `B`**); and a full trace costs **exactly `|θ|`**, so `0008`'s controller alone was **1.25× `B`** — while its ledger said `1.19×` because it read `640 float32` as `2,560` **bits** instead of **20,480** (bytes, not bits: 8×) | **any sparse/pointer/trace design** — print `(B − payload − controller)/n` against the per-cell overhead, and `|e_t|` against `|θ|`, before the payload |
+| `0023-packing-decides-the-ceiling.md` | a kill stratum whose ceiling is one **lossy one-word-per-cell store**, compared to a candidate at matched `B`, when an **exact-subset store with a probing read** also costs `B` | at a fixed `B` the ceiling is a property of **bits-per-record**, not of the task: `2,048 cells × 16 b` stores a `32`-bit record as two cells and collides — birthday ceiling **`82.29%`** at `n=400`, measured **`83.42% ± 2.83`** (a **1.13 pp** model offset, so the row is a collision count); an exact store packing `32 b/record` gets `1,024` records in the **same** bits, uses **`39%` of `B`**, and scores **`100%`** — so `84%` is **16 points below a sorted array**. Reads are `~36` bytes/token vs `G4`'s `4,096` (**`0.9%`**), so `G4` never bound | **any pass bar calibrated to a measured row** — print `min(1,(B/(k_bits+v_bits))/n)` beside it and take the **higher** as the denominator; and **any `n ≤ 1,024` stratum**, where the exact ceiling is `100%` |
 
 **Superseded:** `0001-operand-coverage.md` — measurement certified, escape condition refuted (the
 "repair" is a 200/200 hand-written adder). Superseded by `0002` + `0007` + `0012`.
@@ -80,7 +81,9 @@ with its unobserved transitions left out. So no candidate can beat the baseline 
 any falsifier built on it is passed by construction. Before opening a thread, name a task family a
 1-bit FST cannot saturate.
 
-**Order of checks for a new candidate:** `0014` (is the kill metric scored on a split where the
+**Order of checks for a new candidate:** `0023` (does the **reference row** keep one record per cell
+at `k_bits + v_bits`, and is `n` above `B/(k+v)`? if not, the ceiling is a birthday count and the
+bar is a hash function), `0014` (is the kill metric scored on a split where the
 mechanism can be wrong?), `0015` (is the state space counted **at the declared envelope**? Dyck-1 is
 19 states at `D=16` and unbounded only in a limit nobody runs), `0016` (are the bits **in the store**
 while only the pointer is counted? total bits written, RAM + store, at `L = 10³` and `10⁶`),
@@ -98,7 +101,7 @@ then `0004`/`0009` (does the index contain the thing you are testing?), then `00
 the bits and what is the capacity), then `0011` (is the gap a curve or a point?), then
 `0005`/`0006`/`0008`/`0010` (is the fix a constant, a trainer, or a store you are not admitting to).
 
-**The ten checks that have killed every thread so far, all under a second:**
+**The eleven checks that have killed every thread so far, all under a second:**
 1. **State-space check (`0013`).** Enumerate the composites reachable from the generators. If
    `|states| / |Σ|^depth` ≈ 0, it is a finite automaton and the thread is dead.
 2. **Envelope check (`0015`).** Count the states **at the declared envelope**, not at the enumeration
@@ -133,6 +136,16 @@ the bits and what is the capacity), then `0011` (is the gap a curve or a point?)
     dead by arithmetic, twice, before a line was written. **And check the units on every ledger line**:
     `640 float32` is **20,480 bits**, not `2,560`, and that single bytes/bits slip understated the
     overrun 8×.
+
+11. **Ceiling-packing check (`0023`).** Before reading any row as a ceiling, ask **how many bits the
+    reference store spends on one record against `k_bits + v_bits`**. If it spends `≤ k_bits + v_bits`
+    and fits one record per cell, its ceiling is a **birthday count**; if it packs `k_bits + v_bits` per
+    record, its ceiling is `min(1, (B/(k_bits+v_bits))/n)` and is `100%` for every `n ≤ B/(k+v)`.
+    `0008`: the `84.00%` "oracle" at `n = 400` is `82.29%` collision model, while an exact store using
+    **`39%` of `B`** scores **`100%`** — so the scored stratum is **saturated** (`AMEND-005` §2's
+    "feasible fixed-state table at equal memory budget", by its own wording) and any bar drawn inside
+    it was drawn inside a hash function. **Print the packing, the record width, the cell count and
+    `(B/(k+v))/n` on the same line as the score.** Cost: `< 1 s`, no run.
 
 **The cheapest check of all, and it killed two numbers in this repo:** compute the **analytic
 ceiling** of the harness before reading the score. If measured == ceiling, the experiment had zero

@@ -368,6 +368,57 @@ both moves than pretend I was right the first time: **the rule was right, my con
 
 ---
 
+### 3.4 `T4` is withdrawn on `n = 400` entirely (turn 17) — the stratum is saturated, and that is arithmetic
+
+`Part 17` corrected the dense-key row (*"on dense keys the bar is measured in hash choices"*) and I
+adopt that. But the correction stops one step short, and the missing step is the one that decides this
+instrument.
+
+**`84.00%` is not a task ceiling. It is a collision count.** The Builder's store spends `16` bits per
+cell, so `B = 32,768` bits buys `2,048` cells, and a `32`-bit `(key, value)` record occupies **two** of
+them (`a→b` and `b→d`). Occupancy is a birthday problem: `(1 − 1/2048)^399 = 0.8229` → **`82.29%`**,
+against the measured `83.42% ± 2.83`. A **1.13 pp** offset. The opaque-key row is a hash artefact too —
+a narrower one than the dense row, not a different kind of number.
+
+**An exact-subset store in the same `32,768` bits has `100%` of the ceiling and uses `39%` of the
+budget.** `32` bits per record → `1,024` records → `n = 400` costs `12,800` bits (`0.391 × B`), leaves
+`60.9%` spare, and never collides below `n = 1,024`. Its read is `⌈log₂ 400⌉ = 9` probes of `16` bits
+≈ `18` bytes, so `GET2` is `~36` bytes/token against `G4`'s `4,096` — **`0.9%` of the traffic gate**.
+`G4` does not bind on this stratum.
+
+| `n` | `H_stream` | exact-subset | direct-mapped | separation | |
+|---|---|---|---|---|---|
+| `400` | `0.39 × B` | **`100.00%`** | `82.29%` | `17.71 pp` | **saturated — the scored stratum** |
+| `512` | `0.50 × B` | **`100.00%`** | `77.91%` | `22.09 pp` | **saturated** |
+| `1,024` | `1.00 × B` | **`100.00%`** | `60.68%` | `39.32 pp` | **saturated — boundary** |
+| `2,000` | `1.95 × B` | `51.20%` | `37.67%` | `13.53 pp` | capped — **first stratum with a wrong answer available** |
+| `10,000` | `9.77 × B` | `10.24%` | `0.76%` | `9.48 pp` | capped |
+
+**So `T4` as written is withdrawn on `n = 400` — not recalibrated, withdrawn.** `AMEND-005` §2 forbids
+this stratum in its own words (*"the ceiling must not be reached by a feasible fixed-state table … at
+equal memory budget"*), and `AMEND-007` §2.2's own formula `min(1, B/H_stream)` gives `100%` at
+`n = 400` because `H_stream = 0.39 × B`. **The measured row is below its charter's ceiling formula.**
+A stratum whose ceiling is `bisect` can only report the difference between two hash functions.
+
+**And the band from §3.3 dies with it, in both directions.** `D-C79` called the FAIL edge absolute; it
+is not — `Part 17` moved the *same* learned row from `68.875%` to `61.75%` by changing which byte entered
+the hash first, a `7.75`-point swing inside one packing. Worse, a **worse** hash lowers the learned row
+and therefore *widens* my band while the candidate is unchanged. The PASS edge `80.5%` is `2.5 pp` above
+the worst of five seeds of a store that never misses (`78.00–88.00%`), so it **fails a perfect store on
+~15% of runs**. Both defects are `T7`'s rule — audit the number being called a ceiling — applied to the
+bar instead of the ceiling.
+
+**What replaces it:** the only bar I will apply on any `B`-stratum is
+**`min(1, (B / (k_bits + v_bits)) / n)` printed beside the measured row**, with the denominator taken as
+the **higher** of that number and the measured row. On `n = 400` that denominator is `100%`, and a
+candidate at `84%` is **`16` points below a sorted array that uses `39%` of `B`** — which is the correct
+reading of the number, and the one `T4` should have produced.
+
+**Filed:** `graveyard/0023` (packing decides the ceiling), check #11. **The experiment this asks for is
+`n = 2,000`**, which needs no new gate, no new `AMEND`, and no candidate.
+
+---
+
 ## 4. Carrier vs regularizer — the distinction T2 operationalizes
 
 `AMEND-008` clause 1 names three admissible families as examples. All three are prior art, and one of
