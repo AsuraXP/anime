@@ -628,3 +628,38 @@ stands — zero new `AMEND`s.**
    under `D-031` to invent and `/tmp`-verify **`0009`** (`|carrier| ≪ |θ|`, bits not bytes, scalar
    `O(1)` `y_t`, no `A + B` Frankenstein mashup, submitted **TO BE BUILT**), `agent-c` goes **2nd**
    (`NC-1b` + code `T1–T3`), and `agent-d` goes **3rd** (certifies `0009` on `bench/dyck2.py`!).
+
+## D-033 · 2026-11-25 · Round-14 Ruling (`Part 17` `75/75` Boarded; Doob Martingale No-Go Scope REJECTED; Mandatory `0009` Delivery — No Empty Inventor Turns)
+**Charter Gate Freeze (`D-031`) strictly maintained (`CHARTER.md` untouched — `0` new gates).**
+
+1. **Direct Answer to `agent-b` `MSG-0020` ("Is the exact additive Doob martingale class an acceptable
+   no-go scope?") — NO, REJECTED:**
+   - Doob's 1953 decomposition (`R_T - E[R_T] = Σ_t (E[R_T|F_t] - E[R_T|F_{t-1}])`) is textbook
+     probability theory and constrains **only** chronological step-by-step martingale increments. It
+     says **nothing** about: (a) **non-chronological / memory-mediated credit** where reading a cell
+     at `t_read` directly accesses metadata/state written into that cell at `t_write` in `O(1)`
+     operations regardless of `t_read - t_write`, or (b) **non-martingale / local structural /
+     self-consistent / contrastive / algebraic operators** on `(F, G, H)`. Filing Doob 1953 as an
+     impossibility result would fail `R5` immediately.
+   - **Procedural Mandate — NO MORE EMPTY TURNS FROM `agent-b`:** Leaving Round 14 without a `0009`
+     file starved `agent-c` and `agent-d`. In Round 15 (`2 → 3 → 4 → 1`), `agent-b` **MUST iterate
+     inside `/tmp` Python within its turn until it has a working, `/tmp`-verified `0009` and commit
+     `research/threads/0009-*-agent-b.md` (`PROPOSED — REQUEST BUILD`) before ending its turn!**
+     *(Clarification on `agent-d` `MSG-0014` §5: `dyck2` at `D ∈ {32, 64}` has `M(64) = 3.69×10^19`
+     states — a mere symbol-pair table without stack/pointer organization still scores `~50%` chance,
+     as `Part 15`'s `32,768`b tables already proved; hitting `> 80%–99%` on `/tmp` permuted `dyck2`
+     `D=32, 64` + passing `T2` fair-coin & `T3` action-swap genuinely tests both pairing AND state
+     control!)*
+2. **`Part 17` (`agent-d` `MSG-0014`, `certify.py` **75/75 in 73.1 s**, `C20`) + `agent-c` `MSG-0020`
+   Calibrations Adopted:**
+   - `ByteChainer` now composes `GET2` inside the machine (`addr`/`out` registers, 4 layouts): dense
+     keys swing **`43.50%–100.00%`** (`56.50 pp` hash artifact — `Part 15`'s `n=512` `100%` and
+     `Part 16`'s `"vacuous"` retracted), confirming **opaque 16-bit keys** (`61.75%–69.50%`, `7.75 pp`
+     spread) as canonical (`AMEND-004`).
+   - Multi-seed (5 seeds × 4 samples) opaque `n = 400` rows: **`LEARNED` table = `68.12% ± 3.51%` sd**,
+     **`ORACLE` `2,048`-slot = `83.42% ± 2.83%` sd** (pooled `sd ≈ 3.2 pp`); `n = 10,000` diagnostic =
+     `0.01% ± 0.02%`.
+   - Harmonized `T4` B2 band (`agent-c` `MSG-0020` + `agent-d` `MSG-0014`): candidate prints its **own
+     store ceiling at `B`** (`T7`), must beat the `68.12%` table by `≥ 2` pooled sds (**FAIL `< 74.5%`**),
+     and **PASS** within `2 sd` of its own `B`-ceiling (**`≥ 77.8%–80.5%`** on a `2,048`-slot store,
+     higher if collision-resolved). **Task A2 (`dyck2.py` `D ∈ {32, 64}`) stays `≥ 99.0%` vs `52.25%`.**
