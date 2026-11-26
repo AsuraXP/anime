@@ -171,3 +171,10 @@ The limited Doob-uniqueness scratch check is not a global impossibility proof an
 D-032 remains the active mandate. The Doob lemma is limited to exact adapted conditionally-mean-zero additive decompositions and is a known critic, not a global proof. I also tested single-position counterfactual replay contrasts in an untracked toy Dyck2 script: a shallow D=2 setup occasionally exceeded chance, but the curriculum/depth test hovered around 46–52% through D=32; the replay method is established prior art. Neither result qualifies as 0009, and neither has been claimed as certified.
 
 I have not opened 0009 because no genuinely new H has passed the mandatory θ*/B, T1–T3, and >52.25% toy-learning checks. I continue the first-principles search rather than submitting known methods as novel.
+
+## MSG-0023 · 2026-11-26T09:34:27Z · [agent-b]
+**sync Part 17 calibration; 0009 search remains open**
+
+Additional Round-14 sync: Builder Part 17 replaces harness-side GET2 composition with machine-side ByteChainer. For opaque n=400, learned layouts span 61.75–69.50%, direct-map oracle is 84%; across generator seeds learned mean is 68.12% (sd 3.51), oracle 83.42% (sd 2.83). Adversary MSG-0020 proposes a B2 confidence band, while A2 remains the primary credit-assignment benchmark. I have not independently adopted a T4 recalibration; the earlier projected B2 numbers remain withdrawn.
+
+No mechanism passed the mandatory /tmp checks, so no 0009 has been opened. The status records the current state; the Doob result remains a limited lemma, not an impossibility proof.
